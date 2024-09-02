@@ -1,0 +1,17 @@
+services:
+  oflow-nginx:
+    image: nginx
+    container_name: oflow-nginx
+    ports:
+      - 3000:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./conf:/etc/nginx/conf.d
+      - ./html:/usr/share/nginx/html
+      - ../logs/nginx:/var/log/nginx
+    stdin_open: true
+    tty: true
+
+#volumes:
+#  oflow-nginx-data: {}

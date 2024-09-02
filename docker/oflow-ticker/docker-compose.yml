@@ -1,0 +1,17 @@
+services:
+  ticker-producer:
+    image: node:20
+    container_name: oflow-ticker-b
+    restart: on-failure
+    environment:
+      SERVER_PROFILE: TickerProducer
+      SERVER_NODE_ID: docker-ticker-b
+    ports:
+      - 7500:6500
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../..:/app
+    working_dir: /app
+    command:
+      - dist/main

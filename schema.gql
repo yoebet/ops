@@ -1,0 +1,135 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Query {
+  """列出所有交易所的ws实例"""
+  exWsAllInstances: [String!]!
+
+  """列出 ws实例"""
+  exWsInstances(input: ExWsShowInstancesInput!): [String!]!
+
+  """查看 ws实例 状态"""
+  exWsStatus(input: ExWsShowStatusInput!): [String!]!
+
+  """查看 ws实例运行的Symbol"""
+  exWsRunningSymbols(input: ExWsShowSymbolsInput!): [String!]!
+}
+
+input ExWsShowInstancesInput {
+  """交易所"""
+  exchange: ExAccountCode!
+}
+
+"""交易账户"""
+enum ExAccountCode {
+  okxUnified
+  binanceSpotMargin
+  binanceUsdM
+  binanceCoinM
+  bitfinexUnified
+  coinbaseUnified
+  bybitSpot
+  bybitCoinM
+  bybitUsdM
+  kucoinFutures
+  kucoinSpot
+  bitmexUnified
+}
+
+input ExWsShowStatusInput {
+  """交易所"""
+  exchange: ExAccountCode!
+  wsInstance: ExWsInstanceSelector
+
+  """状态类型"""
+  type: WsStatusType
+}
+
+input ExWsInstanceSelector {
+  """仅叶子实例（非组合实例）"""
+  leafOnly: Boolean
+
+  """ws实例 id"""
+  ids: String
+
+  """ws实例 category"""
+  category: String
+
+  """ws实例 instanceIndex"""
+  instanceIndex: Float
+
+  """包含此symbol的子实例（对多实例Subject而言）"""
+  forSymbol: String
+}
+
+"""ws 状态类型"""
+enum WsStatusType {
+  connection
+  connectionSpans
+  subjects
+}
+
+input ExWsShowSymbolsInput {
+  """交易所"""
+  exchange: ExAccountCode!
+  wsInstance: ExWsInstanceSelector
+
+  """ws 频道（subject）"""
+  channel: String
+}
+
+type Subscription {
+  """周期性查看ws实例状态"""
+  exWsObserveStatus(input: ExObserveStatusInput!): [String!]!
+
+  """抽样ws频道（subject）"""
+  exWsObserveChannel(input: ExObserveChannelInput!): [String!]!
+}
+
+input ExObserveStatusInput {
+  """交易所"""
+  exchange: ExAccountCode!
+  wsInstance: ExWsInstanceSelector
+
+  """最大观察元素数"""
+  maxTake: Float
+
+  """最大观察时间"""
+  maxSeconds: Float
+
+  """状态类型"""
+  type: WsStatusType
+
+  """间隔"""
+  interval: Float
+}
+
+input ExObserveChannelInput {
+  """交易所"""
+  exchange: ExAccountCode!
+  wsInstance: ExWsInstanceSelector
+
+  """最大观察元素数"""
+  maxTake: Float
+
+  """最大观察时间"""
+  maxSeconds: Float
+
+  """ws 频道（subject）"""
+  channel: String!
+
+  """最小间隔"""
+  minInterval: Float
+
+  """筛选"""
+  filter: ExObjFilter
+}
+
+input ExObjFilter {
+  """路径"""
+  path: String!
+
+  """值"""
+  value: String
+}

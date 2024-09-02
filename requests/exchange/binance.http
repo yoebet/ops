@@ -1,0 +1,84 @@
+// It is possible to specify client messages in request body. Use '===' to separate messages.
+// Add '=== wait-for-server' above a message to send it after a server response is received.
+// To wait for N responses, add '=== wait-for-server' N times.
+
+### 现货 ws btcusdt@trade
+WEBSOCKET wss://stream.binance.com:9443/ws
+Content-Type: application/json // We use it for highlighting
+
+===
+{
+  "method": "SUBSCRIBE",
+  "params": [
+    "btcusdt@trade"
+  ],
+  "id": 1
+}
+
+
+
+
+### U本位 ws btcusdt@trade
+WEBSOCKET wss://fstream.binance.com/ws
+Content-Type: application/json // We use it for highlighting
+
+===
+{
+  "method": "SUBSCRIBE",
+  "params": [
+    "btcusdt@trade"
+  ],
+  "id": 1
+}
+
+
+
+
+### 币本位 ws btcusd_perp@trade
+WEBSOCKET wss://dstream.binance.com/ws
+Content-Type: application/json // We use it for highlighting
+
+===
+{
+  "method": "SUBSCRIBE",
+  "params": [
+    "btcusd_perp@trade"
+  ],
+  "id": 1
+}
+
+
+
+
+### 现货历史成交
+GET https://api.binance.com/api/v3/historicalTrades?symbol=BTCUSDT&limit=100
+Accept: application/json
+X-MBX-APIKEY: WbwloDiOD2znYnG7bX54nDhfBZ9a9X4FgbsKKeHyOGtTy2qcV6i2kS3jcluQ4sTB
+
+
+
+
+### U本位历史成交
+GET https://fapi.binance.com/fapi/v1/historicalTrades?symbol=BTCUSDT&limit=100
+Accept: application/json
+X-MBX-APIKEY: WbwloDiOD2znYnG7bX54nDhfBZ9a9X4FgbsKKeHyOGtTy2qcV6i2kS3jcluQ4sTB
+
+
+
+
+### 币本位历史成交
+GET https://dapi.binance.com/dapi/v1/historicalTrades?symbol=BTCUSD_PERP&limit=100
+Accept: application/json
+X-MBX-APIKEY: WbwloDiOD2znYnG7bX54nDhfBZ9a9X4FgbsKKeHyOGtTy2qcV6i2kS3jcluQ4sTB
+
+
+
+
+### 币安 现货 交易对
+GET https://api.binance.com/api/v3/exchangeInfo
+
+### 币安 U本位 交易对
+GET https://fapi.binance.com/fapi/v1/exchangeInfo
+
+### 币安 币本位 交易对
+GET https://dapi.binance.com/dapi/v1/exchangeInfo

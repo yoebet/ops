@@ -1,0 +1,28 @@
+### kline
+GET http://{{oflowServer}}/oflow/data/kline/okx/BTC-USDT/1h?timeFrom=1673260628000
+Accept: application/json
+
+
+### footprint
+GET http://{{oflowServer}}/oflow/data/footprint/binance/BTC-PERP%2FBTC/1m?timeFrom=1674050160000&prl=1
+Accept: application/json
+
+
+### ticker
+GET http://{{oflowServer}}/oflow/data/ticker/okx/BTC-USDT?timeFrom=1673260628000
+Accept: application/json
+
+### kline agg
+GET http://{{oflowServer}}/oflow/data/kline/okx/BTC-USDT/1.m?timeFrom=1673260628000
+Accept: application/json
+
+
+### footprint agg
+GET http://{{oflowServer}}/oflow/data/footprint/binance/BTC-PERP/BTC/1m?timeFrom=1674050160000&prl=1&aggFields=[{"field":"bs","method":"sum"},{"field":"ba","method":"sum","name":"na"}]&groupFields=["ex"]
+Accept: application/json
+
+
+### ticker agg
+GET http://{{oflowServer}}/oflow/data/ticker/okx/BTC-USDT?timeFrom=1673260628000
+Accept: application/json
+

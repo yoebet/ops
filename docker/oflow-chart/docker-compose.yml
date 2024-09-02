@@ -1,0 +1,16 @@
+services:
+  tm-chart:
+    image: node:20
+    container_name: tm-chart
+    ports:
+      - 9000:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    working_dir: /app/frontend
+    volumes:
+      - tm-chart-data:/app
+    stdin_open: true
+    tty: true
+
+volumes:
+  tm-chart-data: {}

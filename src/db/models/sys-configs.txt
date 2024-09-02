@@ -1,0 +1,27 @@
+
+rdkafka.global (GlobalConfig)
+    metadata.broker.list    '16.163.190.201:9092'
+
+
+rdkafka.producer (ProducerGlobalConfig)
+
+rdkafka.consumer (ConsumerGlobalConfig)
+
+rdkafka.producer-topic (ProducerTopicConfig)
+    acks 0
+
+rdkafka.consumer-topic (ConsumerTopicConfig)
+    # auto.offset.reset   'largest'
+
+
+app.redis (IORedis.RedisOptions | IORedis.ClusterOptions)
+    host: '16.163.190.201',
+    port: 8379,
+    password: '221021',
+    db: 0,
+
+exchange.redis < app.redis (IORedis.RedisOptions | IORedis.ClusterOptions)
+    db: 1,
+
+bullmq.redis < app.redis (bullmq.RedisOptions | bullmq.ClusterOptions)
+    db: 2,

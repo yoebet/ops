@@ -1,0 +1,15 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: tm-timescaledb
+    volumes:
+      - timescaledb-data:/home/postgres/pgdata
+    ports:
+      - "15432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ASHooQxZtsw8BZm2MotjbP}
+      - POSTGRES_USER=tm
+      - POSTGRES_DB=tm
+
+volumes:
+  timescaledb-data: {}

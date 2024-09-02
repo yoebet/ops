@@ -1,0 +1,21 @@
+### GET request with parameter
+POST https://api-futures.kucoin.com/api/v1/bullet-public
+Content-Type: application/json
+
+
+### GET request with parameter
+GET https://api.kucoin.com/api/v2/symbols
+
+
+### Request with client messages
+// It is possible to specify client messages in request body. Use '===' to separate messages.
+// Add '=== wait-for-server' above a message to send it after a server response is received.
+// To wait for N responses, add '=== wait-for-server' N times.
+WEBSOCKET wss://ws-api-spot.kucoin.com?
+    token=2neAiuYvAU61ZDXANAGAsiL4-iAExhsBXZxftpOeh_55i3Ysy2q2LEsEWU64mdzUOPusi34M_wGoSf7iNyEWJ2BJ4fpyOvkJMlxbn9HurkwP47OO6sOhP9iYB9J6i9GjsxUuhPw3BlrzazF6ghq4L8RokwLZRJWotwKIZBdGuSw=.ckCQT0B7yMUW7DuXvOcDDg==
+Content-Type: application/json // We use it for highlighting
+
+### GET request with parameter
+GET https://www.baidu.com
+Content-Type: application/json
+

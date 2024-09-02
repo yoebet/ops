@@ -1,0 +1,14 @@
+
+### home
+GET http://{{oflowServer}}/
+
+
+### status
+GET http://{{oflowServer}}/status
+Accept: application/json
+
+
+### exchanges
+GET http://{{oflowServer}}/exchanges
+Accept: application/json
+
