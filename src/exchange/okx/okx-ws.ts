@@ -6,33 +6,30 @@ import {
   WsSubscription,
 } from '@/exchange/base/ws/ex-ws';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
-import { mergeId, WsStatus } from '@/exchange/base/ws/base-ws';
+import { mergeId } from '@/exchange/base/ws/base-ws';
 import {
   ExAccountCode,
   ExchangeCode,
+  ExKline,
+  ExKlineWithSymbol,
   ExTrade,
 } from '@/exchange/exchanges-types';
-import { TradeTicker } from '@/exchange/okx/types';
-import { TradeChannelEvent, WsCapacities } from '@/exchange/ws-capacities';
+import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
+import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-capacities';
+import { OkxRest } from '@/exchange/okx/rest';
+import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
 
-/**
- * https://www.okx.com/docs-v5/zh/#websocket-api
- */
-export class OkxWs extends ExWs implements WsCapacities {
-  static CHANNEL_TRADE = 'trades';
-
-  constructor(params: Partial<ExWsParams>) {
+abstract class OkxBaseWs extends ExWs {
+  protected constructor(params: Partial<ExWsParams>) {
     super(mergeId({ entityCode: ExAccountCode.okxUnified }, params));
-    this.symbolsAwareChannels = [OkxWs.CHANNEL_TRADE];
-    this.tickerSubjectForReconnectCheck = OkxWs.CHANNEL_TRADE;
   }
 
   protected heartbeat(): void {
     super.send('ping');
   }
 
-  protected async address(): Promise<string> {
-    return this.wsBaseUrl || `wss://wsaws.okx.com:8443/ws/v5/public`;
+  protected async subscribeWsChannel(ss: WsSubscription[]): Promise<void> {
+    await super.subscribeWsChannelChunked(ss, 500, 1000);
   }
 
   protected operateWsChannel(
@@ -49,29 +46,41 @@ export class OkxWs extends ExWs implements WsCapacities {
     this.sendJson(req);
   }
 
-  // 如果一次订阅所有频道（所有杠杆、永续、交割 symbols），发送消息过大，
-  // 会导致出错关闭（Max frame length of 65536 has been exceeded.）
-  // 故分批订阅
-  // chunkSize 500: 发送消息长度 22000 - 25000
-  protected async subscribeWsChannel(ss: WsSubscription[]): Promise<void> {
-    await super.subscribeWsChannelChunked(ss, 500, 1000);
-  }
-
-  protected async onMessageObj(obj: any): Promise<void> {
+  protected checkMessage(obj) {
     const event = obj.event;
     if (event) {
       if (event === 'subscribe' || event === 'unsubscribe') {
-        return;
+        return false;
       }
       if (event === 'error') {
         this.logError(obj, 'onMessageObj');
-        return;
+        return false;
       }
       this.logger.warn(`unknown event: ${event}`);
     }
+    return true;
+  }
+}
+
+class OkxTradeWs extends OkxBaseWs {
+  // https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-ws-trades-channel
+  static CHANNEL_TRADE = 'trades';
+
+  constructor(params: Partial<ExWsParams>) {
+    super(mergeId({ category: 'trade' }, params));
+  }
+
+  protected async address(): Promise<string> {
+    return this.wsBaseUrl || `wss://wsaws.okx.com:8443/ws/v5/public`;
+  }
+
+  protected async onMessageObj(obj: any): Promise<void> {
+    if (!this.checkMessage(obj)) {
+      return;
+    }
 
     const channel = obj.arg?.channel;
-    if (channel === OkxWs.CHANNEL_TRADE) {
+    if (channel === OkxTradeWs.CHANNEL_TRADE) {
       const trades = obj.data as TradeTicker[];
       if (trades.length === 0) {
         return;
@@ -87,14 +96,76 @@ export class OkxWs extends ExWs implements WsCapacities {
           side: t.side,
           ts: +t.ts,
         };
-        this.publishMessage(OkxWs.CHANNEL_TRADE, exTrade);
+        this.publishMessage(channel, exTrade);
         this.checkTradeConnectionResume(exTrade);
       }
     }
   }
 
   tradeSubject(): SymbolParamSubject<ExTrade> {
-    return this.symbolParamSubject(OkxWs.CHANNEL_TRADE);
+    return this.symbolParamSubject(OkxTradeWs.CHANNEL_TRADE);
+  }
+}
+
+class OkxKlineWs extends OkxBaseWs {
+  // https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-ws-candlesticks-channel
+  // candle30m,candle15m,candle5m,candle3m,candle1m,candle1s
+
+  constructor(params: Partial<ExWsParams>) {
+    super(mergeId({ category: 'kline' }, params));
+  }
+
+  protected async address(): Promise<string> {
+    return this.wsBaseUrl || `wss://wsaws.okx.com:8443/ws/v5/business`;
+  }
+
+  protected async onMessageObj(obj: any): Promise<void> {
+    if (!this.checkMessage(obj)) {
+      return;
+    }
+
+    const channel = obj.arg?.channel;
+    const symbol = obj.arg.instId;
+    if (channel.startsWith('candle')) {
+      let candles = obj.data as CandleRawDataOkx[];
+      if (!this.candleIncludeLive) {
+        candles = candles.filter((c) => c[8] === '1');
+      }
+      const klines = OkxRest.toCandles(candles);
+      for (const kl of klines) {
+        (kl as ExKlineWithSymbol).rawSymbol = symbol;
+        this.publishMessage(channel, kl);
+      }
+    }
+  }
+
+  klineSubject(interval: string): SymbolParamSubject<ExKlineWithSymbol> {
+    const channelName = `candle${OkxRest.toCandleInv(interval)}`;
+    return this.symbolParamSubject(channelName);
+  }
+}
+
+/**
+ * https://www.okx.com/docs-v5/zh/#websocket-api
+ */
+export class OkxWs extends ExWsComposite implements ExchangeWs {
+  tradeWs: OkxTradeWs;
+  klineWs: OkxKlineWs;
+
+  constructor(params: Partial<ExWsParams>) {
+    super(mergeId({ entityCode: ExAccountCode.okxUnified }, params));
+
+    this.tradeWs = new OkxTradeWs(params);
+    this.klineWs = new OkxKlineWs(params);
+    this.wss = [this.tradeWs, this.klineWs];
+  }
+
+  tradeSubject(): SymbolParamSubject<ExTrade> {
+    return this.tradeWs.tradeSubject();
+  }
+
+  klineSubject(interval: string): SymbolParamSubject<ExKlineWithSymbol> {
+    return this.klineWs.klineSubject(interval);
   }
 
   tradeConnectionEvent(): Rx.Observable<TradeChannelEvent> {

@@ -1,28 +1,20 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import {
-  ExRestError,
-  ExRestErrorType,
-} from '@/exchange/base/errors/ex-rest.error';
+import axios, { AxiosRequestConfig } from 'axios';
 import { entries, isNil } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
 import {
   ExRestParams,
-  Candle,
   ExRestReqBuildParams,
   ExRestReqConfig,
   ExRestRes,
-  FetchCandleParam,
-  FetchHistoryTradeParam,
-  FetchTradeParam,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode, ExTrade } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/exchange/exchanges-types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export abstract class ExRest {
   private readonly defaultScheme: string;
   private readonly defaultHost: string;
-  private readonly logger?: AppLogger;
   private readonly proxies?: string[];
+  protected readonly logger?: AppLogger;
 
   protected exAccount: ExAccountCode;
 
@@ -106,7 +98,7 @@ export abstract class ExRest {
     const defaultConfig: AxiosRequestConfig = {
       // timeout: 5000,
       // 默认不根据 http status 来抛错误
-      validateStatus: () => true,
+      // validateStatus: () => true,
     };
 
     if (this.proxies && this.proxies.length > 0) {
@@ -120,41 +112,14 @@ export abstract class ExRest {
     // 子类构造的配置
     const config = await this.buildReq(p);
 
-    let res: AxiosResponse;
-    try {
-      // 发起请求
-      const axiosRequestConfig: AxiosRequestConfig = {
-        ...defaultConfig,
-        // 子类的配置可以覆盖默认配置
-        ...config,
-      };
-      this.logger?.debug(config.url);
-      res = await axios.request(axiosRequestConfig);
-    } catch (e) {
-      // 包装一下错误
-      throw new ExRestError(`Request failed`, {
-        errType: ExRestErrorType.networkErr,
-        url: config.url,
-        errMsg: e,
-        response: res,
-      });
-    }
+    const axiosRequestConfig: AxiosRequestConfig = {
+      ...defaultConfig,
+      // 子类的配置可以覆盖默认配置
+      ...config,
+    };
+    this.logger?.debug(config.url);
+    const res = await axios.request(axiosRequestConfig);
 
-    // 处理返回中的错误
-    try {
-      await this.handleResErrs(res);
-    } catch (e) {
-      if (
-        !(
-          e instanceof ExRestError &&
-          e.details &&
-          [ExRestErrorType.noNeedErr].includes(e.details.errType)
-        )
-      ) {
-        this.logger?.error(e);
-      }
-      throw e;
-    }
     return res;
   }
 
@@ -168,21 +133,4 @@ export abstract class ExRest {
   protected abstract buildReq(
     p: ExRestReqBuildParams,
   ): Promise<ExRestReqConfig>;
-
-  /**
-   * 处理服务器返回的错误
-   */
-  protected async handleResErrs(res: ExRestRes): Promise<void> {
-    if (res.status !== 200) {
-      throw ExRestError.fromResponse(`Failed with status: ${res.status}`, res);
-    }
-  }
-
-  public abstract getCandlesticks(params: FetchCandleParam): Promise<Candle[]>;
-
-  public abstract getTrades(params: FetchTradeParam): Promise<ExTrade[]>;
-
-  public abstract getHistoryTrades(
-    params: FetchHistoryTradeParam,
-  ): Promise<ExTrade[]>;
 }

@@ -4,19 +4,16 @@ import {
   observeWsStatus,
   observeWsSubject,
 } from '@/common/test/test-utils.spec';
-import { BinanceSpotMarginWs } from '@/exchange/binance/binance-spot-margin-ws';
-import { BinanceUsdMWs } from '@/exchange/binance/binance-usd-m-ws';
-import { BinanceCoinMWs } from '@/exchange/binance/binance-coin-m-ws';
+import { BinanceSpotWs } from '@/exchange/binance/binance-spot-ws';
 
 const symbol_BTC_USDT = 'BTCUSDT';
-const symbol_BTC_PERP_USDT = 'BTCUSDT';
-const symbol_BTC_PERP_BTC = 'BTCUSD_PERP';
+const symbol_ETH_USDT = 'ETHUSDT';
 
 jest.setTimeout(5000_000);
 
 describe('binance-ws', () => {
   it('spot', async () => {
-    const ws = new BinanceSpotMarginWs(exWsParams());
+    const ws = new BinanceSpotWs(exWsParams());
     observeWsStatus(ws);
 
     const subject = ws.tradeSubject();
@@ -30,26 +27,13 @@ describe('binance-ws', () => {
     await wait(100_000);
   });
 
-  it('um', async () => {
-    const ws = new BinanceUsdMWs(exWsParams());
-    observeWsStatus(ws);
+  it('spot kline', async () => {
+    const ws = new BinanceSpotWs(exWsParams());
+    // ws.logMessage = true;
+    // observeWsStatus(ws);
 
-    const subject = ws.tradeSubject();
-    subject.subs([symbol_BTC_PERP_USDT]);
-
-    observeWsSubject(subject.get());
-
-    await wait(200_000);
-    ws.shutdown();
-
-    await wait(100_000);
-  });
-
-  it('cm', async () => {
-    const ws = new BinanceCoinMWs(exWsParams());
-    observeWsStatus(ws);
-    const subject = ws.tradeSubject();
-    subject.subs([symbol_BTC_PERP_BTC]);
+    const subject = ws.klineSubject('1s');
+    subject.subs([symbol_BTC_USDT, symbol_ETH_USDT]);
 
     observeWsSubject(subject.get());
 

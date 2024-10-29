@@ -1,0 +1,14 @@
+
+### home
+GET http://{{server}}/
+
+
+### status
+GET http://{{server}}/status
+Accept: application/json
+
+
+### exchanges
+GET http://{{server}}/exchanges
+Accept: application/json
+

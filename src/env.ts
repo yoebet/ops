@@ -6,9 +6,8 @@ import {
   PartialConfig,
 } from './common/config.types';
 import { ServerRole } from '@/common/server-profile.type';
-import { ExchangeCode } from '@/exchange/exchanges-types';
 
-export const DB_SCHEMA = 'tm';
+export const DB_SCHEMA = 'md';
 
 const DefaultConfig: PartialConfig = {
   http: {
@@ -19,9 +18,18 @@ const DefaultConfig: PartialConfig = {
     name: DB_SCHEMA,
     schema: DB_SCHEMA,
     type: 'postgres',
-    database: 'tm',
+    database: 'ops',
     host: 'postgres',
-    port: 15432,
+    port: 25432,
+  },
+  redis: {
+    host: 'localhost',
+    port: 26379,
+  },
+  bullmq: {
+    redis: {
+      db: 1,
+    },
   },
   log: {
     levels: ['log', 'error', 'warn'],
@@ -30,11 +38,16 @@ const DefaultConfig: PartialConfig = {
       simplifySql: true,
     },
   },
-  kafkaConfig: {
+  kafka: {
+    brokerList: 'localhost:9092',
     clientId: 'dev1',
     consumerGroupId: 'dev1',
   },
-  orderFlowWs: {
+  exchange: {
+    // socksProxies: ['socks://127.0.0.1:1080'],
+    publishKafka: false,
+  },
+  dataWs: {
     cors: {
       // origin: '*',
       origin: ['http://localhost', 'http://localhost:3000'],
@@ -42,28 +55,28 @@ const DefaultConfig: PartialConfig = {
     },
   },
   predefinedProfiles: {
-    runAll: {
+    RunAll: {
       httpPort: 5000,
-      [ServerRole.TickerProducer]: {},
-      [ServerRole.DataPublisher]: {},
-      [ServerRole.OflowServer]: {},
+      // [ServerRole.Exws]: {},
+      [ServerRole.Worker]: {},
+      [ServerRole.DataServer]: {},
     },
-    [ServerRole.TickerProducer]: {
+    [ServerRole.Exws]: {
       httpPort: 6500,
-      [ServerRole.TickerProducer]: {
+      [ServerRole.Exws]: {
         // exCodes: [ExchangeCode.binance],
       },
     },
-    [ServerRole.DataPublisher]: {
+    [ServerRole.Worker]: {
       httpPort: 7000,
-      [ServerRole.DataPublisher]: {},
+      [ServerRole.Worker]: {},
     },
-    [ServerRole.OflowServer]: {
+    [ServerRole.DataServer]: {
       httpPort: 5000,
-      [ServerRole.OflowServer]: {},
+      [ServerRole.DataServer]: {},
     },
   },
-  serverProfile: ServerRole.OflowServer,
+  serverProfile: ServerRole.DataServer,
   serverNodeId: 'prod',
 };
 

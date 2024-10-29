@@ -27,7 +27,7 @@ describe('ExchangeRestService', () => {
     });
 
     it('binance-spot', async () => {
-      const rest = restService.getExRest(ExAccountCode.binanceSpotMargin);
+      const rest = restService.getExRest(ExAccountCode.binanceSpot);
       const trades = await rest.getTrades({
         symbol: 'BTCUSDT',
         limit: 20,

@@ -1,25 +1,38 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { ExchangeSymbolEnabled } from '@/db/models/exchange-symbol-enabled';
+import { ExSymbolEnabled } from '@/db/models/ex-symbol-enabled';
 
 @Injectable()
 export class SymbolService implements OnModuleInit {
-  private exchangeSymbols: ExchangeSymbolEnabled[] = [];
+  private exchangeSymbols: ExSymbolEnabled[] = [];
   // exAccount:symbol -> rawSymbol
   private rawSymbolMap = new Map<string, string>();
   // exAccount:rawSymbol -> ExchangeSymbol
-  private exchangeSymbolMap = new Map<string, ExchangeSymbolEnabled>(); // with SymbolConfig
+  private exchangeSymbolMap = new Map<string, ExSymbolEnabled>(); // with unifiedConfig
 
   constructor(private logger: AppLogger) {
     logger.setContext('symbol-service');
   }
 
   async onModuleInit() {
-    const sc: keyof ExchangeSymbolEnabled = 'symbolConfig';
-    const ess = await ExchangeSymbolEnabled.find({
+    // await this.reload();
+  }
+
+  async ensureLoaded() {
+    if (this.exchangeSymbols.length === 0) {
+      await this.reload();
+    }
+  }
+
+  async reload() {
+    const sc: keyof ExSymbolEnabled = 'unifiedSymbol';
+    const ess = await ExSymbolEnabled.find({
       relations: [sc],
     });
     this.exchangeSymbols = ess;
+
+    this.exchangeSymbolMap.clear();
+    this.rawSymbolMap.clear();
     for (const es of ess) {
       const rawSymbolKey = this.genExSymbolKey(es.exAccount, es.rawSymbol);
       this.exchangeSymbolMap.set(rawSymbolKey, es);

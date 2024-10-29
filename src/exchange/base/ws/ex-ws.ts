@@ -22,6 +22,7 @@ const zhDuration = humanizeDuration.humanizer({
 
 export interface ExWsParams extends BaseExWsParams {
   readonly wsBaseUrl?: string;
+  readonly candleIncludeLive?: boolean;
 }
 
 export type WsChannelOp = 'SUBSCRIBE' | 'UNSUBSCRIBE';
@@ -110,9 +111,12 @@ export abstract class ExWs extends BaseWs {
     ChannelConnectionEvent<any>
   >();
 
+  candleIncludeLive = false;
+
   protected constructor(params: ExWsParams) {
     super(params);
     this.wsBaseUrl = params.wsBaseUrl;
+    this.candleIncludeLive = params.candleIncludeLive || false;
   }
 
   protected checkNeedReconnect(): boolean {

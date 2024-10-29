@@ -1,5 +1,4 @@
 import { Controller, Get, Post } from '@nestjs/common';
-import * as Rx from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
 import { KafkaClientsService } from '@/data-service/kafka-clients.service';
 

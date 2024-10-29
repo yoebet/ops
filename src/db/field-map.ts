@@ -1,8 +1,8 @@
 export enum ColumnDB {
   ts = 'time',
   // tradeId = 'trade_id',
-  btds = 'bc',
-  stds = 'sc',
+  // btds = 'bc',
+  // stds = 'sc',
   // partId = 'part_id',
 }
 

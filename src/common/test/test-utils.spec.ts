@@ -4,8 +4,8 @@ import * as Rx from 'rxjs';
 import { ExWs, ExWsParams } from '@/exchange/base/ws/ex-ws';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { Agent } from 'http';
-import { TestConfig } from '@/test/test-config.spec';
-import { getTsNow, tsToISO8601, wait } from '@/common/utils/utils';
+import { TestConfig } from '@/env.local.tset';
+import { wait } from '@/common/utils/utils';
 
 jest.setTimeout(50_000);
 
@@ -47,8 +47,10 @@ export function observeWsSubject(
 }
 
 export const getAgent = (): Agent | undefined => {
-  const proxyUrl = TestConfig.exchange.socksProxyUrl;
-  return proxyUrl ? new SocksProxyAgent(proxyUrl) : undefined;
+  const proxyUrl = TestConfig.exchange.socksProxies;
+  return proxyUrl && proxyUrl.length > 0
+    ? new SocksProxyAgent(proxyUrl[0])
+    : undefined;
 };
 
 export function exWsParams(): Partial<ExWsParams> {
@@ -56,11 +58,6 @@ export function exWsParams(): Partial<ExWsParams> {
     agent: getAgent(),
   };
 }
-
-test('toISO8601', async () => {
-  console.log(tsToISO8601(1669199092536));
-  await wait(2_000);
-});
 
 test('floor', async () => {
   const a = Math.floor(1669199092536 / 1000);
@@ -71,11 +68,7 @@ test('floor', async () => {
 });
 
 test('nextMonth', async () => {
-  const date = new Date(getTsNow() + 32 * 24 * 60 * 60 * 1000); //起始时间32天之后 一定是下个月
+  const date = new Date(Date.now() + 32 * 24 * 60 * 60 * 1000); //起始时间32天之后 一定是下个月
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth()));
   console.log(d.getTime());
-});
-
-test('tsNow', async () => {
-  console.log(getTsNow());
 });

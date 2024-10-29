@@ -1,0 +1,20 @@
+### exchanges
+GET http://{{server}}/oflow/meta/exchanges
+Accept: application/json
+
+### exAccounts
+GET http://{{server}}/oflow/meta/exAccounts
+Accept: application/json
+
+### symbols
+GET http://{{server}}/oflow/meta/symbols
+Accept: application/json
+
+### exSymbols
+GET http://{{server}}/oflow/meta/exSymbols
+Accept: application/json
+
+### intervals
+GET http://{{server}}/oflow/meta/intervals
+Accept: application/json
+

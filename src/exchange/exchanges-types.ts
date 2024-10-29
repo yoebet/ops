@@ -1,40 +1,22 @@
-import { registerEnumType } from '@nestjs/graphql';
 import { TradeSide } from '@/db/models-data/base';
+import { OFlowKline } from '@/data-service/models/klines';
 
 export enum ExchangeCode {
   binance = 'binance',
   okx = 'okx',
-  // ftx = 'ftx',
-  bitfinex = 'bitfinex',
-  coinbase = 'coinbase',
-  bybit = 'bybit',
-  kucoin = 'kucoin',
-  bitmex = 'bitmex',
 }
 
 export enum ExAccountCode {
   okxUnified = 'okx-unified',
-  binanceSpotMargin = 'binance-spot-margin',
-  binanceUsdM = 'binance-usd-m',
-  binanceCoinM = 'binance-coin-m',
-  bitfinexUnified = 'bitfinex-unified',
-  coinbaseUnified = 'coinbase-unified',
-  bybitSpot = 'bybit-spot',
-  bybitCoinM = 'bybit-coin-m',
-  bybitUsdM = 'bybit-usd-m',
-  kucoinFutures = 'kucoin-futures',
-  kucoinSpot = 'kucoin-spot',
-  bitmexUnified = 'bitmex-unified',
+  binanceSpot = 'binance-spot',
+  binanceUm = 'binance-usd-m',
+  binanceCm = 'binance-coin-m',
 }
 
 export enum ExMarket {
   spot = 'spot', //现货
-
   perp = 'perp', //正向永续
-  perp_inverse = 'perp_inv', //反向永续
-
-  future = 'future', //正向交割
-  future_inverse = 'future_inv', //反向交割
+  perp_inv = 'perp_inv', //反向永续
 }
 
 export interface ExTrade {
@@ -49,19 +31,8 @@ export interface ExTrade {
   ts: number; // ms
 }
 
-// *********** graphql ***********
+export type ExKline = OFlowKline;
 
-registerEnumType(ExchangeCode, {
-  name: 'ExchangeCode',
-  description: '交易所',
-});
-
-registerEnumType(ExAccountCode, {
-  name: 'ExAccountCode',
-  description: '交易账户',
-});
-
-registerEnumType(ExMarket, {
-  name: 'ExMarket',
-  description: '市场',
-});
+export interface ExKlineWithSymbol extends ExKline {
+  rawSymbol: string;
+}

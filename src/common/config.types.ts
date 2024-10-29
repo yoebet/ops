@@ -4,6 +4,7 @@ import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
 import { isArray, mergeWith } from 'lodash';
 import { GatewayMetadata } from '@nestjs/websockets/interfaces/gateway-metadata.interface';
 import { ServerProfile } from '@/common/server-profile.type';
+import { RedisOptions } from 'ioredis';
 
 export interface HttpConfig {
   host?: string;
@@ -35,14 +36,15 @@ export interface WsAdminUIConfig {
   mode?: 'development' | 'production';
 }
 
-export interface OrderFlowWsConfig {
+export interface DataWsConfig {
   cors?: GatewayMetadata['cors'];
   adminUi?: WsAdminUIConfig;
 }
 
 export interface KafkaConfig {
-  clientId: string;
-  consumerGroupId: string;
+  brokerList?: string;
+  clientId?: string;
+  consumerGroupId?: string;
 }
 
 export interface AuthConfig {
@@ -56,11 +58,17 @@ export interface AuthConfig {
 export interface Config {
   http: HttpConfig;
   db: Partial<ConnectionOptions>;
+  redis: RedisOptions;
+  bullmq: {
+    redis: RedisOptions;
+  };
   log: LogConfig;
-  kafkaConfig: KafkaConfig;
-  orderFlowWs: OrderFlowWsConfig;
-  restAgents?: string[];
-  wsAgentUrl?: string;
+  kafka: KafkaConfig;
+  dataWs: DataWsConfig;
+  exchange: {
+    socksProxies?: string[];
+    publishKafka?: boolean;
+  };
   auth: AuthConfig;
   predefinedProfiles: Record<string, ServerProfile>;
   serverProfile: string;
@@ -69,10 +77,17 @@ export interface Config {
 
 export type PartialConfig = Partial<Config>;
 
-export function mergeConfig(a: PartialConfig, b: PartialConfig) {
-  return mergeWith(a, b, (objValue, srcValue) => {
+export function mergeConfig(obj: PartialConfig, source: PartialConfig) {
+  return mergeWith(obj, source, (objValue, srcValue) => {
     if (isArray(srcValue)) {
       return srcValue;
     }
   });
+}
+
+export function bullmqRedis(config: Config): RedisOptions {
+  return {
+    ...config.redis,
+    ...config.bullmq.redis,
+  };
 }

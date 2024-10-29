@@ -1,0 +1,22 @@
+### list queues
+GET http://{{server}}/jobs/board/api/queues
+Content-Type: application/json
+
+
+### add queue
+PUT http://{{server}}/jobs/board/queue
+Content-Type: application/json
+
+{
+  "queue": "load/1d"
+}
+
+
+### remove queue
+DELETE http://{{server}}/jobs/board/queue
+Content-Type: application/json
+
+{
+  "queue": "load/1d"
+}
+

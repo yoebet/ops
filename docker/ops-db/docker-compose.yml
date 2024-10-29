@@ -1,0 +1,15 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: ops-db
+    volumes:
+      - opsdb-data:/home/postgres/pgdata
+    ports:
+      - "25432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-uuui76eicbf20n5x}
+      - POSTGRES_USER=ops
+      - POSTGRES_DB=ops
+
+volumes:
+  opsdb-data: { }

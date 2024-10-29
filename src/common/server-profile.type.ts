@@ -1,9 +1,10 @@
 import { ExchangeCode } from '@/exchange/exchanges-types';
 
 export enum ServerRole {
-  TickerProducer = 'TickerProducer',
-  DataPublisher = 'DataPublisher',
-  OflowServer = 'OflowServer',
+  Exws = 'Exws',
+  Worker = 'Worker',
+  Admin = 'Admin',
+  DataServer = 'DataServer',
 }
 
 export interface TaskScope {
@@ -13,7 +14,7 @@ export interface TaskScope {
 
 export interface ServerProfile {
   httpPort?: number;
-  [ServerRole.TickerProducer]?: TaskScope;
-  [ServerRole.DataPublisher]?: TaskScope;
-  [ServerRole.OflowServer]?: TaskScope;
+  [ServerRole.Exws]?: TaskScope;
+  [ServerRole.Worker]?: TaskScope;
+  [ServerRole.DataServer]?: TaskScope;
 }

@@ -1,0 +1,10 @@
+### kfk/consumers/stats
+GET http://{{server}}/admin/kfk/consumers/stats
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJZSUhRUG9CeWhwOXhYZFdWIiwicm9sZSI6Im5vcm1hbCIsImxvY2FsZSI6ImVuLVVTIiwiaWF0IjoxNjc4Njc1Njg2fQ.VEnov_54OGpsgaNq-pIF_dB2vJpSYZ3Ah7oS3zrL_y0
+
+### kfk/producer/stats
+GET http://{{server}}/admin/kfk/producer/stats
+
+### kfk/sendTestMsg
+POST http://{{server}}/admin/kfk/sendTestMsg
+

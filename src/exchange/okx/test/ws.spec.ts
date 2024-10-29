@@ -11,6 +11,7 @@ const symbol_BTC_PERP_BTC = 'BTC-USD-SWAP';
 const symbol_BTC_PERP_USDT = 'BTC-USDT-SWAP';
 
 const ws = new OkxWs(exWsParams());
+// ws.logMessage = true;
 
 jest.setTimeout(5000_000);
 
@@ -47,6 +48,19 @@ describe('okx-ws', () => {
     observeWsStatus(ws);
     const subject = ws.tradeSubject();
     subject.subs([symbol_BTC_PERP_BTC]);
+
+    observeWsSubject(subject.get());
+
+    await wait(200_000);
+    ws.shutdown();
+
+    await wait(100_000);
+  });
+
+  it('kline', async () => {
+    // observeWsStatus(ws);
+    const subject = ws.klineSubject('1m');
+    subject.subs([symbol_BTC_USDT]);
 
     observeWsSubject(subject.get());
 

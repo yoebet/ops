@@ -1,0 +1,52 @@
+
+### /loggers/all
+GET http://{{server}}/admin/loggers/all
+
+### /loggers/grep
+POST http://{{server}}/admin/loggers/grep
+Content-Type: application/json
+
+{
+  "context": "admin-logger"
+}
+
+### /loggers/setLevel add, ticker
+POST http://{{server}}/admin/loggers/setLevel
+Content-Type: application/json
+
+{
+  "context": "kafka-producer:TickerObserverAll",
+  "op": "add",
+  "level": "verbose"
+}
+
+### /loggers/setLevel remove, ticker
+POST http://{{server}}/admin/loggers/setLevel
+Content-Type: application/json
+
+{
+  "context": "kafka-producer:TickerObserverAll",
+  "op": "remove",
+  "level": "verbose"
+}
+
+### /loggers/setLevel add, rollup-1s
+POST http://{{server}}/admin/loggers/setLevel
+Content-Type: application/json
+
+{
+  "context": "kafka-producer:TickerObserverRollup1s Footprint",
+  "op": "add",
+  "level": "verbose"
+}
+
+### /loggers/setLevel remove, rollup-1s
+POST http://{{server}}/admin/loggers/setLevel
+Content-Type: application/json
+
+{
+  "context": "kafka-producer:TickerObserverRollup1s Footprint",
+  "op": "remove",
+  "level": "verbose"
+}
+

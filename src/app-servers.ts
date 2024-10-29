@@ -1,13 +1,12 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ServerProfile, ServerRole } from '@/common/server-profile.type';
-import { TickerProducerService } from '@/data-ticker/ticker-producer.service';
+import { ExWsService } from '@/data-ex-ws/ex-ws.service';
 import { AppLogger } from '@/common/app-logger';
-import { DataPublishService } from '@/data-publish/data-publish.service';
 import * as gitRepoInfo from 'git-repo-info';
 import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
 import { ServerInstanceLog } from '@/db/models/server-instance-log';
-import { TickerPatcherService } from '@/data-ticker/ticker-patcher.service';
+import { JobsService } from '@/job/jobs.service';
 
 @Injectable()
 export class AppServers implements OnModuleInit, OnModuleDestroy {
@@ -18,9 +17,8 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     protected configService: ConfigService<Config>,
-    protected tickerProducerService: TickerProducerService,
-    protected tickerPatcherService: TickerPatcherService,
-    protected dataPublishService: DataPublishService,
+    protected tickerProducerService: ExWsService,
+    protected jobsService: JobsService,
     private logger: AppLogger,
   ) {
     logger.setContext('app-servers');
@@ -57,19 +55,18 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
 
     this.sil.profileName = profileName;
     this.sil.profile = serverProfile;
-    ServerInstanceLog.save(this.sil).catch((e) => this.logger.error(e));
+    ServerInstanceLog.save(this.sil).catch(onErr);
 
     const {
-      [ServerRole.TickerProducer]: tickerProducerProfile,
-      [ServerRole.DataPublisher]: dataPublisherProfile,
-      [ServerRole.OflowServer]: OflowServerProfile,
+      [ServerRole.Exws]: tickerProducerProfile,
+      [ServerRole.Worker]: workerProfile,
+      [ServerRole.DataServer]: _dataServerProfile,
     } = serverProfile;
     if (tickerProducerProfile) {
       this.tickerProducerService.start(tickerProducerProfile).catch(onErr);
-      this.tickerPatcherService.startTaskScheduler().catch(onErr);
     }
-    if (dataPublisherProfile) {
-      this.dataPublishService.start(dataPublisherProfile).catch(onErr);
+    if (workerProfile) {
+      this.jobsService.startWorker(workerProfile).catch(onErr);
     }
   }
 }

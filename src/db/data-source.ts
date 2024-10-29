@@ -33,7 +33,7 @@ export const getConnectionOptions = (): ConnectionOptions => {
   return {
     ...DbConfig,
     synchronize: false,
-    entityPrefix: 't_',
+    // entityPrefix: 't_',
     entities: [join(__dirname, 'models', '**', '*{.ts,.js}')],
     migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
     namingStrategy: new SnakeNamingStrategy(),

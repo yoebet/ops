@@ -1,8 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { isEmpty } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
-import { SysConfigService } from '@/common-services/sys-config.service';
-import { SysConfigScope } from '@/common/sys-config.type';
 import { KafkaConsumer } from '@/data-service/kafka/kafka-consumer';
 import {
   ConsumerGlobalConfig,
@@ -17,6 +14,7 @@ import {
 } from '@/data-service/kafka/kafka-cli';
 import { KafkaProducer } from '@/data-service/kafka/kafka-producer';
 import { wait } from '@/common/utils/utils';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class KafkaClientsService implements OnModuleInit {
@@ -26,46 +24,25 @@ export class KafkaClientsService implements OnModuleInit {
   private consumerClients = new Map<string, KafkaConsumer>();
   private producerClients = new Map<string, KafkaProducer>();
 
-  private initOk = false;
-
   constructor(
-    private sysConfigService: SysConfigService,
+    private configService: ConfigService,
     private logger: AppLogger,
   ) {
     logger.setContext('kafka-clients');
   }
 
   async onModuleInit() {
-    const configs = await this.sysConfigService.getScopesConfigs(
-      SysConfigScope.rdkafkaGlobal,
-      SysConfigScope.rdkafkaConsumer,
-      SysConfigScope.rdkafkaProducer,
-    );
-    const commonConfig: GlobalConfig = configs[SysConfigScope.rdkafkaGlobal];
-    const consumerConfig: GlobalConfig =
-      configs[SysConfigScope.rdkafkaConsumer];
-    const producerConfig: GlobalConfig =
-      configs[SysConfigScope.rdkafkaProducer];
-
-    this.logger.debug(commonConfig, `kafka: common config`);
-    if (!isEmpty(consumerConfig)) {
-      this.logger.debug(consumerConfig, `kafka: consumer config`);
-    }
-    if (!isEmpty(producerConfig)) {
-      this.logger.debug(producerConfig, `kafka: producer config`);
-    }
-
-    this.consumerConfig = { ...commonConfig, ...consumerConfig };
-    this.producerConfig = { ...commonConfig, ...producerConfig };
-    this.initOk = true;
-  }
-
-  getConsumerClient<T>(clientKey: string): KafkaConsumer | undefined {
-    return this.consumerClients.get(clientKey);
-  }
-
-  getProducerClient<T>(clientKey: string): KafkaProducer | undefined {
-    return this.producerClients.get(clientKey);
+    const kafkaConfig = this.configService.get('kafka');
+    const commonConfig: GlobalConfig = {
+      'metadata.broker.list': kafkaConfig['brokerList'],
+      'client.id': kafkaConfig['clientId'],
+    };
+    this.consumerConfig = {
+      ...commonConfig,
+      'group.id': kafkaConfig['consumerGroupId'],
+      'security.protocol': 'plaintext',
+    };
+    this.producerConfig = { ...commonConfig };
   }
 
   getOrBuildConsumer<T>(
@@ -88,9 +65,6 @@ export class KafkaClientsService implements OnModuleInit {
     topicConf: ProducerTopicConfig,
     options: KafkaProducerOptions<T>,
   ): Promise<KafkaProducer> {
-    while (!this.initOk) {
-      await wait(100);
-    }
     let cli = this.producerClients.get(clientKey);
     if (cli) {
       return cli;

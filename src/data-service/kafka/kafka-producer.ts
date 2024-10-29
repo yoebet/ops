@@ -12,10 +12,6 @@ import {
 import { ProducerGlobalConfig, ProducerTopicConfig } from 'node-rdkafka/config';
 import { KafkaCli, KafkaProducerOptions } from '@/data-service/kafka/kafka-cli';
 import { wait } from '@/common/utils/utils';
-import {
-  mergeProducerConfig,
-  mergeProducerTopicConfig,
-} from '@/data-service/kafka/config';
 
 const QUEUE_FULL_DELAY = 100;
 
@@ -31,8 +27,10 @@ export class KafkaProducer<T = any> extends KafkaCli {
     protected options: KafkaProducerOptions<T>,
   ) {
     super(options);
-    this.producerConf = mergeProducerConfig(producerConf);
-    this.topicConf = mergeProducerTopicConfig(topicConf);
+    this.topicConf = {
+      acks: 0,
+      ...topicConf,
+    };
     this.partitioner = options.partitioner;
     this.keyGenerator = options.keyGenerator;
   }

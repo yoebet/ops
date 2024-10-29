@@ -1,4 +1,3 @@
-import { OFlowKline } from '@/data-service/models/klines';
 import { AppLogger } from '@/common/app-logger';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ExAccountCode } from '@/exchange/exchanges-types';
@@ -38,25 +37,3 @@ export type ExRestReqConfig = Omit<AxiosRequestConfig, 'method' | 'url'> & {
   url: string;
 };
 export type ExRestRes = AxiosResponse;
-
-export type Candle = OFlowKline;
-
-export interface FetchCandleParam {
-  symbol: string;
-  interval: string;
-  startTime?: number;
-  endTime?: number;
-  limit?: number;
-}
-
-export interface FetchTradeParam {
-  symbol: string;
-  limit?: number;
-}
-
-export interface FetchHistoryTradeParam {
-  symbol: string;
-  fromId?: string;
-  toId?: string;
-  limit?: number;
-}

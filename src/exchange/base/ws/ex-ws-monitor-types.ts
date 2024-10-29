@@ -1,5 +1,4 @@
 import { InstanceCriteria } from '@/exchange/base/ws/base-ws';
-import { registerEnumType } from '@nestjs/graphql';
 
 export enum SwitchOp {
   on = 'on',
@@ -86,18 +85,3 @@ export interface CmdObserveChannel extends BaseStreamCommand {
 }
 
 export type MonitorStreamCommand = CmdObserveStatus | CmdObserveChannel;
-
-registerEnumType(MonitorCommandName, {
-  name: 'ExMonitorCommandName',
-  description: 'ws监控命令',
-});
-
-registerEnumType(WsStatusType, {
-  name: 'WsStatusType',
-  description: 'ws 状态类型',
-});
-
-registerEnumType(SwitchOp, {
-  name: 'SwitchOp',
-  description: '开关',
-});

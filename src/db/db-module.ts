@@ -5,8 +5,9 @@ import {
   getDataSourceByName,
 } from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { getConnectionOptions } from '@/db/data-source';
-import { DB_SCHEMA } from '@/env';
+import { DB_SCHEMA, Env } from '@/env';
 
 @Module({
   imports: [
@@ -24,6 +25,11 @@ import { DB_SCHEMA } from '@/env';
           })
         );
       },
+    }),
+    RedisModule.forRoot({
+      type: 'single',
+      // url: 'redis://localhost:6379',
+      options: Env.redis,
     }),
   ],
   exports: [TypeOrmModule],

@@ -16,10 +16,6 @@ import {
   KafkaCli,
   KafkaCliOptions,
 } from '@/data-service/kafka/kafka-cli';
-import {
-  mergeConsumerConfig,
-  mergeConsumerTopicConfig,
-} from '@/data-service/kafka/config';
 
 export class KafkaConsumer<T = any> extends KafkaCli {
   protected consumer: Consumer;
@@ -32,8 +28,14 @@ export class KafkaConsumer<T = any> extends KafkaCli {
     protected options: KafkaCliOptions,
   ) {
     super(options);
-    this.consumerConf = mergeConsumerConfig(consumerConf);
-    this.topicConf = mergeConsumerTopicConfig(topicConf);
+    this.consumerConf = {
+      'enable.auto.commit': false,
+      ...consumerConf,
+    };
+    this.topicConf = {
+      'auto.offset.reset': 'largest',
+      ...topicConf,
+    };
   }
 
   protected ensureSubject(topic: string): Subject<T> {
@@ -113,7 +115,7 @@ export class KafkaConsumer<T = any> extends KafkaCli {
     this.logger.log(arg);
   }
 
-  protected onRebalance(err: LibrdKafkaError, assignments: TopicPartition[]) {
+  protected onRebalance(err: LibrdKafkaError, _assignments: TopicPartition[]) {
     if (err) {
       this.logger.error(err);
     }
@@ -142,7 +144,7 @@ export class KafkaConsumer<T = any> extends KafkaCli {
 
   protected onOffsetCommit(
     error: LibrdKafkaError,
-    topicPartitions: TopicPartitionOffset[],
+    _topicPartitions: TopicPartitionOffset[],
   ) {
     if (error) {
       this.logger.error(error);

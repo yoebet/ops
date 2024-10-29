@@ -7,6 +7,7 @@ import { HttpConfig } from './common/config.types';
 import { CatchAllFilter } from '@/common-web/filters/catch-all.filter';
 import { Env } from '@/env';
 import { AppServers } from '@/app-servers';
+import { JobsService } from '@/job/jobs.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,7 +17,10 @@ async function bootstrap() {
   app.useLogger(logger);
   app.useGlobalFilters(new CatchAllFilter(logger));
 
+  app.get(JobsService).app = app;
   await app.init();
+
+  app.enableShutdownHooks();
 
   const profileName = Env.serverProfile;
   const serverProfile = Env.predefinedProfiles[profileName];
@@ -24,8 +28,6 @@ async function bootstrap() {
     logger.error(`no server-profile: ${profileName}`);
     process.exit(-1);
   }
-
-  app.enableShutdownHooks();
 
   const servers = app.get(AppServers);
   servers.bootstrap(serverProfile, profileName);

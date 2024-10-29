@@ -16,10 +16,15 @@ export class ExchangeConfig extends BaseModel {
   @Column({ type: 'bool', default: true })
   enabled = true;
 
+  @Column({ type: 'bool', default: false })
+  klSide = false;
+
   @Column({ default: 0 })
   displayOrder: number;
 
-  @Exclude()
-  @Column({ default: true })
-  visibleToClient: boolean;
+  // @Column({ default: false })
+  // subscribeTicker: boolean = false;
+
+  // @Column({ default: false })
+  // subscribeKline: boolean = false;
 }

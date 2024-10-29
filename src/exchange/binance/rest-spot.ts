@@ -1,28 +1,38 @@
 import { BinanceBaseRest } from '@/exchange/binance/rest';
+import { ExRestParams, HttpMethodType } from '@/exchange/base/rest/rest.type';
+import { ExAccountCode, ExKline, ExTrade } from '@/exchange/exchanges-types';
 import {
-  ExRestParams,
-  Candle,
-  FetchCandleParam,
-  FetchHistoryTradeParam,
-  FetchTradeParam,
-  HttpMethodType,
-} from '@/exchange/base/rest/rest.type';
+  FetchKlineParams,
+  HistoryTradeParams,
+  FetchTradeParams,
+  ExchangeService,
+  HistoryKlinesByMonthParams,
+  HistoryKlinesByDayParams,
+} from '@/exchange/rest-capacities';
 import {
   CandleRawDataBinance,
   TradeRawDataBinance,
-} from '@/exchange/binance/rest.type';
-import { ExAccountCode, ExTrade } from '@/exchange/exchanges-types';
+} from '@/exchange/binance/types';
+import { BinanceHistoryDataLoader } from '@/exchange/binance/history-data-loader';
 
-export class BinanceSpotRest extends BinanceBaseRest {
+export class BinanceSpotRest
+  extends BinanceBaseRest
+  implements ExchangeService
+{
+  historyDataLoader: BinanceHistoryDataLoader;
+
   constructor(params?: Partial<ExRestParams>) {
     super({
       host: 'api.binance.com',
-      exAccount: ExAccountCode.binanceSpotMargin,
+      exAccount: ExAccountCode.binanceSpot,
       ...params,
     });
+
+    this.historyDataLoader = new BinanceHistoryDataLoader(params?.proxies);
   }
 
-  async getCandlesticks(params: FetchCandleParam): Promise<Candle[]> {
+  // https://binance-docs.github.io/apidocs/spot/cn/#k
+  async getKlines(params: FetchKlineParams): Promise<ExKline[]> {
     const fetchCandleParamBinance = this.toFetchCandleParam(params);
     const resultRaw: CandleRawDataBinance[] = await this.request({
       path: '/api/v3/klines',
@@ -30,11 +40,11 @@ export class BinanceSpotRest extends BinanceBaseRest {
       params: fetchCandleParamBinance,
     });
 
-    return this.toCandles(resultRaw);
+    return BinanceBaseRest.toCandles(resultRaw);
   }
 
   // https://binance-docs.github.io/apidocs/spot/cn/#2c5e424c25
-  async getTrades(params: FetchTradeParam): Promise<ExTrade[]> {
+  async getTrades(params: FetchTradeParams): Promise<ExTrade[]> {
     const fetchTradeParamBinance = this.toFetchTradeParam(params);
     const resultRaw: TradeRawDataBinance[] = await this.request({
       path: '/api/v3/trades',
@@ -45,7 +55,7 @@ export class BinanceSpotRest extends BinanceBaseRest {
     return this.toTrades(resultRaw, params.symbol);
   }
 
-  async getHistoryTrades(params: FetchHistoryTradeParam): Promise<ExTrade[]> {
+  async getHistoryTrades(params: HistoryTradeParams): Promise<ExTrade[]> {
     const fetchTradeParamBinance = this.toFetchHistoryTradeParam(params);
     const resultRaw: TradeRawDataBinance[] = await this.request({
       path: '/api/v3/historicalTrades',
@@ -54,5 +64,17 @@ export class BinanceSpotRest extends BinanceBaseRest {
     });
 
     return this.toTrades(resultRaw, params.symbol);
+  }
+
+  async loadHistoryKlinesOneMonth(
+    params: HistoryKlinesByMonthParams,
+  ): Promise<ExKline[]> {
+    return this.historyDataLoader.loadHistoryKlinesByMonth(params);
+  }
+
+  async loadHistoryKlinesOneDay(
+    params: HistoryKlinesByDayParams,
+  ): Promise<ExKline[]> {
+    return this.historyDataLoader.loadHistoryKlinesByDay(params);
   }
 }

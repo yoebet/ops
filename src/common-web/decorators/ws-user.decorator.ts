@@ -30,14 +30,14 @@ export function authSocket(socket: Socket): UserInfo | null {
     if (user) {
       user.bs = bs;
     }
-  } catch (e) {
+  } catch (_e) {
     if (!extraSecrets) {
       return null;
     }
     for (const [bs, sr] of Object.entries(extraSecrets)) {
       try {
         user = jwt.verify(token, sr) as UserInfo;
-      } catch (e) {
+      } catch (_e) {
         //
       }
       if (user) {

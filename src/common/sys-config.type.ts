@@ -4,7 +4,6 @@ export enum SysConfigScope {
   rdkafkaGlobal = 'rdkafka.global',
   rdkafkaProducer = 'rdkafka.producer',
   rdkafkaConsumer = 'rdkafka.consumer',
-  oflow = 'oflow',
 }
 
 export enum ValueType {

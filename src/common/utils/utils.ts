@@ -1,3 +1,5 @@
+import { WriteStream } from 'fs';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const nanoid = require('nanoid');
 
 // ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -19,26 +21,13 @@ export async function wait(ms) {
   });
 }
 
-export const waitForExchangeInSSS = 200; //轮询查询交易所时间间隔
-
-// n小时整点时间
-export function nextSharpHour(hours: number, ts: number): number {
-  if (hours > 23 || ts < 1e12) {
-    throw new Error(`Wrong Parameter(${hours},${ts})`);
-  }
-  const periodMills = hours * 60 * 60 * 1000;
-  const millsLeft = periodMills - (ts % periodMills);
-  return ts + millsLeft;
-}
-
 export function tsToISO8601(ts: number) {
-  try {
-    return new Date(Number(ts)).toISOString();
-  } catch (e) {
-    console.log('tsToISO8601(ts: number):' + ts);
-  }
+  return new Date(Number(ts)).toISOString();
 }
 
-export function getTsNow() {
-  return new Date().getTime(); //当前毫秒
+export function promisifyStream(writer: WriteStream) {
+  return new Promise((resolve, reject) => {
+    writer.on('finish', resolve);
+    writer.on('error', reject);
+  });
 }

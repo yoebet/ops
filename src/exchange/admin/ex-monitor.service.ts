@@ -14,7 +14,7 @@ import {
   ExWsShowInstancesInput,
   ExWsShowStatusInput,
   ExWsShowSymbolsInput,
-} from './dto/ex-monitor.input';
+} from './ex-monitor.input';
 import { ExchangeWsService } from '@/exchange/exchange-ws.service';
 import { ExAccountCode } from '@/exchange/exchanges-types';
 

@@ -1,6 +1,6 @@
 import * as Rx from 'rxjs';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/test/test-config.spec';
+import { TestConfig } from '@/env.local.tset';
 import { AppLogger } from '@/common/app-logger';
 import { KafkaProducer } from '@/data-service/kafka/kafka-producer';
 import {

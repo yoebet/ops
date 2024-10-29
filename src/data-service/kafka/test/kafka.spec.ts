@@ -1,26 +1,15 @@
-import { AdminClient, KafkaConsumer, Producer } from 'node-rdkafka';
-import { ConsumerGlobalConfig, ConsumerTopicConfig } from 'node-rdkafka/config';
-import { getTsNow, wait } from '@/common/utils/utils';
-import { TestConfig } from '@/test/test-config.spec';
-import { ExchangeCode, ExMarket } from '@/exchange/exchanges-types';
-import { TradeSide } from '@/db/models-data/base';
+import { AdminClient, Producer } from 'node-rdkafka';
+import { wait } from '@/common/utils/utils';
+import { TestConfig } from '@/env.local.tset';
 
 jest.setTimeout(500_000);
 
 const brokerUrl = TestConfig.kafka.brokerList;
 const testTopic = 'test-1';
 
-const consumerConf: ConsumerGlobalConfig = {
-  // debug: 'all',
-  'group.id': 'kafka',
-  'metadata.broker.list': brokerUrl,
-};
-const topicConf: ConsumerTopicConfig = {
-  'auto.offset.reset': 'beginning',
-};
 describe('nd-kafka delete', () => {
   it('delete topic s', async () => {
-    const admin = await AdminClient.create({
+    const admin = AdminClient.create({
       'client.id': 'rd-client',
       'metadata.broker.list': brokerUrl,
     });
@@ -29,9 +18,9 @@ describe('nd-kafka delete', () => {
     //   num_partitions: 1,
     //   replication_factor: 1,
     // });
-    await admin.deleteTopic('test-2');
-    await admin.deleteTopic('ticker_btc');
-    await admin.deleteTopic('ex_ticker_btc');
+    admin.deleteTopic('test-2');
+    admin.deleteTopic('ticker_btc');
+    admin.deleteTopic('ex_ticker_btc');
     await wait(5_000);
   });
 });
@@ -102,17 +91,11 @@ describe('nd-kafka', () => {
 
     producer.on('ready', async function () {
       const data = {
-        ex: ExchangeCode.binance,
-        market: ExMarket.spot,
         symbol: 'testSymbol',
         base: 'base',
         quote: 'quote',
         time: new Date(),
-        size: 0, // 基础币种量
-        amount: 0, // 计价币种量
-        price: 0,
-        trade_id: '0',
-        side: TradeSide.buy,
+        price: 123,
       };
 
       try {
@@ -160,7 +143,7 @@ describe('nd-kafka', () => {
         // base: 'base',
         // quote: 'quote',
         interval: '1h',
-        ts: getTsNow(),
+        ts: Date.now(),
         size: 0, // 基础币种量
         amount: 0, // 计价币种量
         open: 0,

@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { ExRest } from '@/exchange/base/rest/ex-rest';
 import { ExAccountCode } from '@/exchange/exchanges-types';
 import { ExRestTypes } from '@/exchange/exchange-accounts';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
+import { ExchangeService } from '@/exchange/rest-capacities';
+import { Path } from '@nestjs/config/dist/types';
 
 @Injectable()
 export class ExchangeRestService {
-  instMap = new Map<ExAccountCode, ExRest>();
+  instMap = new Map<ExAccountCode, ExchangeService>();
   private supportedExAccounts: Set<ExAccountCode>;
 
   constructor(
@@ -26,7 +27,7 @@ export class ExchangeRestService {
     return this.supportedExAccounts.has(exAccount);
   }
 
-  getExRest(exAccount: ExAccountCode): ExRest | undefined {
+  getExRest(exAccount: ExAccountCode): ExchangeService | undefined {
     let rest = this.instMap.get(exAccount);
     if (rest) {
       return rest;
@@ -35,9 +36,9 @@ export class ExchangeRestService {
     if (!RestType) {
       return undefined;
     }
-    const restAgents = this.configService.get<string[]>('restAgents');
+    const socksProxies = this.configService.get('exchange.socksProxies' as any);
     rest = new RestType({
-      proxies: restAgents,
+      proxies: socksProxies,
     } as ExRestParams);
     this.instMap.set(exAccount, rest);
     return rest;

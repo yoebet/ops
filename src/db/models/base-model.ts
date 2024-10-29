@@ -1,21 +1,13 @@
-import {
-  BaseEntity,
-  BeforeInsert,
-  CreateDateColumn,
-  DeleteDateColumn,
-  Index,
-  PrimaryColumn,
-} from 'typeorm';
-import { newId } from '@/common/utils/utils';
+import { BaseEntity, CreateDateColumn, DeleteDateColumn, Index } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { PrimaryGeneratedColumn } from 'typeorm/decorator/columns/PrimaryGeneratedColumn';
 
 export class BaseModel extends BaseEntity {
   @Exclude()
-  @PrimaryColumn({
-    type: 'varchar',
-    length: '64',
+  @PrimaryGeneratedColumn({
+    type: 'int',
   })
-  id: string;
+  id: number;
 
   // @Exclude()
   @Index()
@@ -25,11 +17,4 @@ export class BaseModel extends BaseEntity {
   @Exclude()
   @DeleteDateColumn()
   deletedAt?: Date;
-
-  @BeforeInsert()
-  beforeInsert() {
-    if (!this.id) {
-      this.id = newId();
-    }
-  }
 }
