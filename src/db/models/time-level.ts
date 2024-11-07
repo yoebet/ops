@@ -1,6 +1,5 @@
 import { BaseModel } from '@/db/models/base-model';
 import { Column, Entity, Index } from 'typeorm';
-import { Exclude } from 'class-transformer';
 
 @Entity()
 @Index(['interval'], { unique: true })
@@ -11,13 +10,6 @@ export class TimeLevel extends BaseModel {
 
   @Column()
   intervalSeconds: number;
-
-  @Column()
-  tableType: 'table' | 'hypertable' | 'cagg_mv' | 'view';
-
-  @Exclude()
-  @Column({ nullable: true })
-  rollupFrom?: string;
 
   static evalIntervalSeconds(interval: string): number {
     const u = interval.charAt(interval.length - 1);

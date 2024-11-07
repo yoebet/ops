@@ -2,7 +2,6 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import { LogLevel } from '@nestjs/common/services/logger.service';
 import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
 import { isArray, mergeWith } from 'lodash';
-import { GatewayMetadata } from '@nestjs/websockets/interfaces/gateway-metadata.interface';
 import { ServerProfile } from '@/common/server-profile.type';
 import { RedisOptions } from 'ioredis';
 
@@ -36,11 +35,6 @@ export interface WsAdminUIConfig {
   mode?: 'development' | 'production';
 }
 
-export interface DataWsConfig {
-  cors?: GatewayMetadata['cors'];
-  adminUi?: WsAdminUIConfig;
-}
-
 export interface KafkaConfig {
   brokerList?: string;
   clientId?: string;
@@ -55,6 +49,11 @@ export interface AuthConfig {
   };
 }
 
+export interface OflowServerConfig {
+  base: string;
+  wsPath: string;
+}
+
 export interface Config {
   http: HttpConfig;
   db: Partial<ConnectionOptions>;
@@ -64,7 +63,7 @@ export interface Config {
   };
   log: LogConfig;
   kafka: KafkaConfig;
-  dataWs: DataWsConfig;
+  oflow: OflowServerConfig;
   exchange: {
     socksProxies?: string[];
     publishKafka?: boolean;

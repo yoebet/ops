@@ -1,6 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ServerProfile, ServerRole } from '@/common/server-profile.type';
-import { ExWsService } from '@/data-ex-ws/ex-ws.service';
 import { AppLogger } from '@/common/app-logger';
 import * as gitRepoInfo from 'git-repo-info';
 import { ConfigService } from '@nestjs/config';
@@ -17,7 +16,6 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     protected configService: ConfigService<Config>,
-    protected tickerProducerService: ExWsService,
     protected jobsService: JobsService,
     private logger: AppLogger,
   ) {
@@ -53,17 +51,11 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log(serverProfile);
 
-    this.sil.profileName = profileName;
-    this.sil.profile = serverProfile;
-    ServerInstanceLog.save(this.sil).catch(onErr);
+    // this.sil.profileName = profileName;
+    // this.sil.profile = serverProfile;
+    // ServerInstanceLog.save(this.sil).catch(onErr);
 
-    const {
-      [ServerRole.Exws]: exwsProfile,
-      [ServerRole.Worker]: workerProfile,
-    } = serverProfile;
-    if (exwsProfile) {
-      this.tickerProducerService.start(exwsProfile).catch(onErr);
-    }
+    const { [ServerRole.Worker]: workerProfile } = serverProfile;
     if (workerProfile) {
       this.jobsService.startWorker(workerProfile).catch(onErr);
     }

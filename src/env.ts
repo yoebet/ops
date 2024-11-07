@@ -28,7 +28,7 @@ const DefaultConfig: PartialConfig = {
   },
   bullmq: {
     redis: {
-      db: 1,
+      db: 2,
     },
   },
   log: {
@@ -40,19 +40,16 @@ const DefaultConfig: PartialConfig = {
   },
   kafka: {
     brokerList: 'localhost:9092',
-    clientId: 'dev1',
-    consumerGroupId: 'dev1',
+    clientId: 'ops1',
+    consumerGroupId: 'ops1',
   },
   exchange: {
     // socksProxies: ['socks://127.0.0.1:1080'],
     publishKafka: false,
   },
-  dataWs: {
-    cors: {
-      // origin: '*',
-      origin: ['http://localhost', 'http://localhost:3000'],
-      credentials: true,
-    },
+  oflow: {
+    base: 'http://localhost:5000',
+    wsPath: '/oflow/ws',
   },
   predefinedProfiles: {
     RunAll: {
@@ -60,12 +57,6 @@ const DefaultConfig: PartialConfig = {
       // [ServerRole.Exws]: {},
       [ServerRole.Worker]: {},
       [ServerRole.Admin]: {},
-    },
-    [ServerRole.Exws]: {
-      httpPort: 6500,
-      [ServerRole.Exws]: {
-        // exCodes: [ExchangeCode.binance],
-      },
     },
     [ServerRole.Worker]: {
       httpPort: 7000,

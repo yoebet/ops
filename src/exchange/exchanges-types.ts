@@ -1,5 +1,5 @@
 import { TradeSide } from '@/db/models-data/base';
-import { OFlowKline } from '@/data-service/models/klines';
+import { FtKline } from '@/data-service/models/klines';
 
 export enum ExchangeCode {
   binance = 'binance',
@@ -31,7 +31,7 @@ export interface ExTrade {
   ts: number; // ms
 }
 
-export type ExKline = OFlowKline;
+export type ExKline = FtKline;
 
 export interface ExKlineWithSymbol extends ExKline {
   rawSymbol: string;

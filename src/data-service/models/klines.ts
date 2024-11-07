@@ -1,19 +1,14 @@
-export interface OFlowKline {
+export interface FtKline {
   ts: number;
-  size: number; // 基础币种量
-  amount: number; // 计价币种量
+  size: number;
+  amount: number;
   open: number;
   high: number;
   low: number;
   close: number;
-  // buySize
-  bs: number; // 主动买
-  // buyAmount
+  bs: number;
   ba: number;
-  // sellSize
-  ss: number; // 主动卖
-  // sellAmount
+  ss: number;
   sa: number;
-  // trades
-  tds: number; // 交易笔数
+  tds: number;
 }

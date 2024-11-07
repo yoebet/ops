@@ -1,5 +1,5 @@
 import { ES, TradeSide } from '@/db/models-data/base';
-import { OFlowKline } from '@/data-service/models/klines';
+import { FtKline } from '@/data-service/models/klines';
 
 export interface RtPrice extends ES {
   ts: number;
@@ -15,6 +15,6 @@ export interface RtTicker extends ES {
   side: TradeSide;
 }
 
-export interface RtKline extends OFlowKline, ES {
+export interface RtKline extends FtKline, ES {
   interval: string;
 }
