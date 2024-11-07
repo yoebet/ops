@@ -25,26 +25,12 @@ export interface HistoryTradeParams {
   limit?: number;
 }
 
-export interface HistoryKlinesByMonthParams extends BaseKlineParams {
-  yearMonth: string; // yyyy-mm
-}
-
-export interface HistoryKlinesByDayParams extends BaseKlineParams {
-  date: string; // yyyy-mm-dd
-}
-
 export interface ExchangeService {
   getKlines(params: FetchKlineParams): Promise<ExKline[]>;
 
   getTrades(params: FetchTradeParams): Promise<ExTrade[]>;
 
   getHistoryTrades(params: HistoryTradeParams): Promise<ExTrade[]>;
-
-  loadHistoryKlinesOneMonth(
-    params: HistoryKlinesByMonthParams,
-  ): Promise<ExKline[]>;
-
-  loadHistoryKlinesOneDay(params: HistoryKlinesByDayParams): Promise<ExKline[]>;
 }
 
 export type CapableRest = ExRest & ExchangeService;

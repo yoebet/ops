@@ -58,12 +58,11 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
     ServerInstanceLog.save(this.sil).catch(onErr);
 
     const {
-      [ServerRole.Exws]: tickerProducerProfile,
+      [ServerRole.Exws]: exwsProfile,
       [ServerRole.Worker]: workerProfile,
-      [ServerRole.DataServer]: _dataServerProfile,
     } = serverProfile;
-    if (tickerProducerProfile) {
-      this.tickerProducerService.start(tickerProducerProfile).catch(onErr);
+    if (exwsProfile) {
+      this.tickerProducerService.start(exwsProfile).catch(onErr);
     }
     if (workerProfile) {
       this.jobsService.startWorker(workerProfile).catch(onErr);

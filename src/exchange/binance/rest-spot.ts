@@ -6,29 +6,22 @@ import {
   HistoryTradeParams,
   FetchTradeParams,
   ExchangeService,
-  HistoryKlinesByMonthParams,
-  HistoryKlinesByDayParams,
 } from '@/exchange/rest-capacities';
 import {
   CandleRawDataBinance,
   TradeRawDataBinance,
 } from '@/exchange/binance/types';
-import { BinanceHistoryDataLoader } from '@/exchange/binance/history-data-loader';
 
 export class BinanceSpotRest
   extends BinanceBaseRest
   implements ExchangeService
 {
-  historyDataLoader: BinanceHistoryDataLoader;
-
   constructor(params?: Partial<ExRestParams>) {
     super({
       host: 'api.binance.com',
       exAccount: ExAccountCode.binanceSpot,
       ...params,
     });
-
-    this.historyDataLoader = new BinanceHistoryDataLoader(params?.proxies);
   }
 
   // https://binance-docs.github.io/apidocs/spot/cn/#k
@@ -64,17 +57,5 @@ export class BinanceSpotRest
     });
 
     return this.toTrades(resultRaw, params.symbol);
-  }
-
-  async loadHistoryKlinesOneMonth(
-    params: HistoryKlinesByMonthParams,
-  ): Promise<ExKline[]> {
-    return this.historyDataLoader.loadHistoryKlinesByMonth(params);
-  }
-
-  async loadHistoryKlinesOneDay(
-    params: HistoryKlinesByDayParams,
-  ): Promise<ExKline[]> {
-    return this.historyDataLoader.loadHistoryKlinesByDay(params);
   }
 }

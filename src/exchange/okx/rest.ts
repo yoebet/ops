@@ -19,17 +19,12 @@ import {
   HistoryTradeParams,
   FetchTradeParams,
   ExchangeService,
-  HistoryKlinesByMonthParams,
-  HistoryKlinesByDayParams,
 } from '@/exchange/rest-capacities';
 import {
   CandleRawDataOkx,
   RestBody,
   TradeRawDataOkx,
 } from '@/exchange/okx/types';
-import { DateTime } from 'luxon';
-import { TimeLevel } from '@/db/models/time-level';
-import { wait } from '@/common/utils/utils';
 
 /**
  * https://www.okx.com/docs-v5/zh/
@@ -211,92 +206,5 @@ export class OkxRest extends ExRest implements ExchangeService {
       params: fetchCandleParamOkx,
     });
     return OkxRest.toCandles(resultRaw.data);
-  }
-
-  async loadHistoryKlinesOneMonth(
-    params: HistoryKlinesByMonthParams,
-  ): Promise<ExKline[]> {
-    const { symbol, interval, yearMonth } = params;
-    const monthBegin = DateTime.fromFormat(yearMonth, 'yyyy-MM', {
-      zone: 'UTC',
-    });
-    const monthEnd = monthBegin.plus({ month: 1 });
-
-    return this.collectHistoryKlines(interval, symbol, monthBegin, monthEnd);
-  }
-
-  async loadHistoryKlinesOneDay(
-    params: HistoryKlinesByDayParams,
-  ): Promise<ExKline[]> {
-    const { symbol, interval, date } = params;
-    const dayBegin = DateTime.fromFormat(date, 'yyyy-MM-dd', {
-      zone: 'UTC',
-    });
-    const dayEnd = dayBegin.plus({ day: 1 });
-
-    return this.collectHistoryKlines(interval, symbol, dayBegin, dayEnd);
-  }
-
-  // https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks-history
-  protected async collectHistoryKlines(
-    interval: string,
-    symbol: string,
-    startTime: DateTime,
-    endTime: DateTime,
-  ): Promise<ExKline[]> {
-    const limit = 100; // limit 最大100，默认100
-    const rateLimitWait = 200; // Rate Limit: 20 requests per 2 seconds
-    const intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
-    const intervalMillis = intervalSeconds * 1000;
-    const eachTsRange = limit * intervalMillis;
-
-    const startTs0 = startTime.toMillis() - intervalMillis / 2;
-    const endTs0 = endTime.toMillis();
-
-    let startTs = startTs0;
-    let endTs = startTs + eachTsRange;
-    if (endTs > endTs0) {
-      endTs = endTs0;
-    }
-
-    let klines: ExKline[] = [];
-
-    while (startTs < endTs0) {
-      const fetchParams = this.toFetchCandleParams({
-        interval,
-        symbol,
-        startTime: startTs,
-        endTime: endTs,
-        limit,
-      });
-      // this.logger.log(
-      //   `${new Date(startTs).toISOString()} - ${new Date(endTs).toISOString()}`,
-      // );
-      const resultRaw: RestBody<CandleRawDataOkx[]> = await this.request({
-        path: '/api/v5/market/history-candles',
-        method: HttpMethodType.get,
-        params: fetchParams,
-      });
-
-      const rawData = resultRaw.data;
-      if (!rawData) {
-        this.logger.log(JSON.stringify(fetchParams, null, 2));
-        throw new Error(`no response`);
-      }
-
-      await wait(rateLimitWait);
-
-      const kls = OkxRest.toCandles(rawData);
-      klines = klines.concat(kls.reverse());
-      this.logger.log(`got: ${rawData.length}`);
-
-      startTs = endTs;
-      endTs = endTs + eachTsRange;
-      if (endTs > endTs0) {
-        endTs = endTs0;
-      }
-    }
-
-    return klines;
   }
 }

@@ -5,13 +5,6 @@ import { DB_SCHEMA } from '@/env';
 import { AppLogger } from '@/common/app-logger';
 import { tsToISO8601 } from '@/common/utils/utils';
 import { Kline } from '@/db/models-data/kline';
-import {
-  ExSymbolScope,
-  KlineDataScope,
-  KlineQueryParams,
-} from '@/data-server/commands';
-import { OFlowKline } from '@/data-service/models/klines';
-import { RtKline } from '@/data-service/models/realtime';
 import { ES } from '@/db/models-data/base';
 
 export function getLimit(limit?: number): number {
@@ -30,15 +23,18 @@ const KlAggSumFields = `  sum(tds) as tds,
   sum(ss) as ss,
   sum(sa) as sa `;
 
-const KlOhlcFields = ` open(ohlcv),
-  high(ohlcv),
-  low(ohlcv),
-  close(ohlcv)`;
+const KlOhlcFields = ` open,high,low,close`;
 
-const KlOhlcRollupFields = `  open(rollup(ohlcv)),
-  high(rollup(ohlcv)),
-  low(rollup(ohlcv)),
-  close(rollup(ohlcv))`;
+export const KlRollupMap = {
+  open: 'first(open, time)',
+  high: 'max(high)',
+  low: 'max(low)',
+  close: 'last(close, time)',
+};
+
+const KlOhlcRollupFields = ['open', 'high', 'low', 'close']
+  .map((f) => KlRollupMap[f] || `sum(${f})` + ` as ${f}`)
+  .join(',');
 
 const KlNonAggFields = ` time,symbol,ex,interval,market,base,quote`;
 
@@ -53,81 +49,6 @@ export class KlineDataService implements OnModuleInit {
   }
 
   async onModuleInit() {}
-
-  async saveKlines(
-    interval: string,
-    klines: Kline[],
-    options?: { updateOnConflict?: boolean },
-  ): Promise<number> {
-    if (klines.length === 0) {
-      return;
-    }
-    if (klines.some((k) => k.interval && k.interval !== interval)) {
-      throw new Error('wrong interval');
-    }
-
-    let onConflictClause = 'DO NOTHING';
-    if (options?.updateOnConflict) {
-      onConflictClause = `("time", ex, symbol) DO UPDATE set
-      tds=EXCLUDED.tds,
-      size=EXCLUDED.size,
-      amount=EXCLUDED.amount,
-      bc=EXCLUDED.bc,
-      bs=EXCLUDED.bs,
-      ba=EXCLUDED.ba,
-      sc=EXCLUDED.sc,
-      ss=EXCLUDED.ss,
-      sa=EXCLUDED.sa,
-      open=EXCLUDED.open,
-      high=EXCLUDED.high,
-      low=EXCLUDED.low,
-      close=EXCLUDED.close,
-      p_ch=EXCLUDED.p_ch,
-      p_avg=EXCLUDED.p_avg,
-      p_cp=EXCLUDED.p_cp,
-      p_ap=EXCLUDED.p_ap
-      `;
-    }
-
-    for (const k of klines) {
-      if (k.p_ch == null) {
-        k.p_ch = k.close - k.open;
-        k.p_avg = k.amount / k.size;
-        k.p_cp = (k.p_ch / k.open) * 100.0;
-        k.p_ap = (Math.abs(k.high - k.low) / k.low) * 100.0;
-      }
-    }
-
-    const rows = klines
-      .map(
-        (t) => `(
-        '${t.time.toISOString()}','${t.ex}','${t.market}','${t.symbol}','${t.base}','${t.quote}','${interval}',
- ${t.tds},${t.size},${t.amount},${t.bc},${t.bs},${t.ba},${t.sc},${t.ss},${t.sa},
- ${t.open},${t.high},${t.low},${t.close},${t.p_ch},${t.p_avg},${t.p_cp},${t.p_ap}
- )`,
-      )
-      .join(',\n');
-
-    const sql = `INSERT INTO ${this.getKLineDatasource(interval)}
-                 ("time", ex, market, symbol, base, quote, "interval",
-                  tds, "size", amount, bc, bs, ba, sc, ss, sa,
-                  "open", high, low, "close", p_ch, p_avg, p_cp, p_ap)
-    VALUES
-    ${rows}
- ON CONFLICT
-    ${onConflictClause}
-    RETURNING
-    tds`;
-
-    const res = await this.dataSource.query(sql);
-    const saved = res.length;
-    if (saved !== klines.length) {
-      this.logger.warn(`saved: ${saved} (passed: ${klines.length})`);
-    } else {
-      this.logger.debug(`saved: ${saved}`);
-    }
-    return res.length;
-  }
 
   async queryBySql(sql: string): Promise<any> {
     // this.logger.debug(sql);
@@ -268,92 +189,5 @@ export class KlineDataService implements OnModuleInit {
                    group by 1, 2, 3`;
       return this.queryBySql(sql);
     }
-  }
-
-  // OFlow ...
-
-  static isEsMultiSymbols(params: ExSymbolScope): boolean {
-    const es = params.exSymbols;
-    return es && es.length > 0 && es[0].symbols && es[0].symbols.length > 0;
-  }
-
-  private toQuerySymbols(params: ExSymbolScope): ES[] {
-    const result: ES[] = [];
-    if (KlineDataService.isEsMultiSymbols(params)) {
-      for (const es of params.exSymbols) {
-        for (const symbol of es.symbols) {
-          result.push({ symbol: symbol, ex: es.ex });
-        }
-      }
-    } else {
-      result.push({ symbol: params.symbol, ex: params.ex });
-    }
-    return result;
-  }
-
-  async queryOFlowKline(params: KlineQueryParams): Promise<OFlowKline[]> {
-    const result = await this.queryKLines({
-      tsFrom: params.timeFrom,
-      tsTo: params.timeTo,
-      limit: params.limit,
-      symbols: this.toQuerySymbols(params),
-      zipSymbols: true,
-      timeInterval: params.interval,
-      noLive: true,
-    });
-    return result.map(this.klineToOFlowKline);
-  }
-
-  async queryOFlowLastKLine(
-    params: KlineDataScope,
-    floorInv?: string,
-  ): Promise<OFlowKline[]> {
-    const result = await this.queryLastKLine({
-      symbols: this.toQuerySymbols(params),
-      zipSymbols: true,
-      timeInterval: params.interval,
-      floorInv: floorInv,
-    });
-    if (!result || result.length === 0 || !result[0].tds) {
-      return [];
-    }
-    return result.map(this.klineToOFlowKline);
-  }
-
-  private klineToOFlowKline(value: Kline): OFlowKline {
-    return {
-      ts: value.time.getTime(),
-      open: +value.open,
-      high: +value.high,
-      low: +value.low,
-      close: +value.close,
-      size: +value.size,
-      amount: +value.amount,
-      bs: +value.bs,
-      ba: +value.ba,
-      ss: +value.ss,
-      sa: +value.sa,
-      tds: +value.tds,
-    };
-  }
-
-  static klineToRtKline(kl: Kline): RtKline {
-    return {
-      ts: kl.time.getTime(),
-      interval: kl.interval,
-      ex: kl.ex,
-      symbol: kl.symbol,
-      amount: +kl.amount,
-      ba: +kl.ba,
-      bs: +kl.bs,
-      close: +kl.close,
-      high: +kl.high,
-      low: +kl.low,
-      open: +kl.open,
-      sa: +kl.sa,
-      size: +kl.size,
-      ss: +kl.ss,
-      tds: +kl.tds,
-    };
   }
 }

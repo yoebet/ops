@@ -20,18 +20,6 @@ describe('kline-data', () => {
   });
 
   describe('query', () => {
-    it('queryOFlowKline', async () => {
-      const result = await service.queryOFlowKline({
-        timeFrom: 1680537600000,
-        timeTo: 1680624000001,
-        ex: 'binance',
-        symbol: 'BTC/USDT',
-        interval: '1d',
-      });
-      console.log(result);
-      await wait(2_000);
-    });
-
     it('queryLastKLine', async () => {
       const result = await service.queryLastKLine({
         symbols: [{ symbol: 'BTC/USDT', ex: 'okx' }],

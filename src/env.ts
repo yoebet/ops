@@ -59,7 +59,7 @@ const DefaultConfig: PartialConfig = {
       httpPort: 5000,
       // [ServerRole.Exws]: {},
       [ServerRole.Worker]: {},
-      [ServerRole.DataServer]: {},
+      [ServerRole.Admin]: {},
     },
     [ServerRole.Exws]: {
       httpPort: 6500,
@@ -71,12 +71,12 @@ const DefaultConfig: PartialConfig = {
       httpPort: 7000,
       [ServerRole.Worker]: {},
     },
-    [ServerRole.DataServer]: {
+    [ServerRole.Admin]: {
       httpPort: 5000,
-      [ServerRole.DataServer]: {},
+      [ServerRole.Admin]: {},
     },
   },
-  serverProfile: ServerRole.DataServer,
+  serverProfile: ServerRole.Admin,
   serverNodeId: 'prod',
 };
 

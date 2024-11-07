@@ -11,14 +11,11 @@ import { LoggerMiddleware } from '@/common-web/middleware/logger.middleware';
 import { SystemConfigModule } from '@/common-services/system-config.module';
 import { ExchangeController } from '@/controller/exchange.controller';
 import { MarketDataModule } from '@/data-service/market-data.module';
-import { DataServerModule } from '@/data-server/data-server.module';
 import { AppServers } from '@/app-servers';
-import { AdminKafkaController } from '@/controller/admin-kafka.controller';
 import { AdminLoggerController } from '@/controller/admin-logger.controller';
 import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
 import { AuthModule } from '@/common-web/auth/auth.module';
 import { JobsModule } from '@/job/jobs.module';
-import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.module';
 
 @Module({
   imports: [
@@ -29,15 +26,8 @@ import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.modul
     SystemConfigModule,
     MarketDataModule,
     ExWsModule,
-    HistoryDataLoaderModule,
-    DataServerModule,
   ],
-  controllers: [
-    AppController,
-    ExchangeController,
-    AdminKafkaController,
-    AdminLoggerController,
-  ],
+  controllers: [AppController, ExchangeController, AdminLoggerController],
   providers: [AppServers],
 })
 export class AppModule implements NestModule, OnApplicationShutdown {
