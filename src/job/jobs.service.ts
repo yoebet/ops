@@ -23,6 +23,7 @@ import { TaskScope } from '@/common/server-profile.type';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { createBullBoard } from '@bull-board/api';
+import { APP_BASE_PATH } from '@/common/constants';
 
 export interface JobSpec<D = any, R = any> {
   queueName: string;
@@ -31,7 +32,7 @@ export interface JobSpec<D = any, R = any> {
   queueEventsListener?: Partial<QueueEventsListener>;
 
   processJob: (job: Job<D, R>) => Promise<R>;
-  workerOptions?: WorkerOptions;
+  workerOptions?: Partial<WorkerOptions>;
   workerListener?: Partial<WorkerListener<D, R>>;
 
   defaultJobOptions?: JobsOptions;
@@ -79,6 +80,14 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
 
   onModuleInit() {
     this.setupBoard();
+  }
+
+  async startWorker() {
+    this.logger.log(`:::: start ...`);
+    for (const qj of this.queueWorkerMap.values()) {
+      await this.runQueue(qj);
+    }
+    this.workerStarted = true;
   }
 
   defineJob<D, R>(spec: JobSpec<D, R>): JobFacade<D, R> {
@@ -148,17 +157,13 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
       if (wl?.failed) {
         wl.failed(job, err, prev);
       } else {
-        this.logger.log(`${job.id} has failed: ${err.message}`, qj.queueName);
+        this.logger.error(
+          `${job.id} has failed: ${err.message}`,
+          err.stack,
+          qj.queueName,
+        );
       }
     });
-  }
-
-  async startWorker(_profile?: TaskScope) {
-    this.logger.log(`:::: start ...`);
-    for (const qj of this.queueWorkerMap.values()) {
-      await this.runQueue(qj);
-    }
-    this.workerStarted = true;
   }
 
   setupBoard() {
@@ -167,7 +172,7 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
     }
     this.logger.log(`:::: setup task board`);
 
-    const BasePath = '/jobs/board';
+    const BasePath = APP_BASE_PATH + '/jobs/board';
 
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath(BasePath);

@@ -4,40 +4,47 @@ import {
   NestModule,
   OnApplicationShutdown,
 } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
 import { CommonModule } from './common/common.module';
 import { DbModule } from './db/db-module';
-import { LoggerMiddleware } from '@/common-web/middleware/logger.middleware';
-import { SystemConfigModule } from '@/common-services/system-config.module';
-import { ExchangeController } from '@/controller/exchange.controller';
+import { LoggerMiddleware } from '@/common/middleware/logger.middleware';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { MarketDataModule } from '@/data-service/market-data.module';
-import { DataServerModule } from '@/data-server/data-server.module';
 import { AppServers } from '@/app-servers';
-import { AdminKafkaController } from '@/controller/admin-kafka.controller';
 import { AdminLoggerController } from '@/controller/admin-logger.controller';
-import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
-import { AuthModule } from '@/common-web/auth/auth.module';
+import { ExDataModule } from '@/data-ex/ex-data.module';
+import { AuthModule } from '@/auth/auth.module';
 import { JobsModule } from '@/job/jobs.module';
+import { StrategyModule } from '@/strategy/strategy.module';
+import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.module';
+import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.module';
+import { UserModule } from '@/user/user-module';
+import { join } from 'path';
+import { ExSysModule } from '@/ex-sys/ex-sys-module';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'client'),
+      exclude: ['/ops/*'],
+    }),
     CommonModule,
     DbModule,
     JobsModule,
     AuthModule,
-    SystemConfigModule,
+    CommonServicesModule,
     MarketDataModule,
-    ExWsModule,
     HistoryDataLoaderModule,
-    DataServerModule,
+    ExDataModule,
+    StrategyModule,
+    StrategyBacktestModule,
+    ExSyncModule,
+    UserModule,
+    ExSysModule,
   ],
-  controllers: [
-    AppController,
-    ExchangeController,
-    AdminKafkaController,
-    AdminLoggerController,
-  ],
+  controllers: [AppController, AdminLoggerController],
   providers: [AppServers],
 })
 export class AppModule implements NestModule, OnApplicationShutdown {

@@ -1,7 +1,7 @@
 import { AdminClient, KafkaConsumer, Producer } from 'node-rdkafka';
 import { ConsumerGlobalConfig, ConsumerTopicConfig } from 'node-rdkafka/config';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 jest.setTimeout(500_000);
 

@@ -1,5 +1,5 @@
 import { Job, Queue, Worker } from 'bullmq';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { bullmqRedis } from '@/common/config.types';
 
 const connection = bullmqRedis(TestConfig);

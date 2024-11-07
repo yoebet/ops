@@ -1,0 +1,39 @@
+
+### all
+GET http://{{server}}/ops/bt-strategies
+
+
+### orders
+GET http://{{server}}/ops/bt-strategies/35/orders
+Accept: application/json
+
+
+### deals
+GET http://{{server}}/ops/bt-strategies/76/deals
+Accept: application/json
+
+
+### job - remove all
+POST http://{{server}}/ops/bt-strategies/jobs/remove-all
+Accept: application/json
+
+
+### job - summit ('summit' | 'remove' | 'stop' | 'retry' | 'clearLogs')
+POST http://{{server}}/ops/bt-strategies/35/job/summit
+Accept: application/json
+
+
+### clone
+POST http://{{server}}/ops/bt-strategies/77/clone
+Accept: application/json
+Content-Type: application/json
+
+{
+  "memo": "reo"
+}
+
+
+### drop
+DELETE http://{{server}}/ops/bt-strategies/77
+Accept: application/json
+

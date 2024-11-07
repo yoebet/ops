@@ -3,7 +3,7 @@ import { ClientOptions, RawData, WebSocket } from 'ws';
 import * as humanizeDuration from 'humanize-duration';
 import * as prettyBytes from 'pretty-bytes';
 import { URL } from 'url';
-import _ = require('lodash');
+import * as _ from 'lodash';
 import { wait } from '@/common/utils/utils';
 import { AppLogger } from '@/common/app-logger';
 
@@ -17,6 +17,9 @@ export interface IdComponents {
   entityCode?: string;
   category?: string;
   instanceIndex?: number;
+  key?: string;
+  keyLabel?: string;
+  accountName?: string; // 应用账户名/交易所账户名
 }
 
 export interface InstanceCriteria {
@@ -176,7 +179,19 @@ export abstract class BaseWs {
   }
 
   protected buildIdWithoutEx() {
-    const parts: string[] = ['ws'];
+    const { key } = this.idComponents;
+    const parts: string[] = [];
+    if (key) {
+      parts.push('private-ws');
+      parts.push(key.substring(0, 7) + '*');
+      const { keyLabel, accountName } = this.idComponents;
+      const name = accountName || keyLabel;
+      if (name) {
+        parts.push(name);
+      }
+    } else {
+      parts.push('ws');
+    }
     return parts.concat(this.categoryAndIndex()).join(':');
   }
 
@@ -253,7 +268,7 @@ export abstract class BaseWs {
       } else if (typeof err === 'object') {
         this.logger.error(err);
       } else {
-        let msg = err?.message || err?.toString() || 'Err.';
+        const msg = err?.message || err?.toString() || 'Err.';
         this.logger.error(msg);
       }
     } finally {

@@ -1,6 +1,6 @@
 import { KafkaConsumer } from '@/data-service/kafka/kafka-consumer';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 jest.setTimeout(300_000);
 

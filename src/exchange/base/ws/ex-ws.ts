@@ -12,7 +12,11 @@ import {
   SymbolParamSubject,
 } from '@/exchange/base/ws/ex-ws-subjects';
 import { wait } from '@/common/utils/utils';
-import { TradeChannelEvent } from '@/exchange/ws-capacities';
+
+import {
+  SyncOrder,
+  TradeChannelEvent,
+} from '@/exchange/exchange-service.types';
 
 const zhDuration = humanizeDuration.humanizer({
   language: 'zh_CN',
@@ -21,6 +25,9 @@ const zhDuration = humanizeDuration.humanizer({
 });
 
 export interface ExWsParams extends BaseExWsParams {
+  // 增加订阅时，如果未start就start（不传则为true）
+  readonly autoStartOnSubscription?: boolean;
+  readonly autoSubscriptOnWsReady?: boolean;
   readonly wsBaseUrl?: string;
   readonly candleIncludeLive?: boolean;
 }
@@ -111,12 +118,40 @@ export abstract class ExWs extends BaseWs {
     ChannelConnectionEvent<any>
   >();
 
-  candleIncludeLive = false;
+  private _candleIncludeLive = false;
 
   protected constructor(params: ExWsParams) {
     super(params);
     this.wsBaseUrl = params.wsBaseUrl;
-    this.candleIncludeLive = params.candleIncludeLive || false;
+    this._candleIncludeLive = params.candleIncludeLive || false;
+
+    const asos = params.autoStartOnSubscription;
+    if (typeof asos === 'boolean') {
+      this.autoStartOnSubscription = asos;
+    }
+    // const csos = params.closeSubjectsOnShutdown;
+    // if (typeof csos === 'boolean') {
+    //   this.closeSubjectsOnShutdown = csos;
+    // }
+    // const csos2 = params.clearSubscriptionsOnShutdown;
+    // if (typeof csos2 === 'boolean') {
+    //   this.clearSubscriptionsOnShutdown = csos2;
+    // }
+    const asowr = params.autoSubscriptOnWsReady;
+    if (typeof asowr === 'boolean') {
+      this.autoSubscriptOnWsReady = asowr;
+    } else {
+      // 没有 key 自动订阅
+      this.autoSubscriptOnWsReady = !params.idComponents.key;
+    }
+  }
+
+  get candleIncludeLive() {
+    return this._candleIncludeLive;
+  }
+
+  set candleIncludeLive(newValue: boolean) {
+    this._candleIncludeLive = newValue;
   }
 
   protected checkNeedReconnect(): boolean {
@@ -631,6 +666,29 @@ export abstract class ExWs extends BaseWs {
         return this;
       },
       get(): Rx.Observable<T> {
+        return ws.subject(subject || channel);
+      },
+    };
+  }
+
+  fixedParamSubject(
+    symbols: string[],
+    channel: string,
+    subject?: string,
+  ): NoParamSubject<SyncOrder> {
+    const ws = this;
+    // const channel = OkxWsPrivate.CHANNEL_ORDER;
+    // const subject = this.instSubjectName(channel, instType);
+    return {
+      subs() {
+        ws.addSymbolsSubscriptions(channel, symbols);
+        return this;
+      },
+      unsubs() {
+        ws.removeSymbolsSubscriptions(channel, symbols);
+        return this;
+      },
+      get(): Rx.Observable<SyncOrder> {
         return ws.subject(subject || channel);
       },
     };

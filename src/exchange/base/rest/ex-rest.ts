@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { entries, isNil } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
 import {
@@ -7,23 +7,22 @@ import {
   ExRestReqConfig,
   ExRestRes,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode } from '@/exchange/exchanges-types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export abstract class ExRest {
   private readonly defaultScheme: string;
   private readonly defaultHost: string;
   private readonly proxies?: string[];
+  private readonly agents?: SocksProxyAgent[];
   protected readonly logger?: AppLogger;
-
-  protected exAccount: ExAccountCode;
 
   protected constructor(params?: Partial<ExRestParams>) {
     this.defaultScheme = params.scheme ?? 'https';
     this.defaultHost = params.host;
     this.proxies = params.proxies;
-    this.exAccount = params.exAccount;
-    this.logger = params.logger || AppLogger.build(`rest:${this.exAccount}`);
+    this.agents = [];
+    this.logger =
+      params.logger || AppLogger.build(`rest:${this.constructor.name}`);
   }
 
   protected scheme(p: ExRestReqBuildParams): string {
@@ -51,29 +50,27 @@ export abstract class ExRest {
     uriEncode = true,
   ): string {
     let str = '';
-    if (params) {
-      let pairs: [string, any][];
-      if (params instanceof Array) {
-        pairs = params;
-      } else {
-        pairs = entries(params);
-      }
-      // 过滤掉空值
-      pairs = pairs.filter((i) => !isNil(i[1]));
-      if (pairs.length > 0) {
-        str += pairs
-          .map(
-            (i) =>
-              `${uriEncode ? encodeURIComponent(i[0]) : i[0]}=${
-                uriEncode ? encodeURIComponent(i[1]) : i[1]
-              }`,
-          )
-          .join('&');
+    if (!params) {
+      return str;
+    }
+    let pairs: [string, any][];
+    if (params instanceof Array) {
+      pairs = params;
+    } else {
+      pairs = entries(params);
+    }
+    // 过滤掉空值
+    pairs = pairs.filter((i) => !isNil(i[1]));
+    if (pairs.length === 0) {
+      return str;
+    }
+    if (uriEncode) {
+      pairs = pairs.map((nv) => nv.map(encodeURIComponent) as [string, any]);
+    }
+    str += pairs.map(([n, v]) => `${n}=${v}`).join('&');
 
-        if (includeQuestionMark) {
-          str = '?' + str;
-        }
-      }
+    if (includeQuestionMark) {
+      str = '?' + str;
     }
     return str;
   }
@@ -97,13 +94,15 @@ export abstract class ExRest {
     // 默认配置
     const defaultConfig: AxiosRequestConfig = {
       // timeout: 5000,
-      // 默认不根据 http status 来抛错误
-      // validateStatus: () => true,
     };
 
     if (this.proxies && this.proxies.length > 0) {
-      const selectProxy = Math.floor(Math.random() * this.proxies.length); //指定了代理 则在可用代理中随机选一个
-      const agent = new SocksProxyAgent(this.proxies[selectProxy]);
+      const selectProxy = Math.floor(Math.random() * this.proxies.length);
+      let agent = this.agents[selectProxy];
+      if (!agent) {
+        agent = new SocksProxyAgent(this.proxies[selectProxy]);
+        this.agents[selectProxy] = agent;
+      }
       defaultConfig.proxy = false;
       defaultConfig.httpAgent = agent;
       defaultConfig.httpsAgent = agent;
@@ -112,20 +111,40 @@ export abstract class ExRest {
     // 子类构造的配置
     const config = await this.buildReq(p);
 
-    const axiosRequestConfig: AxiosRequestConfig = {
+    const requestConfig: AxiosRequestConfig = {
       ...defaultConfig,
       // 子类的配置可以覆盖默认配置
       ...config,
     };
     this.logger?.debug(config.url);
-    const res = await axios.request(axiosRequestConfig);
+
+    let res: AxiosResponse;
+    try {
+      res = await axios.request(requestConfig);
+    } catch (e) {
+      this.logger.log(config);
+      if (p.apiKey) {
+        this.logger?.log(p.apiKey.key.substring(0, 7) + '...');
+      }
+      if (e instanceof AxiosError) {
+        const response = e.response;
+        if (response?.data) {
+          throw new Error(`${e.message}: ${JSON.stringify(response.data)}`);
+        }
+      }
+      throw e;
+    }
+
+    await this.handleResErrs(res);
 
     return res;
   }
 
-  protected async request<T>(p: ExRestReqBuildParams): Promise<T> {
+  async request<T = any>(p: ExRestReqBuildParams): Promise<T> {
     return (await this.requestRaw(p)).data;
   }
+
+  protected async handleResErrs(res: ExRestRes): Promise<void> {}
 
   /**
    * 构造请求的配置（在这里面进行签名）

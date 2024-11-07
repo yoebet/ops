@@ -1,40 +1,36 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
-import { CoinConfig } from '@/db/models/coin-config';
-import { UnifiedSymbol } from '@/db/models/unified-symbol';
-import {
-  ExAccountCode,
-  ExchangeCode,
-  ExMarket,
-} from '@/exchange/exchanges-types';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { CommonServicesModule } from '@/common-services/common-services.module';
+import { Coin } from '@/db/models/ex/coin';
+import { UnifiedSymbol } from '@/db/models/ex/unified-symbol';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 
 jest.setTimeout(60_000);
 
 describe('CoinConfigService', () => {
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
     }).compile();
 
     await moduleRef.init();
   });
 
   it('create - BTC', async () => {
-    const btc = new CoinConfig();
+    const btc = new Coin();
     btc.coin = 'BTC';
-    await CoinConfig.save(btc);
+    await Coin.save(btc);
   });
 
   it('add symbols', async () => {
     const coins = ['LTC', 'LUNC', 'USTC', 'FIL'];
     const stableCoin = 'USDT';
     for (const coin of coins) {
-      let cc = await CoinConfig.findOneBy({ coin });
+      let cc = await Coin.findOneBy({ coin });
       if (!cc) {
-        cc = new CoinConfig();
+        cc = new Coin();
         cc.coin = coin;
-        await CoinConfig.save(cc);
+        await Coin.save(cc);
       }
 
       const symbol = `${coin}/${stableCoin}`;
@@ -56,13 +52,10 @@ describe('CoinConfigService', () => {
         bas.ex = ex;
         bas.market = us.market;
         bas.symbol = us.symbol;
-        bas.dataIntervalFrom = '15m';
         if (ex === ExchangeCode.binance) {
           bas.rawSymbol = `${coin}${stableCoin}`;
-          bas.exAccount = ExAccountCode.binanceSpot;
         } else if (ex === ExchangeCode.okx) {
           bas.rawSymbol = `${coin}-${stableCoin}`;
-          bas.exAccount = ExAccountCode.okxUnified;
         } else {
           continue;
         }

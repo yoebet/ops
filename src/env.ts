@@ -6,8 +6,9 @@ import {
   PartialConfig,
 } from './common/config.types';
 import { ServerRole } from '@/common/server-profile.type';
+import { ExchangeCode } from '@/db/models/exchange-types';
 
-export const DB_SCHEMA = 'md';
+export const DB_SCHEMA = 'st';
 
 const DefaultConfig: PartialConfig = {
   http: {
@@ -21,6 +22,7 @@ const DefaultConfig: PartialConfig = {
     database: 'ops',
     host: 'postgres',
     port: 25432,
+    useUTC: true,
   },
   redis: {
     host: 'localhost',
@@ -28,7 +30,7 @@ const DefaultConfig: PartialConfig = {
   },
   bullmq: {
     redis: {
-      db: 1,
+      db: 2,
     },
   },
   log: {
@@ -40,43 +42,64 @@ const DefaultConfig: PartialConfig = {
   },
   kafka: {
     brokerList: 'localhost:9092',
-    clientId: 'dev1',
-    consumerGroupId: 'dev1',
+    clientId: 'ops1',
+    consumerGroupId: 'ops1',
   },
   exchange: {
     // socksProxies: ['socks://127.0.0.1:1080'],
     publishKafka: false,
-  },
-  dataWs: {
-    cors: {
-      // origin: '*',
-      origin: ['http://localhost', 'http://localhost:3000'],
-      credentials: true,
+    testApiKeys: {
+      [ExchangeCode.okx]: {
+        key: '',
+        secret: '',
+      },
     },
+  },
+  kld: {
+    base: 'http://localhost:5000',
+    wsPath: '/oflow/ws',
+  },
+  auth: {
+    bs: 'ops',
+    jwtSecret: 'af7f25f9-92fc-401c-9cb1-8f50f4d9c3ce',
+    siteSalt: '9854573',
   },
   predefinedProfiles: {
     RunAll: {
       httpPort: 5000,
-      // [ServerRole.Exws]: {},
+      [ServerRole.Admin]: {},
       [ServerRole.Worker]: {},
-      [ServerRole.DataServer]: {},
+      [ServerRole.StrategyWorker]: {},
+      [ServerRole.PaperTradeWorker]: {},
+      [ServerRole.BacktestWorker]: {},
+      [ServerRole.ExDataLoaderWorker]: {},
     },
-    [ServerRole.Exws]: {
-      httpPort: 6500,
-      [ServerRole.Exws]: {
-        // exCodes: [ExchangeCode.binance],
-      },
+    [ServerRole.Admin]: {
+      httpPort: 5000,
+      [ServerRole.Admin]: {},
+    },
+    [ServerRole.StrategyWorker]: {
+      httpPort: 7000,
+      [ServerRole.StrategyWorker]: {},
+    },
+    [ServerRole.PaperTradeWorker]: {
+      httpPort: 7000,
+      [ServerRole.PaperTradeWorker]: {},
+    },
+    [ServerRole.BacktestWorker]: {
+      httpPort: 7000,
+      [ServerRole.BacktestWorker]: {},
+    },
+    [ServerRole.ExDataLoaderWorker]: {
+      httpPort: 7000,
+      [ServerRole.ExDataLoaderWorker]: {},
     },
     [ServerRole.Worker]: {
       httpPort: 7000,
       [ServerRole.Worker]: {},
     },
-    [ServerRole.DataServer]: {
-      httpPort: 5000,
-      [ServerRole.DataServer]: {},
-    },
   },
-  serverProfile: ServerRole.DataServer,
+  serverProfile: ServerRole.Admin,
   serverNodeId: 'prod',
 };
 

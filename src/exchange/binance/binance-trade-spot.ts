@@ -1,0 +1,176 @@
+import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
+import {
+  AssetItem,
+  PlaceOrderParams,
+  PlaceOrderReturns,
+  PlaceTpslOrderParams,
+  SyncOrder,
+  AccountAsset,
+} from '@/exchange/exchange-service.types';
+import {
+  CreateOrderParamsBase,
+  CreateSpotOrderParams,
+} from '@/exchange/binance/types';
+import { OrderStatus } from '@/db/models/ex-order';
+import { BinanceTradeBase } from '@/exchange/binance/binance-trade-base';
+import { BinanceSpotRest } from '@/exchange/binance/rest-spot';
+
+export class BinanceTradeSpot extends BinanceTradeBase {
+  protected restSpot: BinanceSpotRest;
+
+  constructor(params?: Partial<ExRestParams>) {
+    super(params);
+    this.restSpot = new BinanceSpotRest(params);
+  }
+
+  // 现货/杠杆账户下单
+  async placeOrder(
+    apiKey: ExApiKey,
+    params: PlaceOrderParams,
+  ): Promise<PlaceOrderReturns> {
+    const op: CreateOrderParamsBase = {
+      symbol: params.symbol,
+      newClientOrderId: params.clientOrderId,
+      newOrderRespType: 'FULL',
+      // price: params.price,
+      // quantity: params.size,
+      // quoteOrderQty: params.quoteAmount,
+      side: params.side.toUpperCase() as any,
+      // sideEffectType: undefined,
+      // stopPrice: '',
+      // icebergQty: '',
+      // timeInForce: params.timeType?.toUpperCase() as any,
+      type: params.priceType.toUpperCase() as any,
+    };
+    if (params.quoteAmount) {
+      op.quoteOrderQty = params.quoteAmount;
+    } else {
+      op.quantity = params.baseSize;
+    }
+    if (op.type.includes('LIMIT')) {
+      op.price = params.price;
+      if (!op.timeInForce) {
+        op.timeInForce = 'GTC';
+      }
+    }
+    // TODO: params.tp, params.sl
+
+    const sop = op as CreateSpotOrderParams;
+    this.logger.log(sop);
+    const result = await this.restSpot.placeSpotOrder(apiKey, sop);
+    this.logger.log(result);
+    return {
+      rawParams: sop,
+      orderResp: {
+        exOrderId: '' + result.orderId,
+        status: OrderStatus.pending,
+        rawOrder: result,
+      },
+    };
+  }
+
+  placeTpslOrder(
+    apiKey: ExApiKey,
+    params: PlaceTpslOrderParams,
+  ): Promise<PlaceOrderReturns> {
+    // TODO:
+    return Promise.resolve(undefined);
+  }
+
+  async cancelOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<any> {
+    return this.restSpot.cancelOrder(apiKey, {
+      symbol: params.symbol,
+      orderId: params.orderId,
+    });
+  }
+
+  async cancelOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string },
+  ): Promise<SyncOrder[]> {
+    return this.restSpot.cancelOpenOrders(apiKey, {
+      symbol: params.symbol,
+    });
+  }
+
+  async getAllOpenOrders(
+    apiKey: ExApiKey,
+    params: { margin: boolean },
+  ): Promise<SyncOrder[]> {
+    const os = await this.restSpot.getOpenOrders(apiKey);
+    return this.mapSyncOrderReturns(os);
+  }
+
+  async getOpenOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string },
+  ): Promise<SyncOrder[]> {
+    const os = await this.restSpot.getOpenOrders(apiKey, params.symbol);
+    return this.mapSyncOrderReturns(os);
+  }
+
+  async getOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<SyncOrder | undefined> {
+    const o = await this.restSpot.getOrder(apiKey, {
+      symbol: params.symbol,
+      orderId: params.orderId,
+    });
+    if (!o) {
+      return undefined;
+    }
+    return this.mapOrderResp(o);
+  }
+
+  async getAllOrders(
+    apiKey: ExApiKey,
+    params: {
+      margin: boolean;
+      // 如果 isIsolated 为 true, symbol 为必填
+      symbol: string;
+      // isIsolated?: boolean;
+      // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
+      // equalAndAfterOrderId?: number;
+      startTime?: number;
+      endTime?: number;
+      limit?: number;
+    },
+  ): Promise<SyncOrder[]> {
+    const os = await this.restSpot.getAllOrders(apiKey, {
+      symbol: params.symbol,
+      // orderId: params.equalAndAfterOrderId,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      limit: params.limit,
+    });
+    return this.mapSyncOrderReturns(os);
+  }
+
+  async getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
+    const bals = await this.restSpot.getAccountBalance(apiKey, {
+      omitZeroBalances: true,
+    });
+    return {
+      timestamp: bals.updateTime,
+      // totalEqUsd: undefined,
+      coinAssets: bals.balances.map((a) => ({
+        coin: a.asset,
+        eq: +a.free + +a.locked,
+        availBal: +a.free,
+        frozenBal: +a.locked,
+      })),
+    };
+  }
+
+  async getAccountCoinBalance(
+    apiKey: ExApiKey,
+    params: { coin: string },
+  ): Promise<AssetItem> {
+    const bals = await this.getAccountBalance(apiKey);
+    return bals.coinAssets.filter((a) => a.coin === params.coin)[0];
+  }
+}

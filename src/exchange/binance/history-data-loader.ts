@@ -1,15 +1,16 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import * as fs from 'fs';
 import * as AdmZip from 'adm-zip';
-import { promisifyStream } from '@/common/utils/utils';
+import { MINUTE_MS, promisifyStream } from '@/common/utils/utils';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
 import {
+  ExKline,
   HistoryKlinesByDayParams,
   HistoryKlinesByMonthParams,
-} from '@/exchange/rest-capacities';
-import { CandleRawDataBinance } from '@/exchange/binance/types';
+} from '@/exchange/exchange-service.types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { ExAccountCode, ExKline } from '@/exchange/exchanges-types';
+import { BinanceMarketSpot } from '@/exchange/binance/binance-market-spot';
+import { Candle } from '@/exchange/binance/types';
 
 // https://github.com/binance/binance-public-data/
 // https://data.binance.vision/?prefix=data/spot/monthly/klines/DOGEUSDT/1d/
@@ -33,7 +34,7 @@ export class BinanceHistoryDataLoader {
 
   private buildRequestConfig() {
     const config: AxiosRequestConfig = {
-      timeout: 5 * 60 * 1000,
+      timeout: 5 * MINUTE_MS,
     };
 
     if (this.proxies && this.proxies.length > 0) {
@@ -121,27 +122,27 @@ export class BinanceHistoryDataLoader {
 
   static parseKlineCsvRows(rows: string[]) {
     const data = rows
-      .map((row) => row.split(',') as any as CandleRawDataBinance)
+      .map((row) => row.split(',') as any as Candle)
       .filter((c) => c[8]);
-    return BinanceBaseRest.toCandles(data);
+    return data.map(BinanceMarketSpot.toKline);
   }
 
-  private getTradingType(exAccount: ExAccountCode) {
-    if (exAccount === ExAccountCode.binanceCm) {
-      return 'cm';
-    }
-    if (exAccount === ExAccountCode.binanceUm) {
-      return 'um';
-    }
-    return 'spot';
-  }
+  // private getTradingType(market: ExMarket) {
+  //   if (market === ExMarket.perp_inv) {
+  //     return 'cm';
+  //   }
+  //   if (market === ExMarket.perp) {
+  //     return 'um';
+  //   }
+  //   return 'spot';
+  // }
 
   async loadHistoryKlinesByMonth(
     params: HistoryKlinesByMonthParams,
   ): Promise<ExKline[]> {
-    const { yearMonth, symbol, interval, exAccount } = params;
+    const { yearMonth, symbol, interval } = params;
     const downloadOptions: DownloadOptions = {
-      tradingType: this.getTradingType(exAccount),
+      tradingType: 'spot',
       timePeriod: 'monthly',
       dateStr: yearMonth,
       symbol,
@@ -157,9 +158,9 @@ export class BinanceHistoryDataLoader {
   async loadHistoryKlinesByDay(
     params: HistoryKlinesByDayParams,
   ): Promise<ExKline[]> {
-    const { date, symbol, interval, exAccount } = params;
+    const { date, symbol, interval } = params;
     const downloadOptions: DownloadOptions = {
-      tradingType: this.getTradingType(exAccount),
+      tradingType: 'spot',
       timePeriod: 'daily',
       dateStr: date,
       symbol,

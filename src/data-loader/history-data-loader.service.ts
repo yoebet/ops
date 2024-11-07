@@ -1,28 +1,25 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DateTime, DateTimeOptions } from 'luxon';
 import { AppLogger } from '@/common/app-logger';
-import { TaskScope } from '@/common/server-profile.type';
-import { ExchangeRestService } from '@/exchange/exchange-rest.service';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import {
-  ExAccountCode,
-  ExchangeCode,
-  ExKline,
-} from '@/exchange/exchanges-types';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import {
   DataTaskStatus,
   DateRange,
-  ExSymbolDataTask,
-} from '@/db/models/ex-symbol-data-task';
-import { ExchangeService } from '@/exchange/rest-capacities';
+  ExDataLoaderTask,
+} from '@/db/models/ex-data-loader-task';
 import { KlineDataService } from '@/data-service/kline-data.service';
-import { Kline } from '@/db/models-data/kline';
 import { chunk } from 'lodash';
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import { Job } from 'bullmq';
 import { FindOptionsWhere } from 'typeorm/find-options/FindOptionsWhere';
-import { ExSymbolEnabled } from '@/db/models/ex-symbol-enabled';
 import { In } from 'typeorm';
+import { ExchangeCode } from '@/db/models/exchange-types';
+import {
+  ExchangeMarketDataService,
+  ExKline,
+} from '@/exchange/exchange-service.types';
+import { Kline } from '@/data-service/models/kline';
+import { Exchanges } from '@/exchange/exchanges';
 
 export const DateTimeOpts: DateTimeOptions = { zone: 'UTC' };
 const ymPattern = 'yyyy-MM';
@@ -56,15 +53,18 @@ export class HistoryDataLoaderService implements OnModuleInit {
 
   constructor(
     readonly dataService: KlineDataService,
-    readonly exchangeRestService: ExchangeRestService,
+    readonly exchanges: Exchanges,
     readonly jobsService: JobsService,
     readonly logger: AppLogger,
   ) {
     logger.setContext('data-loader');
   }
 
-  onModuleInit() {
-    this.logger.log('define jobs ...');
+  onModuleInit() {}
+
+  defineJobs() {
+    this.logger.log(`:::: define jobs ...`);
+
     for (const ex of Object.values(ExchangeCode)) {
       const queueName = this.getQueueName(ex);
       this.defineLoaderJob(queueName);
@@ -73,7 +73,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
   }
 
   private getQueueName(ex: ExchangeCode) {
-    return `kline/${ex}`;
+    return `load-kline/${ex}`;
   }
 
   private defineLoaderJob(queueName: string): LoaderTaskFacade {
@@ -99,20 +99,15 @@ export class HistoryDataLoaderService implements OnModuleInit {
     return jobFacade;
   }
 
-  async start(_profile: TaskScope) {
-    this.logger.log(`:::: start ...`);
-  }
-
   private newDataTask(
     es: ExchangeSymbol,
     interval: string,
     [startDate, endDate]: DateRange,
   ) {
-    const task = new ExSymbolDataTask();
+    const task = new ExDataLoaderTask();
     task.ex = es.ex;
     task.symbol = es.symbol;
     task.rawSymbol = es.rawSymbol;
-    task.exAccount = es.exAccount;
     task.market = es.market;
     task.interval = interval;
     task.startDate = startDate;
@@ -142,7 +137,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
     }
 
     const task = this.newDataTask(es, interval, dateRange);
-    await ExSymbolDataTask.save(task);
+    await ExDataLoaderTask.save(task);
     if (summitJob) {
       await this.summitJob(task);
     }
@@ -161,14 +156,14 @@ export class HistoryDataLoaderService implements OnModuleInit {
       for (const es of ess) {
         for (const dateRange of dateRanges) {
           if (opts.skipExist) {
-            const ks: FindOptionsWhere<ExSymbolDataTask> = {
+            const ks: FindOptionsWhere<ExDataLoaderTask> = {
               ex: es.ex,
               symbol: es.symbol,
               interval,
               startDate: dateRange[0],
               endDate: dateRange[1],
             };
-            const exist = await ExSymbolDataTask.existsBy(ks);
+            const exist = await ExDataLoaderTask.existsBy(ks);
             if (exist) {
               this.logger.log(JSON.stringify(ks, null, 2));
               this.logger.log(`existed, skip`);
@@ -176,7 +171,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
             }
           }
           const task = this.newDataTask(es, interval, dateRange);
-          await ExSymbolDataTask.save(task);
+          await ExDataLoaderTask.save(task);
           count++;
           if (opts.summitJobs) {
             await this.summitJob(task);
@@ -188,8 +183,8 @@ export class HistoryDataLoaderService implements OnModuleInit {
   }
 
   private async findExSymbols(params: CreateBatchTaskParams) {
-    const sc: keyof ExSymbolEnabled = 'unifiedSymbol';
-    return await ExSymbolEnabled.find({
+    const sc: keyof ExchangeSymbol = 'unifiedSymbol';
+    return await ExchangeSymbol.find({
       where: {
         ex: In(params.exs),
         symbol: In(params.symbols),
@@ -268,7 +263,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
 
   async summitJobs() {
     let count = 0;
-    const pendingTasks = await ExSymbolDataTask.find({
+    const pendingTasks = await ExDataLoaderTask.find({
       where: {
         status: DataTaskStatus.pending, // or aborted
       },
@@ -280,7 +275,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
     return count;
   }
 
-  async summitJob(task: ExSymbolDataTask) {
+  async summitJob(task: ExDataLoaderTask) {
     const jobFacade = this.getJobFacade(task.ex);
     await jobFacade.addTask(
       {
@@ -294,7 +289,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
   }
 
   async runTask(taskId: number): Promise<TaskResult> {
-    const task = await ExSymbolDataTask.findOne({
+    const task = await ExDataLoaderTask.findOne({
       where: { id: taskId },
       relations: ['unifiedSymbol'],
     });
@@ -332,12 +327,8 @@ export class HistoryDataLoaderService implements OnModuleInit {
     );
   }
 
-  protected async doRunTask(task: ExSymbolDataTask): Promise<TaskResult> {
-    const rest = this.exchangeRestService.getExRest(
-      task.ex === ExchangeCode.binance
-        ? ExAccountCode.binanceSpot
-        : task.exAccount,
-    );
+  protected async doRunTask(task: ExDataLoaderTask): Promise<TaskResult> {
+    const rest = this.exchanges.getExMarketDataService(task.ex, task.market);
     if (!rest) {
       throw Error('no exchange service.');
     }
@@ -394,16 +385,15 @@ export class HistoryDataLoaderService implements OnModuleInit {
   }
 
   protected async loadHistoryKlinesOneMonth(
-    task: ExSymbolDataTask,
+    task: ExDataLoaderTask,
     dt: DateTime,
-    rest: ExchangeService,
+    rest: ExchangeMarketDataService,
   ): Promise<TaskResult> {
-    const { interval, symbol, rawSymbol, exAccount } = task;
+    const { interval, symbol, rawSymbol } = task;
     const yearMonth = dt.toFormat(ymPattern);
     this.logger.log(`loading ${task.symbol} ${task.interval} ${yearMonth}`);
 
     const klines = await rest.loadHistoryKlinesOneMonth({
-      exAccount,
       yearMonth,
       interval,
       symbol: rawSymbol,
@@ -417,16 +407,15 @@ export class HistoryDataLoaderService implements OnModuleInit {
   }
 
   protected async loadHistoryKlinesOneDay(
-    task: ExSymbolDataTask,
+    task: ExDataLoaderTask,
     dt: DateTime,
-    rest: ExchangeService,
+    rest: ExchangeMarketDataService,
   ): Promise<TaskResult> {
-    const { interval, symbol, rawSymbol, exAccount } = task;
+    const { interval, symbol, rawSymbol } = task;
     const dateStr = dt.toFormat(ymdPattern);
     this.logger.log(`loading ${task.symbol} ${task.interval} ${dateStr}`);
 
     const klines = await rest.loadHistoryKlinesOneDay({
-      exAccount,
       date: dateStr,
       interval,
       symbol: rawSymbol,
@@ -439,7 +428,7 @@ export class HistoryDataLoaderService implements OnModuleInit {
     return { klines: klines.length };
   }
 
-  protected async saveKlines(task: ExSymbolDataTask, klines: ExKline[]) {
+  protected async saveKlines(task: ExDataLoaderTask, klines: ExKline[]) {
     const { interval, symbol, unifiedSymbol } = task;
     const kls: Kline[] = klines.map((k) => ({
       ex: task.ex,
@@ -452,15 +441,11 @@ export class HistoryDataLoaderService implements OnModuleInit {
       high: k.high,
       low: k.low,
       close: k.close,
-      tds: k.tds,
+      tds: k.tds ?? 0,
       size: k.size,
       amount: k.amount,
-      // bc: k.bc,
-      bc: null,
       ba: k.ba ?? null,
       bs: k.bs ?? null,
-      // sc: k.sc,
-      sc: null,
       sa: k.sa ?? null,
       ss: k.ss ?? null,
       time: new Date(k.ts),

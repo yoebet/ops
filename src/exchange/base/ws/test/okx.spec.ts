@@ -11,7 +11,7 @@ import {
   WsSubscription,
 } from '@/exchange/base/ws/ex-ws';
 import { mergeId } from '@/exchange/base/ws/base-ws';
-import { ExchangeCode } from '@/exchange/exchanges-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 
 class TestWs extends ExWs {

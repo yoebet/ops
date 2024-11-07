@@ -1,4 +1,4 @@
-import { OkxWs } from '@/exchange/okx/okx-ws';
+import { OkxPublicWs } from '@/exchange/okx/okx-ws-public';
 import { wait } from '@/common/utils/utils';
 import {
   exWsParams,
@@ -10,8 +10,7 @@ const symbol_BTC_USDT = 'BTC-USDT';
 const symbol_BTC_PERP_BTC = 'BTC-USD-SWAP';
 const symbol_BTC_PERP_USDT = 'BTC-USDT-SWAP';
 
-const ws = new OkxWs(exWsParams());
-// ws.logMessage = true;
+const ws = new OkxPublicWs(exWsParams());
 
 jest.setTimeout(5000_000);
 
@@ -58,7 +57,9 @@ describe('okx-ws', () => {
   });
 
   it('kline', async () => {
-    // observeWsStatus(ws);
+    observeWsStatus(ws);
+    // ws.logMessage = true;
+    ws.candleIncludeLive = true;
     const subject = ws.klineSubject('1m');
     subject.subs([symbol_BTC_USDT]);
 

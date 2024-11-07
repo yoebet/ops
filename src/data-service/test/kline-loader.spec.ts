@@ -1,10 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { DbModule } from '@/db/db-module';
 import { CommonModule } from '@/common/common.module';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { KlineDataService } from '@/data-service/kline-data.service';
-import { Kline } from '@/db/models-data/kline';
+import { Kline } from '@/data-service/models/kline';
 
 jest.setTimeout(1000_000);
 
@@ -13,7 +13,7 @@ describe('load-kline-data', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, CommonModule, DbModule, MarketDataModule],
+      imports: [CommonServicesModule, CommonModule, DbModule, MarketDataModule],
       providers: [KlineDataService],
     }).compile();
 
@@ -27,7 +27,6 @@ describe('load-kline-data', () => {
         amount: 0,
         ba: 0,
         base: '',
-        bc: 0,
         bs: 0,
         close: 0,
         ex: 'binance',
@@ -38,7 +37,6 @@ describe('load-kline-data', () => {
         open: 0,
         quote: '',
         sa: 0,
-        sc: 0,
         size: 0,
         ss: 0,
         symbol: 'BTC/USDT',
@@ -55,7 +53,6 @@ describe('load-kline-data', () => {
         amount: 8.8,
         ba: 1,
         base: 'HH',
-        bc: 9,
         bs: 2,
         close: 9,
         ex: 'binance',
@@ -65,7 +62,6 @@ describe('load-kline-data', () => {
         open: 7.2,
         quote: 'USDT',
         sa: 3,
-        sc: 1,
         size: 1.1,
         ss: 33,
         market: 'spot',

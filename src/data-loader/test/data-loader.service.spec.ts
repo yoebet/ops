@@ -4,10 +4,10 @@ import {
   CreateBatchTaskParams,
   HistoryDataLoaderService,
 } from '@/data-loader/history-data-loader.service';
-import { ExchangeCode } from '@/exchange/exchanges-types';
-import { ExSymbolEnabled } from '@/db/models/ex-symbol-enabled';
-import { DateRange, ExSymbolDataTask } from '@/db/models/ex-symbol-data-task';
 import { In } from 'typeorm';
+import { ExchangeCode } from '@/db/models/exchange-types';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
+import { DateRange, ExDataLoaderTask } from '@/db/models/ex-data-loader-task';
 
 jest.setTimeout(1000_000);
 
@@ -54,8 +54,8 @@ describe('load-kline-data', () => {
   });
 
   it('create batch tasks', async () => {
-    const sc: keyof ExSymbolEnabled = 'unifiedSymbol';
-    const ess = await ExSymbolEnabled.find({
+    const sc: keyof ExchangeSymbol = 'unifiedSymbol';
+    const ess = await ExchangeSymbol.find({
       where: {
         // ex: ExchangeCode.binance,
         symbol: In(['BTC/USDT', 'ETH/USDT']),
@@ -77,9 +77,9 @@ describe('load-kline-data', () => {
   });
 
   it('create batch tasks - each month', async () => {
-    const sc: keyof ExSymbolEnabled = 'unifiedSymbol';
+    const sc: keyof ExchangeSymbol = 'unifiedSymbol';
     // BTC,ETH,DOGE,USTC,SOL,FIL
-    const ess = await ExSymbolEnabled.find({
+    const ess = await ExchangeSymbol.find({
       where: {
         ex: ExchangeCode.binance,
         // symbol: In(['BTC/USDT', 'ETH/USDT']),
@@ -107,8 +107,8 @@ describe('load-kline-data', () => {
   });
 
   it('create batch tasks - each day', async () => {
-    const sc: keyof ExSymbolEnabled = 'unifiedSymbol';
-    const ess = await ExSymbolEnabled.find({
+    const sc: keyof ExchangeSymbol = 'unifiedSymbol';
+    const ess = await ExchangeSymbol.find({
       where: {
         // ex: ExchangeCode.okx,
         symbol: In(['BTC/USDT', 'ETH/USDT']),
@@ -181,7 +181,7 @@ describe('load-kline-data', () => {
   });
 
   it('re-summit tasks', async () => {
-    const tasks = await ExSymbolDataTask.findBy({
+    const tasks = await ExDataLoaderTask.findBy({
       ex: ExchangeCode.okx,
       interval: '5m',
       // symbol: In(['BTC/USDT', 'ETH/USDT']),

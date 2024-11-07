@@ -1,17 +1,11 @@
 import { Module, Provider } from '@nestjs/common';
-import { SystemConfigModule } from '@/common-services/system-config.module';
-import { ExchangeWsService } from '@/exchange/exchange-ws.service';
-import { ExMonitorService } from '@/exchange/admin/ex-monitor.service';
-import { ExchangeRestService } from '@/exchange/exchange-rest.service';
+import { CommonServicesModule } from '@/common-services/common-services.module';
+import { Exchanges } from '@/exchange/exchanges';
 
-const services: Provider[] = [
-  ExchangeWsService,
-  ExMonitorService,
-  ExchangeRestService,
-];
+const services: Provider[] = [Exchanges];
 
 @Module({
-  imports: [SystemConfigModule],
+  imports: [CommonServicesModule],
   providers: services,
   exports: services,
 })

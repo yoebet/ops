@@ -31,3 +31,18 @@ export function promisifyStream(writer: WriteStream) {
     writer.on('error', reject);
   });
 }
+
+export function round(num: number, digits, _type?: 'price' | 'size'): string {
+  if (digits !== null) {
+    return num.toFixed(digits);
+  }
+  return '' + num;
+}
+
+export function evalDiffPercent(base: number, target: number): number {
+  return ((target - base) / base) * 100;
+}
+
+export const MINUTE_MS = 60 * 1000;
+export const HOUR_MS = 60 * MINUTE_MS;
+export const DAY_MS = 24 * HOUR_MS;

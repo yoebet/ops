@@ -38,5 +38,8 @@ lerna-debug.log*
 
 /docker/.yarn-cache/
 /src/env.local.ts
+/src/env.local.test.ts
 /data/
 /src/env.prod.ts
+/src/exchange/okx/test/data/
+/src/exchange/binance/test/data/

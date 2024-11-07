@@ -2,9 +2,11 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import { LogLevel } from '@nestjs/common/services/logger.service';
 import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
 import { isArray, mergeWith } from 'lodash';
-import { GatewayMetadata } from '@nestjs/websockets/interfaces/gateway-metadata.interface';
 import { ServerProfile } from '@/common/server-profile.type';
 import { RedisOptions } from 'ioredis';
+import { ExchangeCode } from '@/db/models/exchange-types';
+
+import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
 export interface HttpConfig {
   host?: string;
@@ -36,11 +38,6 @@ export interface WsAdminUIConfig {
   mode?: 'development' | 'production';
 }
 
-export interface DataWsConfig {
-  cors?: GatewayMetadata['cors'];
-  adminUi?: WsAdminUIConfig;
-}
-
 export interface KafkaConfig {
   brokerList?: string;
   clientId?: string;
@@ -50,9 +47,15 @@ export interface KafkaConfig {
 export interface AuthConfig {
   bs?: string;
   jwtSecret: string;
-  extraSecrets?: {
-    [bs: string]: string;
-  };
+  // extraSecrets?: {
+  //   [bs: string]: string;
+  // };
+  siteSalt?: string;
+}
+
+export interface KldServerConfig {
+  base: string;
+  wsPath: string;
 }
 
 export interface Config {
@@ -64,10 +67,13 @@ export interface Config {
   };
   log: LogConfig;
   kafka: KafkaConfig;
-  dataWs: DataWsConfig;
+  kld: KldServerConfig;
   exchange: {
     socksProxies?: string[];
     publishKafka?: boolean;
+    testApiKeys?: {
+      [ex in ExchangeCode]?: ExApiKey;
+    };
   };
   auth: AuthConfig;
   predefinedProfiles: Record<string, ServerProfile>;

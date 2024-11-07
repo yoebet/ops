@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { bullmqRedis } from '@/common/config.types';
 
 jest.setTimeout(100_000);
@@ -53,5 +53,21 @@ it('bullmq get active', async () => {
   const jobs = await testQueue1.getActive();
   for (const job of jobs) {
     console.log(job.asJSON());
+  }
+});
+
+it('clear logs - strategy', async () => {
+  const testQueue1 = new Queue('strategy/MV', { connection });
+  const jobs = await testQueue1.getJobs(['active', 'waiting']);
+  for (const job of jobs) {
+    await job.clearLogs();
+  }
+});
+
+it('remove - strategy', async () => {
+  const testQueue1 = new Queue('strategy/MV', { connection });
+  const jobs = await testQueue1.getJobs(['active', 'waiting']);
+  for (const job of jobs) {
+    await job.remove();
   }
 });

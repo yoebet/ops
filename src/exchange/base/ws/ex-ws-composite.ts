@@ -45,6 +45,13 @@ export abstract class ExWsComposite extends ExWs {
     }
   }
 
+  set candleIncludeLive(value: boolean) {
+    super.candleIncludeLive = value;
+    for (const ws of this.wss) {
+      ws.candleIncludeLive = value;
+    }
+  }
+
   protected add(ws: ExWs) {
     if (!this.wss.includes(ws)) {
       this.wss.push(ws);

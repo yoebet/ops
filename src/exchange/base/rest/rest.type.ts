@@ -1,13 +1,11 @@
 import { AppLogger } from '@/common/app-logger';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ExAccountCode } from '@/exchange/exchanges-types';
 
 export interface ExRestParams {
   scheme?: string;
   host: string;
   proxies?: string[];
   logger?: AppLogger;
-  exAccount: ExAccountCode;
 }
 
 export enum HttpMethodType {
@@ -15,6 +13,16 @@ export enum HttpMethodType {
   post = 'POST',
   put = 'PUT',
   delete = 'DELETE',
+}
+
+export interface ExApiKey {
+  key: string;
+  secret: string;
+  password?: string;
+  secret2fa?: string;
+  subaccount?: string;
+  withdrawPassword?: string;
+  label?: string;
 }
 
 export type ExRestReqBuildParams = {
@@ -25,6 +33,7 @@ export type ExRestReqBuildParams = {
   // 有些交易所分 url params 和 body params
   params2?: Record<string, any>;
   // 传了 apiKey 就得进行签名
+  apiKey?: ExApiKey;
   headers?: Record<string, string>;
 
   // 下面的参数，不传的话用 BaseExRest 的默认值

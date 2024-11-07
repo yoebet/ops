@@ -1,4 +1,4 @@
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { BinanceHistoryDataLoader } from '@/exchange/binance/history-data-loader';
 import * as AdmZip from 'adm-zip';
 

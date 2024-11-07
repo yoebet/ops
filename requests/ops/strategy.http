@@ -1,0 +1,48 @@
+
+### all
+GET http://{{server}}/ops/strategies
+
+
+### paper trade
+GET http://{{server}}/ops/strategies?type=paper
+Accept: application/json
+
+
+### real trade
+GET http://{{server}}/ops/strategies?type=real
+Accept: application/json
+
+
+### orders
+GET http://{{server}}/ops/strategies/35/orders
+Accept: application/json
+
+
+### deals
+GET http://{{server}}/ops/strategies/35/deals
+Accept: application/json
+
+
+### job - remove all
+POST http://{{server}}/ops/strategies/jobs/remove-all
+Accept: application/json
+
+
+### job - summit ('summit' | 'remove' | 'stop' | 'retry' | 'clearLogs')
+POST http://{{server}}/ops/strategies/35/job/summit
+Accept: application/json
+
+
+### clone
+POST http://{{server}}/ops/strategies/35/clone
+Accept: application/json
+Content-Type: application/json
+
+{
+  "memo": "reo"
+}
+
+
+### drop
+DELETE http://{{server}}/ops/bt-strategies/35
+Accept: application/json

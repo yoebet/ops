@@ -13,7 +13,6 @@ import {
   KafkaProducerOptions,
 } from '@/data-service/kafka/kafka-cli';
 import { KafkaProducer } from '@/data-service/kafka/kafka-producer';
-import { wait } from '@/common/utils/utils';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()

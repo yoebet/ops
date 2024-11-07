@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { wait } from '@/common/utils/utils';
 import { KafkaClientsService } from '@/data-service/kafka-clients.service';
 
@@ -11,7 +11,7 @@ describe('kafka-service', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
       providers: [KafkaClientsService],
     }).compile();
 

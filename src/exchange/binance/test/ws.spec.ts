@@ -4,7 +4,7 @@ import {
   observeWsStatus,
   observeWsSubject,
 } from '@/common/test/test-utils.spec';
-import { BinanceSpotWs } from '@/exchange/binance/binance-spot-ws';
+import { BinanceSpotWs } from '@/exchange/binance/ws-spot';
 
 const symbol_BTC_USDT = 'BTCUSDT';
 const symbol_ETH_USDT = 'ETHUSDT';
@@ -29,10 +29,11 @@ describe('binance-ws', () => {
 
   it('spot kline', async () => {
     const ws = new BinanceSpotWs(exWsParams());
+    ws.candleIncludeLive = true;
     // ws.logMessage = true;
     // observeWsStatus(ws);
 
-    const subject = ws.klineSubject('1s');
+    const subject = ws.klineSubject('1m');
     subject.subs([symbol_BTC_USDT, symbol_ETH_USDT]);
 
     observeWsSubject(subject.get());
