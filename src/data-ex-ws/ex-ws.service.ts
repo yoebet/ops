@@ -9,13 +9,13 @@ import { ConfigService } from '@nestjs/config';
 import { TaskScope } from '@/common/server-profile.type';
 import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
-import { ExchangeWs } from '@/exchange/ws-capacities';
+import { ExchangeWs } from '@/exchange/ws-types';
 import { TickerHandler } from '@/data-ex-ws/ticker-handler';
 import { KlineHandler } from '@/data-ex-ws/kline-handler';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { Observable, Subject } from 'rxjs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
-import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-capacities';
+import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
 
 interface ExAccountWs {
   exAccount: ExAccountCode;

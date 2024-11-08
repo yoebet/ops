@@ -41,6 +41,6 @@ export class ExchangeSymbol extends BaseModel {
   @Column({ nullable: true })
   volumeStep?: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('jsonb', { select: false, nullable: true })
   exchangeInfo?: any;
 }

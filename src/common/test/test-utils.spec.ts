@@ -5,7 +5,6 @@ import { ExWs, ExWsParams } from '@/exchange/base/ws/ex-ws';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { Agent } from 'http';
 import { TestConfig } from '@/env.local.tset';
-import { wait } from '@/common/utils/utils';
 
 jest.setTimeout(50_000);
 
@@ -58,17 +57,3 @@ export function exWsParams(): Partial<ExWsParams> {
     agent: getAgent(),
   };
 }
-
-test('floor', async () => {
-  const a = Math.floor(1669199092536 / 1000);
-  console.log(a);
-  const b = a % 60;
-  console.log(b);
-  await wait(2_000);
-});
-
-test('nextMonth', async () => {
-  const date = new Date(Date.now() + 32 * 24 * 60 * 60 * 1000); //起始时间32天之后 一定是下个月
-  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth()));
-  console.log(d.getTime());
-});

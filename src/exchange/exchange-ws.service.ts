@@ -5,7 +5,7 @@ import {
   MonitorCommand,
   MonitorStreamCommand,
 } from '@/exchange/base/ws/ex-ws-monitor-types';
-import { CapableWs } from '@/exchange/ws-capacities';
+import { CapableWs } from '@/exchange/ws-types';
 import { ExWsMonitor } from '@/exchange/base/ws/ex-ws-monitor';
 import { ExWsParams } from '@/exchange/base/ws/ex-ws';
 

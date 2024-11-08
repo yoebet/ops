@@ -11,7 +11,7 @@ import {
   ExTrade,
   FetchKlineParams,
   FetchTradeParams,
-} from '@/exchange/rest-capacities';
+} from '@/exchange/rest-types';
 import {
   CandleRawDataBinance,
   TradeRawDataBinance,

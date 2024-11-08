@@ -5,7 +5,7 @@ import { ExRestTypes } from '@/exchange/exchange-accounts';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
-import { ExchangeService } from '@/exchange/rest-capacities';
+import { ExchangeService } from '@/exchange/rest-types';
 import { Path } from '@nestjs/config/dist/types';
 
 @Injectable()

@@ -8,12 +8,12 @@ import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
 import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { TradeTicker, WsCandleRawDataBinance } from '@/exchange/binance/types';
-import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-capacities';
+import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-types';
 
 import { TradeSide } from '@/data-service/models/base';
 import * as Rx from 'rxjs';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
-import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-capacities';
+import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
 
 export abstract class BinanceWs extends ExWs implements ExchangeWs {
   // https://binance-docs.github.io/apidocs/spot/cn/#2b149598d9

@@ -56,7 +56,6 @@ describe('CoinConfigService', () => {
         bas.ex = ex;
         bas.market = us.market;
         bas.symbol = us.symbol;
-        bas.dataIntervalFrom = '15m';
         if (ex === ExchangeCode.binance) {
           bas.rawSymbol = `${coin}${stableCoin}`;
           bas.exAccount = ExAccountCode.binanceSpot;

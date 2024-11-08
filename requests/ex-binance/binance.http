@@ -1,8 +1,13 @@
 
 ### exchangeInfo
-GET {{binanceBase}}/api/v3/exchangeInfo?symbol=BTCUSDT
+GET {{binanceBase}}/api/v3/exchangeInfo?symbol=BTCUSDT&showPermissionSets=false
 
 >>! ./exchangeInfo-BTC.json
+
+### exchangeInfo 2
+GET {{binanceBase}}/api/v3/exchangeInfo?symbols=["BTCUSDT","BNBUSDT"]&showPermissionSets=false
+
+>>! ./exchangeInfo-BTC-BNB.json
 
 ### ticker
 GET {{binanceBase}}/api/v3/ticker/price?symbol=BTCUSDT

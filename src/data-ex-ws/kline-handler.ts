@@ -10,7 +10,7 @@ import { RtKline } from '@/data-service/models/realtime';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
-import { ExKlineWithSymbol } from '@/exchange/rest-capacities';
+import { ExKlineWithSymbol } from '@/exchange/rest-types';
 
 export class KlineHandler {
   private klineProducer: ChannelProducer<RtKline>;

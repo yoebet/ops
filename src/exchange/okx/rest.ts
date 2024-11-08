@@ -17,7 +17,7 @@ import {
   ExPrice,
   ExKline,
   ExTrade,
-} from '@/exchange/rest-capacities';
+} from '@/exchange/rest-types';
 import {
   CandleRawDataOkx,
   RestBody,

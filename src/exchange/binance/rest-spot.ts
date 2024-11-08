@@ -8,7 +8,7 @@ import {
   ExPrice,
   ExKline,
   ExTrade,
-} from '@/exchange/rest-capacities';
+} from '@/exchange/rest-types';
 import {
   CandleRawDataBinance,
   TradeRawDataBinance,
@@ -54,7 +54,11 @@ export class BinanceSpotRest
     const res: any = await this.request({
       path: '/api/v3/exchangeInfo',
       method: HttpMethodType.get,
-      params: { symbol },
+      params: {
+        symbol,
+        // symbols
+        showPermissionSets: false,
+      },
     });
     return res['symbols'][0];
   }

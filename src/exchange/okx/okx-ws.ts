@@ -9,14 +9,10 @@ import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
 import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
-import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-capacities';
+import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-types';
 import { OkxRest } from '@/exchange/okx/rest';
 import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
-import {
-  ExKline,
-  ExKlineWithSymbol,
-  ExTrade,
-} from '@/exchange/rest-capacities';
+import { ExKline, ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
 
 abstract class OkxBaseWs extends ExWs {
   protected constructor(params: Partial<ExWsParams>) {
