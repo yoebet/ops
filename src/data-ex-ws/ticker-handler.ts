@@ -2,15 +2,16 @@ import * as Rx from 'rxjs';
 import { Observable } from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
 import { SymbolService } from '@/common-services/symbol.service';
-import { ExMarket, ExTrade } from '@/exchange/exchanges-types';
+import { ExMarket } from '@/db/models/exchange-types';
 import { Trade } from '@/data-service/models/trade';
 import {
   ChannelProducer,
   DataChannelService,
 } from '@/data-service/data-channel.service';
 import { RtPrice } from '@/data-service/models/realtime';
-import { ExSymbolEnabled } from '@/db/models/ex-symbol-enabled';
+import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
+import { ExTrade } from '@/exchange/rest-capacities';
 
 export class TickerHandler {
   private rtPriceProducer: ChannelProducer<RtPrice>;
@@ -29,46 +30,6 @@ export class TickerHandler {
     readonly publishToChannel: boolean,
     readonly logger: AppLogger,
   ) {}
-
-  static buildTrade(
-    exTrade: ExTrade,
-    exchangeSymbolWithSC: ExSymbolEnabled,
-  ): Trade | undefined {
-    const sc = exchangeSymbolWithSC.unifiedSymbol;
-    const contractSize = +exchangeSymbolWithSC.contractSizeStr;
-    const { market: market, base, quote } = sc;
-
-    const csize = exTrade.size;
-    if (contractSize && market) {
-      exTrade.size = exTrade.size * contractSize;
-      if (ExMarket.perp_inv == market && exTrade.price > 0) {
-        exTrade.size = exTrade.size / exTrade.price;
-      }
-    }
-    if (!exTrade.amount) {
-      exTrade.amount = exTrade.size * exTrade.price;
-    }
-
-    const block = exTrade.amount >= 5000;
-
-    const trade: Trade = {
-      ex: exTrade.ex,
-      market,
-      symbol: exchangeSymbolWithSC.symbol,
-      base,
-      quote,
-      time: new Date(+exTrade.ts),
-      csize,
-      size: exTrade.size,
-      amount: exTrade.amount,
-      price: exTrade.price,
-      tradeId: exTrade.tradeId,
-      side: exTrade.side,
-      block: block ? 1 : 0,
-    };
-
-    return trade;
-  }
 
   checkPriceNormal(trade: Trade): boolean {
     if (trade.price == 0) {
@@ -105,6 +66,43 @@ export class TickerHandler {
     });
 
     return true;
+  }
+
+  static buildTrade(
+    exTrade: ExTrade,
+    exSymbolWithSC: ExchangeSymbol,
+  ): Trade | undefined {
+    const sc = exSymbolWithSC.unifiedSymbol;
+    const contractSize = +exSymbolWithSC.contractSizeStr;
+    const { market: market, base, quote } = sc;
+
+    const csize = exTrade.size;
+    if (contractSize && market) {
+      exTrade.size = exTrade.size * contractSize;
+      if (ExMarket.perp_inv == market && exTrade.price > 0) {
+        exTrade.size = exTrade.size / exTrade.price;
+      }
+    }
+    if (!exTrade.amount) {
+      exTrade.amount = exTrade.size * exTrade.price;
+    }
+
+    const trade: Trade = {
+      ex: exTrade.ex,
+      market,
+      symbol: exSymbolWithSC.symbol,
+      base,
+      quote,
+      time: new Date(+exTrade.ts),
+      csize,
+      size: exTrade.size,
+      amount: exTrade.amount,
+      price: exTrade.price,
+      tradeId: exTrade.tradeId,
+      side: exTrade.side,
+    };
+
+    return trade;
   }
 
   private buildRtPrice(trade: Trade) {

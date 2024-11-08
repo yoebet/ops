@@ -1,6 +1,6 @@
 import { AppLogger } from '@/common/app-logger';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 export interface ExRestParams {
   scheme?: string;

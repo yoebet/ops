@@ -9,10 +9,13 @@ const proxyUrls = TestConfig.exchange.socksProxies;
 
 jest.setTimeout(5000_000);
 
+const rest = new OkxRest({
+  proxies: proxyUrls,
+});
+
 describe('REST', () => {
   it('spot', async () => {
-    const restCnt = new OkxRest({ proxies: proxyUrls });
-    const result = await restCnt.getKlines({
+    const result = await rest.getKlines({
       symbol: symbolBtcSpot,
       interval: '1m',
       limit: 10,
@@ -21,8 +24,7 @@ describe('REST', () => {
   });
 
   it('spot 2', async () => {
-    const restCnt = new OkxRest({ proxies: proxyUrls });
-    const result = await restCnt.getKlines({
+    const result = await rest.getKlines({
       symbol: symbolBtcSpot,
       interval: '1d',
       startTime: new Date('2024-10-21').getTime(),
@@ -37,8 +39,7 @@ describe('REST', () => {
   });
 
   it('trade spot', async () => {
-    const restCnt = new OkxRest({ proxies: proxyUrls });
-    const result = await restCnt.getTrades({
+    const result = await rest.getTrades({
       symbol: symbolBtcSpot,
       limit: 100,
     });
@@ -46,10 +47,7 @@ describe('REST', () => {
   });
 
   it('trade swap', async () => {
-    const restCnt = new OkxRest({
-      proxies: proxyUrls,
-    });
-    const result = await restCnt.getTrades({
+    const result = await rest.getTrades({
       symbol: symbolBtcUM,
       limit: 100,
     });
@@ -57,18 +55,12 @@ describe('REST', () => {
   });
 
   it('symbol info', async () => {
-    const restCnt = new OkxRest({
-      proxies: proxyUrls,
-    });
-    const result = await restCnt.getSymbolInfo(symbolBtcSpot);
+    const result = await rest.getSymbolInfo(symbolBtcSpot);
     console.log(result);
   });
 
   it('price', async () => {
-    const restCnt = new OkxRest({
-      proxies: proxyUrls,
-    });
-    const result = await restCnt.getPrice(symbolBtcSpot);
+    const result = await rest.getPrice(symbolBtcSpot);
     console.log(result);
   });
 });

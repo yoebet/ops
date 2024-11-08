@@ -7,12 +7,7 @@ import { ExWsTypes } from '@/exchange/exchange-accounts';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { ConfigService } from '@nestjs/config';
 import { TaskScope } from '@/common/server-profile.type';
-import {
-  ExAccountCode,
-  ExchangeCode,
-  ExKlineWithSymbol,
-  ExTrade,
-} from '@/exchange/exchanges-types';
+import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
 import { ExchangeWs } from '@/exchange/ws-capacities';
 import { TickerHandler } from '@/data-ex-ws/ticker-handler';
@@ -20,6 +15,7 @@ import { KlineHandler } from '@/data-ex-ws/kline-handler';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { Observable, Subject } from 'rxjs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
+import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-capacities';
 
 interface ExAccountWs {
   exAccount: ExAccountCode;

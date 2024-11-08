@@ -3,7 +3,7 @@ import { Column, Entity, Index } from 'typeorm';
 import { ServerProfile } from '@/common/server-profile.type';
 
 @Entity()
-export class ServerInstanceLog extends BaseModel {
+export class InstanceLog extends BaseModel {
   @Column()
   nodeId: string;
 

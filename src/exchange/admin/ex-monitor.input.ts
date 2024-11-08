@@ -1,5 +1,5 @@
 import { WsStatusType } from '@/exchange/base/ws/ex-ws-monitor-types';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 export class ExObjFilter {
   path: string;

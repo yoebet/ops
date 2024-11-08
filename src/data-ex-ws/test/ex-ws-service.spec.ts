@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { SystemConfigModule } from '@/common-services/system-config.module';
 import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
 import { ExWsService } from '@/data-ex-ws/ex-ws.service';
-import { ExchangeCode } from '@/exchange/exchanges-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { wait } from '@/common/utils/utils';
 
 jest.setTimeout(500_000);

@@ -7,7 +7,7 @@ import {
   ExRestReqConfig,
   ExRestRes,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export abstract class ExRest {

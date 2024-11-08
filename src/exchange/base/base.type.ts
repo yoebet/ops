@@ -1,4 +1,4 @@
-import { ExTrade } from '@/exchange/exchanges-types';
+import { ExTrade } from '@/exchange/rest-capacities';
 
 export const sortExTrade = (a: ExTrade, b: ExTrade): number => {
   const ta = +a.tradeId;

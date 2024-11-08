@@ -1,4 +1,4 @@
-import { TradeSide } from '@/db/models-data/base';
+import { TradeSide } from '@/data-service/models/base';
 
 export interface TradeTicker {
   instId: string;

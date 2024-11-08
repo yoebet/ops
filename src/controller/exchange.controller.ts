@@ -1,18 +1,14 @@
 import { Controller, Get, UseInterceptors } from '@nestjs/common';
 import { ClassSerializerInterceptor as CSI } from '@nestjs/common/serializer/class-serializer.interceptor';
-import { ExchangeConfig } from '@/db/models/exchange-config';
+import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
-@Controller('exchanges')
+@Controller('exchange')
 @UseInterceptors(CSI)
 export class ExchangeController {
   constructor() {}
 
-  @Get()
-  getAll(): Promise<ExchangeConfig[]> {
-    return ExchangeConfig.find({
-      order: {
-        displayOrder: 'ASC',
-      },
-    });
+  @Get('symbols')
+  symbols(): Promise<ExchangeSymbol[]> {
+    return ExchangeSymbol.find({});
   }
 }

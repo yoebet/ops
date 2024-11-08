@@ -1,7 +1,7 @@
 import * as Rx from 'rxjs';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { ChannelConnectionEvent, ExWs } from '@/exchange/base/ws/ex-ws';
-import { ExKlineWithSymbol, ExTrade } from '@/exchange/exchanges-types';
+import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-capacities';
 
 export type TradeChannelEvent = ChannelConnectionEvent<ExTrade>;
 

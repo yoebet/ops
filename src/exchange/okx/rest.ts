@@ -7,18 +7,16 @@ import {
   ExRestRes,
   HttpMethodType,
 } from '@/exchange/base/rest/rest.type';
-import {
-  ExAccountCode,
-  ExchangeCode,
-  ExKline,
-  ExTrade,
-} from '@/exchange/exchanges-types';
+import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { sortExTrade } from '@/exchange/base/base.type';
-import { TradeSide } from '@/db/models-data/base';
+import { TradeSide } from '@/data-service/models/base';
 import {
   FetchKlineParams,
   FetchTradeParams,
   ExchangeService,
+  ExPrice,
+  ExKline,
+  ExTrade,
 } from '@/exchange/rest-capacities';
 import {
   CandleRawDataOkx,
@@ -184,12 +182,13 @@ export class OkxRest extends ExRest implements ExchangeService {
     return res.data[0];
   }
 
-  async getPrice(symbol: string): Promise<any> {
+  async getPrice(symbol: string): Promise<ExPrice> {
     const res: RestBody<any[]> = await this.request({
       path: '/api/v5/market/ticker',
       method: HttpMethodType.get,
       params: { instId: symbol },
     });
-    return res.data[0];
+    const po = res.data[0];
+    return { last: +po.last };
   }
 }

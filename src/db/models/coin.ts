@@ -3,7 +3,7 @@ import { Column, Entity, Index } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
 @Entity()
-export class CoinConfig extends BaseModel {
+export class Coin extends BaseModel {
   @Column()
   @Index({ unique: true })
   coin: string;

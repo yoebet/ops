@@ -1,5 +1,5 @@
-import { TradeSide, ES } from '@/db/models-data/base';
-import { ExMarket } from '@/exchange/exchanges-types';
+import { TradeSide, ES } from '@/data-service/models/base';
+import { ExMarket } from '@/db/models/exchange-types';
 
 export interface Trade extends ES {
   time: Date;
@@ -8,9 +8,7 @@ export interface Trade extends ES {
   size: number;
   amount: number;
   side: TradeSide;
-  dataId?: number;
   csize?: number; // 原始size，可能为合约张数
-  block?: number; // 1: 大单
 
   market: ExMarket | string;
   base: string;

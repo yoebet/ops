@@ -2,7 +2,7 @@ import { Type } from '@nestjs/common';
 import { CapableWs } from '@/exchange/ws-capacities';
 import { OkxWs } from '@/exchange/okx/okx-ws';
 import { BinanceSpotWs } from '@/exchange/binance/binance-spot-ws';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 import { CapableRest } from '@/exchange/rest-capacities';
 import { OkxRest } from '@/exchange/okx/rest';
 import { BinanceSpotRest } from '@/exchange/binance/rest-spot';

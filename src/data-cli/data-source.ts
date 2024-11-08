@@ -19,7 +19,7 @@ import {
 } from './meta-types';
 import { RtPriceSubs } from './rtprice-subs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
-import { FtKline } from '@/data-service/models/klines';
+import { FtKline } from '@/data-service/models/kline';
 
 export class DataSource extends WsBase {
   timeLevels?: OFTimeLevel[];

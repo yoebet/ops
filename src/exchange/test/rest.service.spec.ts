@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { ExchangeRestService } from '@/exchange/exchange-rest.service';
 

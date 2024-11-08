@@ -4,9 +4,8 @@ import {
   ExAccountCode,
   ExchangeCode,
   ExMarket,
-} from '@/exchange/exchanges-types';
+} from '@/db/models/exchange-types';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
-import { Exclude } from 'class-transformer';
 
 @Entity()
 @Index(['ex', 'symbol'], { unique: true })
@@ -27,10 +26,6 @@ export class ExchangeSymbol extends BaseModel {
 
   @Column({ comment: '交易所 symbol' })
   rawSymbol: string;
-
-  @Exclude()
-  @Column({ type: 'bool', default: true })
-  enabled = true;
 
   @ManyToOne(() => UnifiedSymbol, { cascade: false, nullable: true })
   @JoinColumn({ name: 'symbol', referencedColumnName: 'symbol' })
@@ -56,5 +51,5 @@ export class ExchangeSymbol extends BaseModel {
   volumeStep?: string;
 
   @Column('jsonb', { nullable: true })
-  params?: any;
+  exchangeInfo?: any;
 }

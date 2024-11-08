@@ -7,7 +7,7 @@ import {
 } from './common/config.types';
 import { ServerRole } from '@/common/server-profile.type';
 
-export const DB_SCHEMA = 'md';
+export const DB_SCHEMA = 'st';
 
 const DefaultConfig: PartialConfig = {
   http: {
@@ -50,6 +50,10 @@ const DefaultConfig: PartialConfig = {
   oflow: {
     base: 'http://localhost:5000',
     wsPath: '/oflow/ws',
+  },
+  auth: {
+    bs: 'pr',
+    jwtSecret: 'af7f25f9-92fc-401c-9cb1-8f50f4d9c3ce',
   },
   predefinedProfiles: {
     RunAll: {

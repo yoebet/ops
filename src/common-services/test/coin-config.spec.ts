@@ -1,12 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { SystemConfigModule } from '@/common-services/system-config.module';
-import { CoinConfig } from '@/db/models/coin-config';
+import { Coin } from '@/db/models/coin';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
 import {
   ExAccountCode,
   ExchangeCode,
   ExMarket,
-} from '@/exchange/exchanges-types';
+} from '@/db/models/exchange-types';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 jest.setTimeout(60_000);
@@ -21,20 +21,20 @@ describe('CoinConfigService', () => {
   });
 
   it('create - BTC', async () => {
-    const btc = new CoinConfig();
+    const btc = new Coin();
     btc.coin = 'BTC';
-    await CoinConfig.save(btc);
+    await Coin.save(btc);
   });
 
   it('add symbols', async () => {
     const coins = ['LTC', 'LUNC', 'USTC', 'FIL'];
     const stableCoin = 'USDT';
     for (const coin of coins) {
-      let cc = await CoinConfig.findOneBy({ coin });
+      let cc = await Coin.findOneBy({ coin });
       if (!cc) {
-        cc = new CoinConfig();
+        cc = new Coin();
         cc.coin = coin;
-        await CoinConfig.save(cc);
+        await Coin.save(cc);
       }
 
       const symbol = `${coin}/${stableCoin}`;

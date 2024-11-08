@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExRestTypes } from '@/exchange/exchange-accounts';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import { ConfigService } from '@nestjs/config';

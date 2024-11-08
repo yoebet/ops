@@ -3,10 +3,15 @@ import {
   ExRestReqBuildParams,
   ExRestReqConfig,
 } from '@/exchange/base/rest/rest.type';
-import { ExchangeCode, ExKline, ExTrade } from '@/exchange/exchanges-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { sortExTrade } from '@/exchange/base/base.type';
-import { TradeSide } from '@/db/models-data/base';
-import { FetchKlineParams, FetchTradeParams } from '@/exchange/rest-capacities';
+import { TradeSide } from '@/data-service/models/base';
+import {
+  ExKline,
+  ExTrade,
+  FetchKlineParams,
+  FetchTradeParams,
+} from '@/exchange/rest-capacities';
 import {
   CandleRawDataBinance,
   TradeRawDataBinance,

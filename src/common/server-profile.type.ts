@@ -1,4 +1,4 @@
-import { ExchangeCode } from '@/exchange/exchanges-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 
 export enum ServerRole {
   Worker = 'Worker',

@@ -7,9 +7,10 @@ import {
 } from '@/data-service/data-channel.service';
 import { AppLogger } from '@/common/app-logger';
 import { RtKline } from '@/data-service/models/realtime';
-import { ExAccountCode, ExKlineWithSymbol } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
+import { ExKlineWithSymbol } from '@/exchange/rest-capacities';
 
 export class KlineHandler {
   private klineProducer: ChannelProducer<RtKline>;

@@ -16,7 +16,7 @@ import {
   ExWsShowSymbolsInput,
 } from './ex-monitor.input';
 import { ExchangeWsService } from '@/exchange/exchange-ws.service';
-import { ExAccountCode } from '@/exchange/exchanges-types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 @Injectable()
 export class ExMonitorService {

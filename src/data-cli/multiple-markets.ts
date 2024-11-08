@@ -1,5 +1,5 @@
 import { ExSymbolCodes, ExSymbolScope } from '@/data-cli/commands';
-import { ES } from '@/db/models-data/base';
+import { ES } from '@/data-service/models/base';
 
 let symbolKeyCounter = 1;
 const symbolKeysMap = new Map<string, string>();
