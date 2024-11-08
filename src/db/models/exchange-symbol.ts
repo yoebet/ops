@@ -31,15 +31,6 @@ export class ExchangeSymbol extends BaseModel {
   @JoinColumn({ name: 'symbol', referencedColumnName: 'symbol' })
   unifiedSymbol?: UnifiedSymbol;
 
-  @Column({ nullable: true })
-  contractSizeStr?: string;
-
-  @Column({ nullable: true })
-  dataDateFrom?: string; // 2020-01-01
-
-  @Column()
-  dataIntervalFrom: string = '15m';
-
   // okx: minSz
   // binance: PRICE_FILTER.tickSize
   @Column({ nullable: true })

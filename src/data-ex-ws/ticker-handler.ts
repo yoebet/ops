@@ -2,7 +2,6 @@ import * as Rx from 'rxjs';
 import { Observable } from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
 import { SymbolService } from '@/common-services/symbol.service';
-import { ExMarket } from '@/db/models/exchange-types';
 import { Trade } from '@/data-service/models/trade';
 import {
   ChannelProducer,
@@ -73,16 +72,9 @@ export class TickerHandler {
     exSymbolWithSC: ExchangeSymbol,
   ): Trade | undefined {
     const sc = exSymbolWithSC.unifiedSymbol;
-    const contractSize = +exSymbolWithSC.contractSizeStr;
     const { market: market, base, quote } = sc;
 
     const csize = exTrade.size;
-    if (contractSize && market) {
-      exTrade.size = exTrade.size * contractSize;
-      if (ExMarket.perp_inv == market && exTrade.price > 0) {
-        exTrade.size = exTrade.size / exTrade.price;
-      }
-    }
     if (!exTrade.amount) {
       exTrade.amount = exTrade.size * exTrade.price;
     }
