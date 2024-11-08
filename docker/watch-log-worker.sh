@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker logs --tail 20 -f opsd-worker
+docker logs --tail 20 -f ops-worker
