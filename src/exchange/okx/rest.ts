@@ -125,29 +125,22 @@ export class OkxRest extends ExRest implements ExchangeService {
     return para;
   }
 
-  static toCandles(data: CandleRawDataOkx[]): ExKline[] {
-    if (!data) {
-      return undefined;
-    }
-    const candles: ExKline[] = [];
-    for (const candleRaw of data) {
-      const candle: ExKline = {
-        ts: Number(candleRaw[0]),
-        open: Number(candleRaw[1]),
-        high: Number(candleRaw[2]),
-        low: Number(candleRaw[3]),
-        close: Number(candleRaw[4]),
-        size: Number(candleRaw[6]),
-        amount: Number(candleRaw[7]),
-        bs: 0,
-        ba: 0,
-        ss: 0,
-        sa: 0,
-        tds: 0,
-      };
-      candles.push(candle);
-    }
-    return candles;
+  static toCandle(candleRaw: CandleRawDataOkx): ExKline {
+    const candle: ExKline = {
+      ts: Number(candleRaw[0]),
+      open: Number(candleRaw[1]),
+      high: Number(candleRaw[2]),
+      low: Number(candleRaw[3]),
+      close: Number(candleRaw[4]),
+      size: Number(candleRaw[6]),
+      amount: Number(candleRaw[7]),
+      bs: 0,
+      ba: 0,
+      ss: 0,
+      sa: 0,
+      tds: 0,
+    };
+    return candle;
   }
 
   protected _toTrades(data: TradeRawDataOkx[], symbol: string): ExTrade[] {
@@ -205,6 +198,9 @@ export class OkxRest extends ExRest implements ExchangeService {
       method: HttpMethodType.get,
       params: fetchCandleParamOkx,
     });
-    return OkxRest.toCandles(resultRaw.data);
+    if (!resultRaw.data) {
+      return [];
+    }
+    return resultRaw.data.map(OkxRest.toCandle);
   }
 }

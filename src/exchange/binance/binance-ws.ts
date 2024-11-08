@@ -78,7 +78,8 @@ export abstract class BinanceWs extends ExWs implements ExchangeWs {
     } else if (channel === 'kline') {
       const symbol = obj.s;
       const candle = obj.k as WsCandleRawDataBinance;
-      if (!this.candleIncludeLive && !candle.x) {
+      const klClosed = candle.x;
+      if (!this.candleIncludeLive && !klClosed) {
         return;
       }
       const kline: ExKlineWithSymbol = {
@@ -95,6 +96,7 @@ export abstract class BinanceWs extends ExWs implements ExchangeWs {
         sa: Number(candle.q) - Number(candle.Q),
         tds: Number(candle.n),
         rawSymbol: symbol,
+        live: !klClosed,
       };
       this.publishMessage(`kline_${candle.i}`, kline);
     }

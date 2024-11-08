@@ -9,21 +9,21 @@ export interface OFCoin {
 }
 
 export interface OFExchange {
-  exCode: string; // or ex
+  ex: string;
   name: string;
 }
 
 export interface OFUnifiedSymbol {
   symbol: string;
-  exMarket: string; // or market
+  market: string;
   base: string;
   quote: string;
   settle?: string;
 }
 
 export interface OFExchangeSymbol {
-  exCode: string; // or ex
-  exAccountCode: string; // or exAccount
+  ex: string;
+  exAccount: string;
   symbol: string;
   rawSymbol: string;
 }

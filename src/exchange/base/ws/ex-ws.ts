@@ -111,12 +111,20 @@ export abstract class ExWs extends BaseWs {
     ChannelConnectionEvent<any>
   >();
 
-  candleIncludeLive = false;
+  private _candleIncludeLive = false;
 
   protected constructor(params: ExWsParams) {
     super(params);
     this.wsBaseUrl = params.wsBaseUrl;
-    this.candleIncludeLive = params.candleIncludeLive || false;
+    this._candleIncludeLive = params.candleIncludeLive || false;
+  }
+
+  get candleIncludeLive() {
+    return this._candleIncludeLive;
+  }
+
+  set candleIncludeLive(newValue: boolean) {
+    this._candleIncludeLive = newValue;
   }
 
   protected checkNeedReconnect(): boolean {

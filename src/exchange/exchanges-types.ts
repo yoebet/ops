@@ -35,4 +35,5 @@ export type ExKline = FtKline;
 
 export interface ExKlineWithSymbol extends ExKline {
   rawSymbol: string;
+  live?: boolean;
 }

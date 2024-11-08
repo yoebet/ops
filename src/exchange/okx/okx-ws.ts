@@ -125,17 +125,20 @@ class OkxKlineWs extends OkxBaseWs {
     }
 
     const channel = obj.arg?.channel;
-    const symbol = obj.arg.instId;
     if (channel.startsWith('candle')) {
-      let candles = obj.data as CandleRawDataOkx[];
-      if (!this.candleIncludeLive) {
-        candles = candles.filter((c) => c[8] === '1');
-      }
-      const klines = OkxRest.toCandles(candles);
-      for (const kl of klines) {
-        (kl as ExKlineWithSymbol).rawSymbol = symbol;
+      const symbol = obj.arg.instId;
+      const candles = obj.data as CandleRawDataOkx[];
+      candles.forEach((c) => {
+        const live = c[8] === '0';
+        if (!this.candleIncludeLive && live) {
+          return;
+        }
+        const k = OkxRest.toCandle(c);
+        const kl = k as ExKlineWithSymbol;
+        kl.rawSymbol = symbol;
+        kl.live = live;
         this.publishMessage(channel, kl);
-      }
+      });
     }
   }
 

@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
 import { ExSymbolEnabled } from '@/db/models/ex-symbol-enabled';
+import { ExAccountCode } from '@/exchange/exchanges-types';
 
 @Injectable()
 export class SymbolService implements OnModuleInit {
@@ -9,6 +10,8 @@ export class SymbolService implements OnModuleInit {
   private rawSymbolMap = new Map<string, string>();
   // exAccount:rawSymbol -> ExchangeSymbol
   private exchangeSymbolMap = new Map<string, ExSymbolEnabled>(); // with unifiedConfig
+  // ex:symbol -> rawSymbol
+  private exAccountSymbolMap = new Map<string, ExAccountCode>();
 
   constructor(private logger: AppLogger) {
     logger.setContext('symbol-service');
@@ -38,6 +41,8 @@ export class SymbolService implements OnModuleInit {
       this.exchangeSymbolMap.set(rawSymbolKey, es);
       const symbolKey = this.genExSymbolKey(es.exAccount, es.symbol);
       this.rawSymbolMap.set(symbolKey, es.rawSymbol);
+      const symbolKey2 = this.genExSymbolKey(es.ex, es.symbol);
+      this.exAccountSymbolMap.set(symbolKey2, es.exAccount);
     }
   }
 
@@ -63,5 +68,10 @@ export class SymbolService implements OnModuleInit {
   getRawSymbol(exAccount: string, symbol: string) {
     const symbolKey = this.genExSymbolKey(exAccount, symbol);
     return this.rawSymbolMap.get(symbolKey);
+  }
+
+  getExAccount(ex: string, symbol: string) {
+    const symbolKey = this.genExSymbolKey(ex, symbol);
+    return this.exAccountSymbolMap.get(symbolKey);
   }
 }

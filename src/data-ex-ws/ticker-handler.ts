@@ -1,4 +1,5 @@
 import * as Rx from 'rxjs';
+import { Observable } from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
 import { SymbolService } from '@/common-services/symbol.service';
 import { ExMarket, ExTrade } from '@/exchange/exchanges-types';
@@ -9,7 +10,7 @@ import {
 } from '@/data-service/data-channel.service';
 import { RtPrice } from '@/data-service/models/realtime';
 import { ExSymbolEnabled } from '@/db/models/ex-symbol-enabled';
-import { ExAccountWs } from '@/data-ex-ws/ex-ws.service';
+import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 
 export class TickerHandler {
   private rtPriceProducer: ChannelProducer<RtPrice>;
@@ -25,6 +26,7 @@ export class TickerHandler {
   constructor(
     readonly symbolService: SymbolService,
     readonly dataChannelService: DataChannelService,
+    readonly publishToChannel: boolean,
     readonly logger: AppLogger,
   ) {}
 
@@ -105,35 +107,41 @@ export class TickerHandler {
     return true;
   }
 
-  async publishPrice(trade: Trade) {
-    const now = Date.now();
+  private buildRtPrice(trade: Trade) {
     const symbolKey = `${trade.ex}-${trade.symbol}`;
     const priceStatus = this.pricesMap.get(symbolKey);
     if (priceStatus) {
       if (priceStatus.exTimes > 0) {
-        return;
+        return undefined;
       }
       if (priceStatus.lastPrice === trade.price) {
         // this.logger.debug(`price equal: ${symbolKey}, ${trade.price}`);
+        const now = Date.now();
         if (now - priceStatus.ts < 10_000) {
-          return;
+          return undefined;
         }
       }
     }
 
     const rtPrice: RtPrice = {
       ts: trade.time.getTime(),
+      base: trade.base,
       symbol: trade.symbol,
       ex: trade.ex,
       price: trade.price,
     };
+    return rtPrice;
+  }
+
+  async publishPrice(rtPrice: RtPrice) {
     if (!this.rtPriceProducer) {
       this.rtPriceProducer =
         await this.dataChannelService.getPriceProducer('prices');
     }
-    const topic = this.dataChannelService.getPriceTopic(trade.base);
+    const topic = this.dataChannelService.getPriceTopic(rtPrice.base);
     await this.rtPriceProducer.produce(topic, rtPrice);
 
+    const now = Date.now();
     this.publishPriceCount++;
     if (
       this.publishPriceCount > 1000 ||
@@ -145,33 +153,34 @@ export class TickerHandler {
     }
   }
 
-  receiveWsTickers(exAccountWs: ExAccountWs) {
-    const { ws, rawSymbols } = exAccountWs;
-    ws.tradeSubject()
-      .subs(rawSymbols)
-      .get()
-      .pipe(
-        Rx.map((exTrade) => {
-          const exchangeSymbol = this.symbolService.getExchangeSymbol(
-            exTrade.exAccount,
-            exTrade.rawSymbol,
-          );
-          if (!exchangeSymbol || !exchangeSymbol.unifiedSymbol) {
-            return undefined;
-          }
-          return TickerHandler.buildTrade(exTrade, exchangeSymbol);
-        }),
-        Rx.filter((trade) => {
-          if (!trade) {
-            return false;
-          }
-          return this.checkPriceNormal(trade);
-        }),
-      )
-      .subscribe(async (trade) => {
-        await this.publishPrice(trade);
-      });
-
+  receiveWsTickers(
+    tradeSubject: SymbolParamSubject<ExTrade>,
+  ): Observable<RtPrice> {
     this.priceCounterStartTs = Date.now();
+    return tradeSubject.get().pipe(
+      Rx.map((exTrade) => {
+        const exchangeSymbol = this.symbolService.getExchangeSymbol(
+          exTrade.exAccount,
+          exTrade.rawSymbol,
+        );
+        if (!exchangeSymbol || !exchangeSymbol.unifiedSymbol) {
+          return undefined;
+        }
+        return TickerHandler.buildTrade(exTrade, exchangeSymbol);
+      }),
+      Rx.filter((trade) => {
+        if (!trade) {
+          return false;
+        }
+        return this.checkPriceNormal(trade);
+      }),
+      Rx.map((trade) => this.buildRtPrice(trade)),
+      Rx.filter((price) => !!price),
+      Rx.tap((price) => {
+        if (this.publishToChannel) {
+          this.publishPrice(price).catch((e) => this.logger.error(e));
+        }
+      }),
+    );
   }
 }

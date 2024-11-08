@@ -68,7 +68,7 @@ export class DataChannelService {
       return {
         async produce(topic: string, message: T) {
           const subject = channelService.getOrBuildSubject(topic);
-          await subject.next(message);
+          subject.next(message);
         },
       };
     }

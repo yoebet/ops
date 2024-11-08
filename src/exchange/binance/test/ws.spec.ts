@@ -29,10 +29,11 @@ describe('binance-ws', () => {
 
   it('spot kline', async () => {
     const ws = new BinanceSpotWs(exWsParams());
+    ws.candleIncludeLive = true;
     // ws.logMessage = true;
     // observeWsStatus(ws);
 
-    const subject = ws.klineSubject('1s');
+    const subject = ws.klineSubject('1m');
     subject.subs([symbol_BTC_USDT, symbol_ETH_USDT]);
 
     observeWsSubject(subject.get());
