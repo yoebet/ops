@@ -3,19 +3,8 @@ import {
   ExRestReqBuildParams,
   ExRestReqConfig,
 } from '@/exchange/base/rest/rest.type';
-import { ExchangeCode } from '@/db/models/exchange-types';
-import { sortExTrade } from '@/exchange/base/base.type';
-import { TradeSide } from '@/data-service/models/base';
-import {
-  ExKline,
-  ExTrade,
-  FetchKlineParams,
-  FetchTradeParams,
-} from '@/exchange/rest-types';
-import {
-  CandleRawDataBinance,
-  TradeRawDataBinance,
-} from '@/exchange/binance/types';
+import { ExKline, FetchKlineParams } from '@/exchange/rest-types';
+import { CandleRawDataBinance } from '@/exchange/binance/types';
 
 export abstract class BinanceBaseRest extends ExRest {
   protected async buildReq(p: ExRestReqBuildParams): Promise<ExRestReqConfig> {
@@ -57,14 +46,6 @@ export abstract class BinanceBaseRest extends ExRest {
     };
   }
 
-  protected toFetchTradeParam(params: FetchTradeParams): Record<string, any> {
-    const para = {
-      symbol: params.symbol,
-      limit: params.limit ? params.limit : 1000,
-    };
-    return para; //返回最新数据
-  }
-
   static toCandles(data: CandleRawDataBinance[]): ExKline[] {
     if (!data) {
       return undefined;
@@ -88,27 +69,5 @@ export abstract class BinanceBaseRest extends ExRest {
       candles.push(candle);
     }
     return candles;
-  }
-
-  protected toTrades(data: TradeRawDataBinance[], symbol: string): ExTrade[] {
-    if (!data) {
-      return undefined;
-    }
-    const trades: ExTrade[] = [];
-    for (const line of data) {
-      const trade: ExTrade = {
-        ex: ExchangeCode.binance,
-        exAccount: this.exAccount,
-        rawSymbol: symbol,
-        tradeId: String(line.id),
-        price: +line.price,
-        size: +line.qty,
-        amount: +line.quoteQty,
-        side: line.isBuyerMaker ? TradeSide.buy : TradeSide.sell,
-        ts: +line.time,
-      };
-      trades.push(trade);
-    }
-    return trades.sort(sortExTrade);
   }
 }

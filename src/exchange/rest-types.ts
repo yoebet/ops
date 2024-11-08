@@ -15,11 +15,6 @@ export interface FetchKlineParams extends BaseKlineParams {
   limit?: number;
 }
 
-export interface FetchTradeParams {
-  symbol: string;
-  limit?: number;
-}
-
 export interface ExPrice {
   last?: number;
 }
@@ -43,14 +38,4 @@ export interface ExKlineWithSymbol extends ExKline {
   live?: boolean;
 }
 
-export interface ExchangeService {
-  getKlines(params: FetchKlineParams): Promise<ExKline[]>;
-
-  getTrades(params: FetchTradeParams): Promise<ExTrade[]>;
-
-  getSymbolInfo(symbol: string): Promise<any>;
-
-  getPrice(symbol: string): Promise<ExPrice>;
-}
-
-export type CapableRest = ExRest & ExchangeService;
+export declare type ExchangeService = ExRest;

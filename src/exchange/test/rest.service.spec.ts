@@ -20,24 +20,6 @@ describe('ExchangeRestService', () => {
   });
 
   describe('-', () => {
-    it('okx', async () => {
-      const rest = restService.getExRest(ExAccountCode.okxUnified);
-      const trades = await rest.getTrades({
-        symbol: 'BTC-USDT',
-        limit: 20,
-      });
-      console.log(trades);
-    });
-
-    it('binance-spot', async () => {
-      const rest = restService.getExRest(ExAccountCode.binanceSpot);
-      const trades = await rest.getTrades({
-        symbol: 'BTCUSDT',
-        limit: 20,
-      });
-      console.log(trades);
-    });
-
     it('update symbol info - binance', async () => {
       const exAccount = ExAccountCode.binanceSpot;
       const rest = restService.getExRest(exAccount);

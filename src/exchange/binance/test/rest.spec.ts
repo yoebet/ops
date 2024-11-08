@@ -18,14 +18,6 @@ describe('REST', () => {
     console.log(result);
   });
 
-  it('trade spot', async () => {
-    const result = await rest.getTrades({
-      symbol: symbol_BTC_USDT,
-      limit: 20,
-    });
-    console.log(result);
-  });
-
   it('symbol info', async () => {
     const result = await rest.getSymbolInfo(symbol_BTC_USDT);
     console.log(result);

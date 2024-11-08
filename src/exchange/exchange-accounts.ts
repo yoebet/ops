@@ -3,7 +3,7 @@ import { CapableWs } from '@/exchange/ws-types';
 import { OkxWs } from '@/exchange/okx/okx-ws';
 import { BinanceSpotWs } from '@/exchange/binance/binance-spot-ws';
 import { ExAccountCode } from '@/db/models/exchange-types';
-import { CapableRest } from '@/exchange/rest-types';
+import { ExchangeService } from '@/exchange/rest-types';
 import { OkxRest } from '@/exchange/okx/rest';
 import { BinanceSpotRest } from '@/exchange/binance/rest-spot';
 
@@ -13,7 +13,7 @@ export const ExWsTypes: { [key in ExAccountCode]?: Type<CapableWs> } = {
 };
 
 export const ExRestTypes: {
-  [key in ExAccountCode]?: Type<CapableRest>;
+  [key in ExAccountCode]?: Type<ExchangeService>;
 } = {
   [ExAccountCode.okxUnified]: OkxRest,
   [ExAccountCode.binanceSpot]: BinanceSpotRest,

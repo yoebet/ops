@@ -7,22 +7,14 @@ import {
   ExRestRes,
   HttpMethodType,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
-import { sortExTrade } from '@/exchange/base/base.type';
-import { TradeSide } from '@/data-service/models/base';
+import { ExAccountCode } from '@/db/models/exchange-types';
 import {
   FetchKlineParams,
-  FetchTradeParams,
   ExchangeService,
   ExPrice,
   ExKline,
-  ExTrade,
 } from '@/exchange/rest-types';
-import {
-  CandleRawDataOkx,
-  RestBody,
-  TradeRawDataOkx,
-} from '@/exchange/okx/types';
+import { CandleRawDataOkx, RestBody } from '@/exchange/okx/types';
 
 /**
  * https://www.okx.com/docs-v5/zh/
@@ -97,14 +89,6 @@ export class OkxRest extends ExRest implements ExchangeService {
     };
   }
 
-  protected toFetchTradeParams(params: FetchTradeParams): Record<string, any> {
-    const para = {
-      instId: params.symbol,
-      limit: params?.limit || 500,
-    };
-    return para;
-  }
-
   static toCandle(candleRaw: CandleRawDataOkx): ExKline {
     const candle: ExKline = {
       ts: Number(candleRaw[0]),
@@ -121,39 +105,6 @@ export class OkxRest extends ExRest implements ExchangeService {
       tds: 0,
     };
     return candle;
-  }
-
-  protected _toTrades(data: TradeRawDataOkx[], symbol: string): ExTrade[] {
-    if (!data) {
-      return undefined;
-    }
-    const trades: ExTrade[] = [];
-    for (const line of data) {
-      const trade: ExTrade = {
-        ex: ExchangeCode.okx,
-        exAccount: this.exAccount,
-        rawSymbol: symbol,
-        tradeId: line.tradeId,
-        price: +line.px,
-        size: +line.sz,
-        side: line.side == 'buy' ? TradeSide.buy : TradeSide.sell,
-        ts: +line.ts,
-      };
-      trades.push(trade);
-    }
-    return trades.sort(sortExTrade);
-  }
-
-  // https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-trades
-  async getTrades(params: FetchTradeParams): Promise<ExTrade[]> {
-    const fetchTradeParam = this.toFetchTradeParams(params);
-    const resultRaw: RestBody<TradeRawDataOkx[]> = await this.request({
-      path: '/api/v5/market/trades',
-      method: HttpMethodType.get,
-      params: fetchTradeParam,
-    });
-
-    return this._toTrades(resultRaw.data, params.symbol);
   }
 
   // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks

@@ -9,6 +9,7 @@ import {
 } from '@/exchange/base/rest/rest.type';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import { ExKline, ExPrice, FetchKlineParams } from '@/exchange/rest-types';
 
 export abstract class ExRest {
   private readonly defaultScheme: string;
@@ -139,4 +140,10 @@ export abstract class ExRest {
   protected abstract buildReq(
     p: ExRestReqBuildParams,
   ): Promise<ExRestReqConfig>;
+
+  abstract getKlines(params: FetchKlineParams): Promise<ExKline[]>;
+
+  abstract getSymbolInfo(symbol: string): Promise<any>;
+
+  abstract getPrice(symbol: string): Promise<ExPrice>;
 }

@@ -3,16 +3,11 @@ import { ExRestParams, HttpMethodType } from '@/exchange/base/rest/rest.type';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import {
   FetchKlineParams,
-  FetchTradeParams,
   ExchangeService,
   ExPrice,
   ExKline,
-  ExTrade,
 } from '@/exchange/rest-types';
-import {
-  CandleRawDataBinance,
-  TradeRawDataBinance,
-} from '@/exchange/binance/types';
+import { CandleRawDataBinance } from '@/exchange/binance/types';
 
 export class BinanceSpotRest
   extends BinanceBaseRest
@@ -36,18 +31,6 @@ export class BinanceSpotRest
     });
 
     return BinanceBaseRest.toCandles(resultRaw);
-  }
-
-  // https://binance-docs.github.io/apidocs/spot/cn/#2c5e424c25
-  async getTrades(params: FetchTradeParams): Promise<ExTrade[]> {
-    const fetchTradeParamBinance = this.toFetchTradeParam(params);
-    const resultRaw: TradeRawDataBinance[] = await this.request({
-      path: '/api/v3/trades',
-      method: HttpMethodType.get,
-      params: fetchTradeParamBinance,
-    });
-
-    return this.toTrades(resultRaw, params.symbol);
   }
 
   async getSymbolInfo(symbol: string): Promise<any> {

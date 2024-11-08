@@ -3,7 +3,6 @@ import { OkxRest } from '@/exchange/okx/rest';
 import { TestConfig } from '@/env.local.tset';
 
 const symbolBtcSpot = 'BTC-USDT';
-const symbolBtcUM = 'BTC-USDC-SWAP';
 
 const proxyUrls = TestConfig.exchange.socksProxies;
 
@@ -35,22 +34,6 @@ describe('REST', () => {
       k['t'] = new Date(k.ts).toISOString();
     });
     // got 22-30
-    console.log(result);
-  });
-
-  it('trade spot', async () => {
-    const result = await rest.getTrades({
-      symbol: symbolBtcSpot,
-      limit: 100,
-    });
-    console.log(result);
-  });
-
-  it('trade swap', async () => {
-    const result = await rest.getTrades({
-      symbol: symbolBtcUM,
-      limit: 100,
-    });
     console.log(result);
   });
 
