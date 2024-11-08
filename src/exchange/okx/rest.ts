@@ -4,6 +4,7 @@ import {
   ExRestParams,
   ExRestReqBuildParams,
   ExRestReqConfig,
+  ExRestRes,
   HttpMethodType,
 } from '@/exchange/base/rest/rest.type';
 import {
@@ -16,7 +17,6 @@ import { sortExTrade } from '@/exchange/base/base.type';
 import { TradeSide } from '@/db/models-data/base';
 import {
   FetchKlineParams,
-  HistoryTradeParams,
   FetchTradeParams,
   ExchangeService,
 } from '@/exchange/rest-capacities';
@@ -39,7 +39,7 @@ export class OkxRest extends ExRest implements ExchangeService {
   }
 
   protected async buildReq(p: ExRestReqBuildParams): Promise<ExRestReqConfig> {
-    const { method, path, params, headers } = p;
+    const { method, params, headers } = p;
 
     const reqHeaders = {
       'Content-Type': 'application/json; charset=UTF-8',
@@ -64,6 +64,12 @@ export class OkxRest extends ExRest implements ExchangeService {
       headers: reqHeaders,
       data: bodyStr,
     };
+  }
+
+  protected async handleResErrs(res: ExRestRes) {
+    const body = res.data as RestBody<any>;
+    if (body.code === '0') return;
+    throw new Error(JSON.stringify(body));
   }
 
   static toCandleInv(inv: string): string {
@@ -98,30 +104,6 @@ export class OkxRest extends ExRest implements ExchangeService {
       instId: params.symbol,
       limit: params?.limit || 500,
     };
-    return para;
-  }
-
-  protected toFetchHistoryTradeParams(
-    params: HistoryTradeParams,
-  ): Record<string, any> {
-    let para: any = {
-      instId: params.symbol,
-      type: '1', //按tradeId
-      limit: '100',
-    };
-    if (params.limit) {
-      para = {
-        ...para,
-        limit: String(params.limit),
-      };
-    }
-    if (params.fromId) {
-      para.before = params.fromId;
-    }
-    if (params.toId) {
-      para.after = params.toId;
-    }
-
     return para;
   }
 
@@ -176,17 +158,6 @@ export class OkxRest extends ExRest implements ExchangeService {
     return this._toTrades(resultRaw.data, params.symbol);
   }
 
-  async getHistoryTrades(params: HistoryTradeParams): Promise<ExTrade[]> {
-    const fetchTradeParam = this.toFetchHistoryTradeParams(params);
-    const resultRaw: RestBody<TradeRawDataOkx[]> = await this.request({
-      path: '/api/v5/market/history-trades',
-      method: HttpMethodType.get,
-      params: fetchTradeParam,
-    });
-
-    return this._toTrades(resultRaw.data, params.symbol);
-  }
-
   // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
   async getKlines(params: FetchKlineParams): Promise<ExKline[]> {
     // latest 1440
@@ -202,5 +173,23 @@ export class OkxRest extends ExRest implements ExchangeService {
       return [];
     }
     return resultRaw.data.map(OkxRest.toCandle);
+  }
+
+  async getSymbolInfo(symbol: string): Promise<any> {
+    const res: RestBody<any[]> = await this.request({
+      path: '/api/v5/public/instruments',
+      method: HttpMethodType.get,
+      params: { instType: 'SPOT', instId: symbol },
+    });
+    return res.data[0];
+  }
+
+  async getPrice(symbol: string): Promise<any> {
+    const res: RestBody<any[]> = await this.request({
+      path: '/api/v5/market/ticker',
+      method: HttpMethodType.get,
+      params: { instId: symbol },
+    });
+    return res.data[0];
   }
 }

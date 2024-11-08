@@ -36,47 +36,6 @@ describe('REST', () => {
     console.log(result);
   });
 
-  it('spot 3', async () => {
-    const restCnt = new OkxRest({ proxies: proxyUrls });
-    const result = await restCnt.loadHistoryKlinesOneDay({
-      symbol: symbolBtcSpot,
-      interval: '1h',
-      date: '2024-10-21',
-    });
-    result.forEach((k) => {
-      k['t'] = new Date(k.ts).toISOString();
-    });
-    console.log(result);
-  });
-
-  it('swap', async () => {
-    const restCnt = new OkxRest({
-      proxies: proxyUrls,
-    });
-    const result = await restCnt.getKlines({
-      symbol: symbolBtcUM,
-      interval: '1m',
-    });
-  });
-
-  it('history trade spot', async () => {
-    const restCnt = new OkxRest({ proxies: proxyUrls });
-    const result = await restCnt.getHistoryTrades({
-      symbol: symbolBtcSpot,
-      fromId: '390811128',
-    });
-    console.log(result);
-  });
-
-  it('history trade swap', async () => {
-    const restCnt = new OkxRest({ proxies: proxyUrls });
-    const result = await restCnt.getHistoryTrades({
-      symbol: symbolBtcUM,
-      fromId: '510379',
-    });
-    console.log(result);
-  });
-
   it('trade spot', async () => {
     const restCnt = new OkxRest({ proxies: proxyUrls });
     const result = await restCnt.getTrades({
@@ -94,6 +53,22 @@ describe('REST', () => {
       symbol: symbolBtcUM,
       limit: 100,
     });
+    console.log(result);
+  });
+
+  it('symbol info', async () => {
+    const restCnt = new OkxRest({
+      proxies: proxyUrls,
+    });
+    const result = await restCnt.getSymbolInfo(symbolBtcSpot);
+    console.log(result);
+  });
+
+  it('price', async () => {
+    const restCnt = new OkxRest({
+      proxies: proxyUrls,
+    });
+    const result = await restCnt.getPrice(symbolBtcSpot);
     console.log(result);
   });
 });

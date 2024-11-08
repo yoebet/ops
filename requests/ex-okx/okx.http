@@ -1,0 +1,13 @@
+
+### instrument
+GET {{okxBase}}/api/v5/public/instruments?instType=SPOT&instId=BTC-USDT
+
+>>! ./instruments-BTC.json
+
+
+### ticker
+GET {{okxBase}}/api/v5/market/ticker?instId=BTC-USDT
+
+>>! ./ticker-BTC.json
+
+

@@ -45,6 +45,16 @@ export class ExchangeSymbol extends BaseModel {
   @Column()
   dataIntervalFrom: string = '15m';
 
+  // okx: minSz
+  // binance: PRICE_FILTER.tickSize
+  @Column({ nullable: true })
+  priceTick?: string;
+
+  // okx: lotSz
+  // binance: LOT_SIZE/MARKET_LOT_SIZE.stepSize
+  @Column({ nullable: true })
+  volumeStep?: string;
+
   @Column('jsonb', { nullable: true })
   params?: any;
 }

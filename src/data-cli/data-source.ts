@@ -66,7 +66,7 @@ export class DataSource extends WsBase {
       this.exchanges = es;
       this.exNameMap.clear();
       for (const e of es) {
-        this.exNameMap.set(e.exCode, e.name);
+        this.exNameMap.set(e.ex, e.name);
       }
     }
     return this.exchanges!;

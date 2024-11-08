@@ -18,19 +18,14 @@ export interface FetchTradeParams {
   limit?: number;
 }
 
-export interface HistoryTradeParams {
-  symbol: string;
-  fromId?: string;
-  toId?: string;
-  limit?: number;
-}
-
 export interface ExchangeService {
   getKlines(params: FetchKlineParams): Promise<ExKline[]>;
 
   getTrades(params: FetchTradeParams): Promise<ExTrade[]>;
 
-  getHistoryTrades(params: HistoryTradeParams): Promise<ExTrade[]>;
+  getSymbolInfo(symbol: string): Promise<any>;
+
+  getPrice(symbol: string): Promise<any>;
 }
 
 export type CapableRest = ExRest & ExchangeService;

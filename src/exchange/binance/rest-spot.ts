@@ -3,7 +3,6 @@ import { ExRestParams, HttpMethodType } from '@/exchange/base/rest/rest.type';
 import { ExAccountCode, ExKline, ExTrade } from '@/exchange/exchanges-types';
 import {
   FetchKlineParams,
-  HistoryTradeParams,
   FetchTradeParams,
   ExchangeService,
 } from '@/exchange/rest-capacities';
@@ -11,6 +10,7 @@ import {
   CandleRawDataBinance,
   TradeRawDataBinance,
 } from '@/exchange/binance/types';
+import { RestBody } from '@/exchange/okx/types';
 
 export class BinanceSpotRest
   extends BinanceBaseRest
@@ -48,14 +48,21 @@ export class BinanceSpotRest
     return this.toTrades(resultRaw, params.symbol);
   }
 
-  async getHistoryTrades(params: HistoryTradeParams): Promise<ExTrade[]> {
-    const fetchTradeParamBinance = this.toFetchHistoryTradeParam(params);
-    const resultRaw: TradeRawDataBinance[] = await this.request({
-      path: '/api/v3/historicalTrades',
+  async getSymbolInfo(symbol: string): Promise<any> {
+    const res: RestBody<any> = await this.request({
+      path: '/api/v3/exchangeInfo',
       method: HttpMethodType.get,
-      params: fetchTradeParamBinance,
+      params: { symbol },
     });
+    return res['symbols'][0];
+  }
 
-    return this.toTrades(resultRaw, params.symbol);
+  async getPrice(symbol: string): Promise<any> {
+    const res: RestBody<any> = await this.request({
+      path: '/api/v3/ticker/price',
+      method: HttpMethodType.get,
+      params: { symbol },
+    });
+    return res;
   }
 }

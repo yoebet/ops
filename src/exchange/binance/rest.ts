@@ -6,11 +6,7 @@ import {
 import { ExchangeCode, ExKline, ExTrade } from '@/exchange/exchanges-types';
 import { sortExTrade } from '@/exchange/base/base.type';
 import { TradeSide } from '@/db/models-data/base';
-import {
-  FetchKlineParams,
-  HistoryTradeParams,
-  FetchTradeParams,
-} from '@/exchange/rest-capacities';
+import { FetchKlineParams, FetchTradeParams } from '@/exchange/rest-capacities';
 import {
   CandleRawDataBinance,
   TradeRawDataBinance,
@@ -62,23 +58,6 @@ export abstract class BinanceBaseRest extends ExRest {
       limit: params.limit ? params.limit : 1000,
     };
     return para; //返回最新数据
-  }
-
-  protected toFetchHistoryTradeParam(
-    params: HistoryTradeParams,
-  ): Record<string, any> {
-    const para = {
-      symbol: params.symbol,
-      limit: params.limit ? params.limit : 1000,
-    };
-    if (params.fromId && +params.fromId > 0) {
-      return {
-        ...para,
-        fromId: Number(params.fromId) + 1,
-      };
-    } else {
-      return para; //返回最新数据
-    }
   }
 
   static toCandles(data: CandleRawDataBinance[]): ExKline[] {

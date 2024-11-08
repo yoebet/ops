@@ -1,0 +1,17 @@
+
+### exchangeInfo
+GET {{binanceBase}}/api/v3/exchangeInfo?symbol=BTCUSDT
+
+>>! ./exchangeInfo-BTC.json
+
+### ticker
+GET {{binanceBase}}/api/v3/ticker/price?symbol=BTCUSDT
+
+>>! ticker-BTC.json
+
+
+### tickers
+GET {{binanceBase}}/api/v3/ticker/price?symbols=["BTCUSDT","BNBUSDT"]
+
+>>! tickers-BTC-ETH.json
+

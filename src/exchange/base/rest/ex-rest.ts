@@ -120,11 +120,17 @@ export abstract class ExRest {
     this.logger?.debug(config.url);
     const res = await axios.request(axiosRequestConfig);
 
+    await this.handleResErrs(res);
+
     return res;
   }
 
   protected async request<T>(p: ExRestReqBuildParams): Promise<T> {
     return (await this.requestRaw(p)).data;
+  }
+
+  protected async handleResErrs(_res: ExRestRes): Promise<void> {
+    //
   }
 
   /**

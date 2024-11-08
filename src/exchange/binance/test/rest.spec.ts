@@ -27,13 +27,15 @@ describe('REST', () => {
     console.log(result);
   });
 
-  it('history trade spot', async () => {
+  it('symbol info', async () => {
     const rest = new BinanceSpotRest({ proxies: proxyUrls });
-    const result = await rest.getHistoryTrades({
-      symbol: symbol_BTC_USDT,
-      fromId: '3773812792',
-      limit: 10,
-    });
+    const result = await rest.getSymbolInfo(symbol_BTC_USDT);
+    console.log(result);
+  });
+
+  it('price', async () => {
+    const rest = new BinanceSpotRest({ proxies: proxyUrls });
+    const result = await rest.getPrice(symbol_BTC_USDT);
     console.log(result);
   });
 });
