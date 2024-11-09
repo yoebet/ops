@@ -130,7 +130,7 @@ export abstract class ExRest {
     return res;
   }
 
-  protected async request<T>(p: ExRestReqBuildParams): Promise<T> {
+  protected async request<T = any>(p: ExRestReqBuildParams): Promise<T> {
     return (await this.requestRaw(p)).data;
   }
 

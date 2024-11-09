@@ -5,30 +5,39 @@ import {
 } from '@/exchange/base/rest/rest.type';
 import { ExKline, FetchKlineParams } from '@/exchange/rest-types';
 import { CandleRawDataBinance } from '@/exchange/binance/types';
+import { HmacSHA256 } from 'crypto-js';
 
 export abstract class BinanceBaseRest extends ExRest {
   protected async buildReq(p: ExRestReqBuildParams): Promise<ExRestReqConfig> {
-    const { method, params, headers } = p;
+    const { method, params, apiKey } = p;
 
+    const ts = Date.now();
     const paramsStr = this.urlParamsStr({
+      ...(apiKey
+        ? {
+            recvWindow: 5000,
+            timestamp: ts,
+          }
+        : {}),
       ...params,
     });
 
-    const url = this.url(p) + '?' + paramsStr;
-    const reqHeaders = {
+    let url = this.url(p) + '?' + paramsStr;
+    const headers = {
       'Content-Type': 'application/json; charset=UTF-8',
     };
-    // if (this.api_key) {
-    //   reqHeaders['X-MBX-APIKEY'] = this.api_key;
-    // }
-    for (const key in headers) {
-      reqHeaders[key] = headers[key];
+
+    // 给私密接口签名
+    if (apiKey) {
+      headers['X-MBX-APIKEY'] = apiKey.key;
+      const signature = HmacSHA256(paramsStr, apiKey.secret);
+      url += '&signature=' + signature;
     }
 
     return {
-      method: method,
-      url: url,
-      headers: reqHeaders,
+      method,
+      url,
+      headers,
     };
   }
 

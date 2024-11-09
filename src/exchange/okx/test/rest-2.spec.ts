@@ -5,10 +5,10 @@ import { ExAccountCode } from '@/db/models/exchange-types';
 import { TestConfig } from '@/env.local.test';
 
 const { socksProxies, apiKeys } = TestConfig.exchange;
-const apiKey = apiKeys[ExAccountCode.okxUnified];
 const rest = new OkxRest({
   proxies: socksProxies,
 });
+const apiKey = apiKeys[ExAccountCode.okxUnified];
 
 test('getMarkets', async () => {
   const data = await rest.getMarkets({
