@@ -1,6 +1,5 @@
 ### list queues
 GET http://{{server}}/jobs/board/api/queues
-Content-Type: application/json
 
 
 ### add queue

@@ -98,11 +98,11 @@ export class OkxRest extends ExRest implements ExchangeService {
       close: Number(candleRaw[4]),
       size: Number(candleRaw[6]),
       amount: Number(candleRaw[7]),
-      bs: 0,
-      ba: 0,
-      ss: 0,
-      sa: 0,
-      tds: 0,
+      // bs: 0,
+      // ba: 0,
+      // ss: 0,
+      // sa: 0,
+      // tds: 0,
     };
     return candle;
   }

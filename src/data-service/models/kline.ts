@@ -6,9 +6,9 @@ export interface FtKline {
   high: number;
   low: number;
   close: number;
-  bs: number;
-  ba: number;
-  ss: number;
-  sa: number;
-  tds: number;
+  bs?: number;
+  ba?: number;
+  ss?: number;
+  sa?: number;
+  tds?: number;
 }
