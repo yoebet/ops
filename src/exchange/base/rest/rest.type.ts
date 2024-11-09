@@ -1,6 +1,7 @@
 import { AppLogger } from '@/common/app-logger';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExApiKey } from '@/exchange/base/api-key';
 
 export interface ExRestParams {
   scheme?: string;
@@ -25,6 +26,7 @@ export type ExRestReqBuildParams = {
   // 有些交易所分 url params 和 body params
   params2?: Record<string, any>;
   // 传了 apiKey 就得进行签名
+  apiKey?: ExApiKey;
   headers?: Record<string, string>;
 
   // 下面的参数，不传的话用 BaseExRest 的默认值

@@ -1,4 +1,4 @@
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { BinanceSpotRest } from '@/exchange/binance/rest-spot';
 
 const symbol_BTC_USDT = 'BTCUSDT';

@@ -10,7 +10,7 @@ import {
   SubscriptionRequest,
 } from '../commands';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 const oflowServer = TestConfig.oflow;
 

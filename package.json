@@ -55,6 +55,7 @@
     "git-repo-info": "^2.1.1",
     "humanize-duration": "^3.32.1",
     "ioredis": "^5.4.1",
+    "json-to-ts": "^2.1.0",
     "lodash": "^4.17.21",
     "luxon": "^3.5.0",
     "nanoid": "3.3.4",

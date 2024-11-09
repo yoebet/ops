@@ -2,7 +2,7 @@ import * as Benchmark from 'benchmark';
 import { Producer } from 'node-rdkafka';
 import { ProducerGlobalConfig } from 'node-rdkafka/config';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 // ref: https://github.com/tulios/kafkajs/issues/398
 

@@ -1,13 +1,12 @@
 import { wait } from '@/common/utils/utils';
 import { OkxRest } from '@/exchange/okx/rest';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 const symbolBtcSpot = 'BTC-USDT';
 
-const proxyUrls = TestConfig.exchange.socksProxies;
-
 jest.setTimeout(5000_000);
 
+const proxyUrls = TestConfig.exchange.socksProxies;
 const rest = new OkxRest({
   proxies: proxyUrls,
 });

@@ -1,7 +1,7 @@
 import { Job, Queue, Worker } from 'bullmq';
 import { parseExpression } from 'cron-parser';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { bullmqRedis } from '@/common/config.types';
 import { JobsOptions } from 'bullmq/dist/esm/types';
 

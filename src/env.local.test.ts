@@ -1,5 +1,6 @@
 import { LocalConfig } from '@/env.local';
 import { Config, mergeConfig, PartialConfig } from './common/config.types';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 const TestConfig0: PartialConfig = {
   kafka: {
@@ -7,6 +8,12 @@ const TestConfig0: PartialConfig = {
   },
   exchange: {
     socksProxies: ['socks://127.0.0.1:1080'],
+    apiKeys: {
+      [ExAccountCode.okxUnified]: {
+        key: '',
+        secret: '',
+      },
+    },
   },
 };
 

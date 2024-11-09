@@ -24,7 +24,7 @@ export class ExchangeSymbol extends BaseModel {
   @Column()
   symbol: string;
 
-  @Column({ comment: '交易所 symbol' })
+  @Column()
   rawSymbol: string;
 
   @ManyToOne(() => UnifiedSymbol, { cascade: false, nullable: true })

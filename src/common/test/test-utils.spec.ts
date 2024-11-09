@@ -4,7 +4,7 @@ import * as Rx from 'rxjs';
 import { ExWs, ExWsParams } from '@/exchange/base/ws/ex-ws';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { Agent } from 'http';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 jest.setTimeout(50_000);
 

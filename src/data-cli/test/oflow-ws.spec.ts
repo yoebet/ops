@@ -1,7 +1,7 @@
 import { DataSource } from '../data-source';
 import { DataScope, OflowDataChannel } from '../commands';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 
 jest.setTimeout(100_000);
 

@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { entries, isNil } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
 import {
@@ -15,6 +15,7 @@ export abstract class ExRest {
   private readonly defaultScheme: string;
   private readonly defaultHost: string;
   private readonly proxies?: string[];
+  private readonly agents?: SocksProxyAgent[];
   protected readonly logger?: AppLogger;
 
   protected exAccount: ExAccountCode;
@@ -23,6 +24,7 @@ export abstract class ExRest {
     this.defaultScheme = params.scheme ?? 'https';
     this.defaultHost = params.host;
     this.proxies = params.proxies;
+    this.agents = [];
     this.exAccount = params.exAccount;
     this.logger = params.logger || AppLogger.build(`rest:${this.exAccount}`);
   }
@@ -98,13 +100,15 @@ export abstract class ExRest {
     // 默认配置
     const defaultConfig: AxiosRequestConfig = {
       // timeout: 5000,
-      // 默认不根据 http status 来抛错误
-      // validateStatus: () => true,
     };
 
     if (this.proxies && this.proxies.length > 0) {
-      const selectProxy = Math.floor(Math.random() * this.proxies.length); //指定了代理 则在可用代理中随机选一个
-      const agent = new SocksProxyAgent(this.proxies[selectProxy]);
+      const selectProxy = Math.floor(Math.random() * this.proxies.length);
+      let agent = this.agents[selectProxy];
+      if (!agent) {
+        agent = new SocksProxyAgent(this.proxies[selectProxy]);
+        this.agents[selectProxy] = agent;
+      }
       defaultConfig.proxy = false;
       defaultConfig.httpAgent = agent;
       defaultConfig.httpsAgent = agent;
@@ -113,13 +117,13 @@ export abstract class ExRest {
     // 子类构造的配置
     const config = await this.buildReq(p);
 
-    const axiosRequestConfig: AxiosRequestConfig = {
+    const requestConfig: AxiosRequestConfig = {
       ...defaultConfig,
       // 子类的配置可以覆盖默认配置
       ...config,
     };
     this.logger?.debug(config.url);
-    const res = await axios.request(axiosRequestConfig);
+    const res: AxiosResponse = await axios.request(requestConfig);
 
     await this.handleResErrs(res);
 
@@ -130,9 +134,7 @@ export abstract class ExRest {
     return (await this.requestRaw(p)).data;
   }
 
-  protected async handleResErrs(_res: ExRestRes): Promise<void> {
-    //
-  }
+  protected async handleResErrs(res: ExRestRes): Promise<void> {}
 
   /**
    * 构造请求的配置（在这里面进行签名）

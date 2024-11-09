@@ -2,7 +2,7 @@ import { bullmqRedis } from '@/common/config.types';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { createBullBoard } from '@bull-board/api';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { Queue } from 'bullmq';
 import express from 'express';
 

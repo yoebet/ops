@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { wait } from '@/common/utils/utils';
-import { TestConfig } from '@/env.local.tset';
+import { TestConfig } from '@/env.local.test';
 import { bullmqRedis } from '@/common/config.types';
 
 jest.setTimeout(100_000);

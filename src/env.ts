@@ -6,6 +6,7 @@ import {
   PartialConfig,
 } from './common/config.types';
 import { ServerRole } from '@/common/server-profile.type';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 export const DB_SCHEMA = 'st';
 
@@ -46,6 +47,12 @@ const DefaultConfig: PartialConfig = {
   exchange: {
     // socksProxies: ['socks://127.0.0.1:1080'],
     publishKafka: false,
+    apiKeys: {
+      [ExAccountCode.okxUnified]: {
+        key: '',
+        secret: '',
+      },
+    },
   },
   oflow: {
     base: 'http://localhost:5000',
