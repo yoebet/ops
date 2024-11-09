@@ -41,3 +41,5 @@ lerna-debug.log*
 /src/env.local.test.ts
 /data/
 /src/env.prod.ts
+/src/exchange/okx/test/data/
+/src/exchange/binance/test/data/

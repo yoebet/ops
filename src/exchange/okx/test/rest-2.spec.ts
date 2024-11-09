@@ -3,6 +3,11 @@ import JsonToTS from 'json-to-ts';
 import { randomUUID } from 'crypto';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { TestConfig } from '@/env.local.test';
+import { storeJson as storeJson0 } from '@/common/test/test-utils.spec';
+
+function storeJson(data: any, fileName: string) {
+  storeJson0(data, `${__dirname}/data`, fileName);
+}
 
 const { socksProxies, apiKeys } = TestConfig.exchange;
 const rest = new OkxRest({
@@ -16,7 +21,7 @@ test('getMarkets', async () => {
     // uly: 'TRB-USDT',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
+  // console.log(JsonToTS(data).join('\n'));
 });
 
 test('getIndexPriceCandles', async () => {
@@ -42,7 +47,8 @@ test('getFeeRate', async () => {
 test('getAccount', async () => {
   const data = await rest.getAccount(apiKey);
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
+  // console.log(JsonToTS(data).join('\n'));
+  storeJson(data, 'getAccount');
 });
 
 test('getMaxOpenSize', async () => {
@@ -80,12 +86,14 @@ test('getAssetBalances', async () => {
   const data = await rest.getAssetBalances(apiKey, { ccy: 'USDT' });
   console.log(JSON.stringify(data));
   // console.log(JsonToTS(data).join('\n'));
+  storeJson(data, 'getAssetBalances');
 });
 
 test('getBalances', async () => {
   const data = await rest.getBalances(apiKey, { ccy: 'USDT' });
   console.log(JSON.stringify(data));
   // console.log(JsonToTS(data).join('\n'));
+  storeJson(data, 'getBalances');
 });
 
 test('getMaxWithdrawal', async () => {

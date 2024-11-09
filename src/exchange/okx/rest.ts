@@ -38,17 +38,14 @@ export class OkxRest extends ExRest implements ExchangeService {
   }
 
   protected async buildReq(p: ExRestReqBuildParams): Promise<ExRestReqConfig> {
-    const { method, path, params, headers, apiKey } = p;
+    const { method, path, params, apiKey } = p;
 
-    const reqHeaders = {
+    const headers = {
       'Content-Type': 'application/json; charset=UTF-8',
       // 默认的是 axios。okx 会把它当成是 ios 而过滤掉一些参数（例如 reduceOnly）
       'User-Agent': 'hxr',
       'accept-language': 'en-US', // accept-language: en-US,zh-CN
     };
-    for (const key in headers) {
-      reqHeaders[key] = headers[key];
-    }
 
     let paramsStr: string | undefined, bodyStr: string | undefined;
     if (includes([HttpMethodType.get, HttpMethodType.delete], method)) {
@@ -70,9 +67,9 @@ export class OkxRest extends ExRest implements ExchangeService {
     }
 
     return {
-      method: method,
+      method,
       url: this.url(p) + (paramsStr ?? ''),
-      headers: reqHeaders,
+      headers,
       data: bodyStr,
     };
   }

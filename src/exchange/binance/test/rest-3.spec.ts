@@ -4,7 +4,7 @@ import { ExAccountCode } from '@/db/models/exchange-types';
 import { storeJson as storeJson0 } from '@/common/test/test-utils.spec';
 
 function storeJson(data: any, fileName: string) {
-  storeJson0(data, __dirname, fileName);
+  storeJson0(data, `${__dirname}/data`, fileName);
 }
 
 const { socksProxies, apiKeys } = TestConfig.exchange;
@@ -40,6 +40,12 @@ test('getAllMarginAssets', async () => {
 test('getMarginAccount', async () => {
   const data = await rest.getMarginAccount(apiKey);
   storeJson(data, 'margin-account.json');
+});
+
+test('getMarginAccountNonZero', async () => {
+  const data = await rest.getMarginAccount(apiKey);
+  data['userAssets'] = data['userAssets'].filter((a) => a.free !== '0');
+  storeJson(data, 'margin-account-non-0-assets.json');
 });
 
 test('getMarginAllOrders', async () => {
