@@ -37,7 +37,8 @@ export interface ExTrade {
 export interface PlaceOrderParams {
   symbol: string;
   settleCoin?: string;
-  mode?: 'isolated' | 'cross' | 'cash';
+  margin: boolean;
+  marginMode?: 'isolated' | 'cross';
   ccy?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
   clientOrderId?: string;
   side: 'buy' | 'sell';
@@ -73,6 +74,43 @@ export abstract class BaseExchange {
   abstract getPrice(symbol: string): Promise<ExPrice>;
 
   abstract placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any>;
+
+  abstract cancelOrder(
+    apiKey: ExApiKey,
+    params: {
+      margin: boolean;
+      symbol: string;
+      orderId: string;
+    },
+  ): Promise<any>;
+
+  abstract cancelOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string },
+  ): Promise<any>;
+
+  abstract cancelBatchOrders(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string }[],
+  ): Promise<any>;
+
+  abstract getOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<any>;
+
+  abstract getOpenOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: {
+      margin: boolean;
+      symbol: string;
+    },
+  ): Promise<any[]>;
+
+  abstract getAllOpenOrders(
+    apiKey: ExApiKey,
+    params: { margin: boolean },
+  ): Promise<any[]>;
 }
 
 export declare type ExchangeService = BaseExchange;

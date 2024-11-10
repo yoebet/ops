@@ -109,7 +109,7 @@ export class OkxRest extends ExRest {
     apiKey: ExApiKey,
     params: {
       instId: string; // 支持多产品ID查询（不超过5个），半角逗号分隔
-      tdMode: 'cross' | 'isolated' | 'cash';
+      tdMode: RestTypes['Order']['tdMode'];
       ccy?: string; // 保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单
       px?: string; // 委托价格
       leverage?: string; // 开仓杠杆倍数 默认为当前杠杆倍数 仅适用于币币杠杆/交割/永续
@@ -128,7 +128,7 @@ export class OkxRest extends ExRest {
     apiKey: ExApiKey,
     params: {
       instId: string; // 支持多产品ID查询（不超过5个），半角逗号分隔
-      tdMode: 'cross' | 'isolated' | 'cash';
+      tdMode: RestTypes['Order']['tdMode'];
       ccy?: string; // 保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单
       reduceOnly?: boolean; // 是否为只减仓模式，仅适用于币币杠杆
       px?: string; // 委托价格
@@ -218,7 +218,7 @@ export class OkxRest extends ExRest {
   async getPositions(
     apiKey: ExApiKey,
     params?: {
-      instType: 'SPOT' | 'MARGIN' | 'SWAP' | 'FUTURES' | 'OPTION';
+      instType: RestTypes['InstType'];
     },
   ): Promise<RestTypes['Position'][]> {
     return this.requestPickData({
@@ -240,8 +240,6 @@ export class OkxRest extends ExRest {
     });
   }
 
-  // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
-  // latest 1440
   // 限速：40次/2s
   async getCandles(params: {
     instId: string;
@@ -271,11 +269,14 @@ export class OkxRest extends ExRest {
     });
   }
 
+  // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
+  // latest 1440
+
   // 获取当前账户交易手续费费率 https://www.okx.com/docs-v5/zh/#rest-api-account-get-fee-rates
   async getFeeRate(
     apiKey: ExApiKey,
     params: {
-      instType: 'SPOT' | 'MARGIN' | 'SWAP' | 'FUTURES' | 'OPTION';
+      instType: RestTypes['InstType'];
       // instId，uly，category必须且只允许传其中一个参数
       instId?: string;
       uly?: string;
@@ -290,7 +291,6 @@ export class OkxRest extends ExRest {
     });
   }
 
-  // 获取订单信息 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-details
   // 订单固定在数组第一个元素上
   async getOrder(
     apiKey: ExApiKey,
@@ -311,7 +311,10 @@ export class OkxRest extends ExRest {
   async getOpenOrders(
     apiKey: ExApiKey,
     params: {
-      instType: 'SPOT' | 'MARGIN' | 'SWAP' | 'FUTURES' | 'OPTION';
+      instType?: RestTypes['InstType'];
+      instId?: string;
+      ordType?: RestTypes['Order']['ordType'];
+      state?: 'live' | 'partially_filled';
       before?: string;
       limit?: number;
     },
@@ -324,11 +327,13 @@ export class OkxRest extends ExRest {
     });
   }
 
+  // 获取订单信息 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-details
+
   // 获取用户已完成委托记录 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-history-last-7-days
   async getClosedOrders(
     apiKey: ExApiKey,
     params: {
-      instType: 'SPOT' | 'MARGIN' | 'SWAP' | 'FUTURES' | 'OPTION';
+      instType: RestTypes['InstType'];
       before?: string;
       limit?: number;
     },
@@ -354,7 +359,7 @@ export class OkxRest extends ExRest {
     });
   }
 
-  // 下单 https://www.okx.com/docs-v5/zh/#rest-api-trade-cancel-order
+  // https://www.okx.com/docs-v5/zh/#rest-api-trade-cancel-order
   async cancelOrder(
     apiKey: ExApiKey,
     params: {
@@ -364,6 +369,22 @@ export class OkxRest extends ExRest {
   ): Promise<RestTypes['CancelOrder'][]> {
     return this.requestPickData({
       path: '/api/v5/trade/cancel-order',
+      method: HttpMethodType.post,
+      params,
+      apiKey,
+    });
+  }
+
+  // https://www.okx.com/docs-v5/zh/#order-book-trading-trade-post-cancel-multiple-orders
+  async cancelBatchOrders(
+    apiKey: ExApiKey,
+    params: {
+      instId: string;
+      ordId: string;
+    }[],
+  ): Promise<RestTypes['CancelOrder'][]> {
+    return this.requestPickData({
+      path: '/api/v5/trade/cancel-batch-orders',
       method: HttpMethodType.post,
       params,
       apiKey,

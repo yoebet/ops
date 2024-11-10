@@ -7,9 +7,11 @@ export class ExOrder extends ExSymbolBase {
   @Column()
   side: TradeSide;
 
-  // cash, isolated, cross
   @Column()
-  mode: string = 'cash';
+  margin: boolean;
+
+  @Column()
+  marginMode: 'isolated' | 'cross';
 
   // market：市价单
   // limit：限价单
@@ -22,7 +24,7 @@ export class ExOrder extends ExSymbolBase {
   @Column({ nullable: true })
   timeType?: string;
 
-  // filled, canceled
+  // open, partial-filled, filled, canceled
   @Column()
   status: string;
 
@@ -68,6 +70,15 @@ export class ExOrder extends ExSymbolBase {
 
   @Column({ nullable: true })
   filledAt?: Date;
+
+  @Column({ nullable: true })
+  exCreatedAt?: Date;
+
+  @Column({ nullable: true })
+  exUpdatedAt?: Date;
+
+  @Column({ nullable: true })
+  exClosedAt?: Date;
 
   @Column('jsonb', { nullable: true })
   raw?: any;

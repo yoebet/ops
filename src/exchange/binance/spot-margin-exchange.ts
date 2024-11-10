@@ -106,15 +106,97 @@ export class BinanceSpotMarginExchange extends BaseExchange {
     }
     this.logger.log(op);
 
-    if (params.mode === 'cash') {
+    if (!params.margin) {
       const result = await this.restSpot.placeSpotOrder(apiKey, op);
       this.logger.log(result);
       return result;
     } else {
-      op.isIsolated = params.mode === 'isolated';
+      op.isIsolated = params.marginMode === 'isolated';
       const result = await this.restMargin.placeMarginOrder(apiKey, op);
       this.logger.log(result);
       return result;
+    }
+  }
+
+  async cancelOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<any> {
+    if (params.margin) {
+      return this.restMargin.cancelOrder(apiKey, {
+        symbol: params.symbol,
+        orderId: params.orderId,
+      });
+    } else {
+      return this.restSpot.cancelOrder(apiKey, {
+        symbol: params.symbol,
+        orderId: params.orderId,
+      });
+    }
+  }
+
+  async cancelBatchOrders(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string }[],
+  ): Promise<any> {
+    throw new Error(`not supported`);
+  }
+
+  async cancelOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string },
+  ): Promise<any> {
+    if (params.margin) {
+      // isIsolated?: boolean;
+      return this.restMargin.cancelOpenOrders(apiKey, {
+        symbol: params.symbol,
+      });
+    } else {
+      return this.restSpot.cancelOpenOrders(apiKey, {
+        symbol: params.symbol,
+      });
+    }
+  }
+
+  async getAllOpenOrders(
+    apiKey: ExApiKey,
+    params: { margin: boolean },
+  ): Promise<any[]> {
+    if (params.margin) {
+      // isIsolated?: boolean;
+      return this.restMargin.getOpenOrders(apiKey, {});
+    } else {
+      return this.restSpot.getOpenOrders(apiKey);
+    }
+  }
+
+  async getOpenOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string },
+  ): Promise<any[]> {
+    if (params.margin) {
+      // isIsolated?: boolean;
+      return this.restMargin.getOpenOrders(apiKey, { symbol: params.symbol });
+    } else {
+      return this.restSpot.getOpenOrders(apiKey, params.symbol);
+    }
+  }
+
+  async getOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<any> {
+    if (params.margin) {
+      // isIsolated?: boolean;
+      return this.restMargin.getOrder(apiKey, {
+        symbol: params.symbol,
+        orderId: params.orderId,
+      });
+    } else {
+      return this.restSpot.getOrder(apiKey, {
+        symbol: params.symbol,
+        orderId: params.orderId,
+      });
     }
   }
 }

@@ -24,6 +24,14 @@ test('getMarkets', async () => {
   // console.log(JsonToTS(data).join('\n'));
 });
 
+test('getPrice', async () => {
+  const data = await rest.getTicker({
+    instId: 'BTC-USDT',
+  });
+  console.log(JSON.stringify(data));
+  console.log(JsonToTS(data).join('\n'));
+});
+
 test('getIndexPriceCandles', async () => {
   const data = await rest
     .getIndexPriceCandles({
@@ -119,26 +127,18 @@ test('getPositions', async () => {
   console.log(JsonToTS(data).join('\n'));
 });
 
-test('getPrice', async () => {
-  const data = await rest.getTicker({
-    instId: 'BTC-USDT',
-  });
-  console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
-});
-
 test('getOrder', async () => {
   const data = await rest.getOrder(apiKey, {
-    instId: 'DOGE-USDT-SWAP',
-    ordId: '439113437833220096',
+    instId: 'DOGE-USDT',
+    ordId: '1970951179664408576',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
+  // console.log(JsonToTS(data).join('\n'));
 });
 
 test('getOpenOrders', async () => {
   const data = await rest.getOpenOrders(apiKey, {
-    instType: 'SWAP',
+    instType: 'SPOT',
   });
   console.log(JSON.stringify(data));
   console.log(JsonToTS(data).join('\n'));
@@ -167,11 +167,11 @@ test('createOrder', async () => {
 
 test('cancelOrder', async () => {
   const data = await rest.cancelOrder(apiKey, {
-    instId: 'DOGE-USDT-SWAP',
-    ordId: '439113437833220096',
+    instId: 'DOGE-USDT',
+    ordId: '1970951179664408576',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
+  // console.log(JsonToTS(data).join('\n'));
 });
 
 test('getInterestRate', async () => {

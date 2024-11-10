@@ -283,7 +283,7 @@ export class BinanceMarginRest extends BinanceBaseRest {
       symbol?: string;
       isIsolated?: boolean;
     },
-  ): Promise<any> {
+  ): Promise<any[]> {
     return this.request({
       path: '/sapi/v1/margin/openOrders',
       method: HttpMethodType.get,

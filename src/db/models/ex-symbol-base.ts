@@ -1,6 +1,10 @@
 import { Column } from 'typeorm';
 import { BaseModel } from '@/db/models/base-model';
-import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
+import {
+  ExAccountCode,
+  ExchangeCode,
+  ExMarket,
+} from '@/db/models/exchange-types';
 
 export class ExSymbolBase extends BaseModel {
   @Column()
@@ -8,6 +12,9 @@ export class ExSymbolBase extends BaseModel {
 
   @Column()
   exAccount: ExAccountCode;
+
+  // @Column()
+  // market: ExMarket;
 
   @Column()
   baseCoin: string;

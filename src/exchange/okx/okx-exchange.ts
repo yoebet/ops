@@ -100,6 +100,9 @@ export class OkxExchange extends BaseExchange {
         type = params.timeType;
       }
     }
+    if (params.margin && !params.marginMode) {
+      throw new Error(`missing marginMode`);
+    }
     const op: CreateOrderParams = {
       clOrdId: params.clientOrderId,
       instId: params.symbol,
@@ -107,12 +110,12 @@ export class OkxExchange extends BaseExchange {
       px: params.price,
       side: params.side,
       sz: params.size,
-      tdMode: params.mode,
+      tdMode: params.margin ? params.marginMode : 'cash',
       posSide: params.posSide,
-      ccy: params.mode === 'cross' ? params.ccy : undefined,
+      ccy: params.marginMode === 'cross' ? params.ccy : undefined,
       // reduceOnly: false,
     };
-    if (params.mode === 'cash' && type === 'market') {
+    if (!params.margin && type === 'market') {
       if (params.quoteAmount) {
         op.sz = params.quoteAmount;
         op.tgtCcy = 'quote_ccy';
@@ -121,6 +124,59 @@ export class OkxExchange extends BaseExchange {
     this.logger.log(op);
 
     const result = await this.rest.createOrder(apiKey, op);
+    this.logger.log(result);
     return result;
+  }
+
+  async cancelOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<any> {
+    return this.rest.cancelOrder(apiKey, {
+      instId: params.symbol,
+      ordId: params.orderId,
+    });
+  }
+
+  async cancelBatchOrders(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string }[],
+  ): Promise<any> {
+    return this.rest.cancelBatchOrders(
+      apiKey,
+      params.map((s) => ({ instId: s.symbol, ordId: s.orderId })),
+    );
+  }
+
+  async cancelOrdersBySymbol(
+    _apiKey: ExApiKey,
+    _params: { margin: boolean; symbol: string },
+  ): Promise<any> {
+    // return this.rest.cancelBatchOrders()
+    throw new Error(`not supported`);
+  }
+
+  async getAllOpenOrders(
+    apiKey: ExApiKey,
+    _params: { margin: boolean },
+  ): Promise<any[]> {
+    return this.rest.getOpenOrders(apiKey, {});
+  }
+
+  async getOpenOrdersBySymbol(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string },
+  ): Promise<any[]> {
+    return this.rest.getOpenOrders(apiKey, { instId: params.symbol });
+  }
+
+  async getOrder(
+    apiKey: ExApiKey,
+    params: { margin: boolean; symbol: string; orderId: string },
+  ): Promise<any> {
+    return this.rest.getOrder(apiKey, {
+      instId: params.symbol,
+      ordId: params.orderId,
+    });
   }
 }

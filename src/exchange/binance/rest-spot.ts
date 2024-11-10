@@ -318,7 +318,7 @@ export class BinanceSpotRest extends BinanceBaseRest {
   }
 
   // 查询挂单
-  async getOpenOrders(apiKey: ExApiKey, symbol?: string): Promise<any> {
+  async getOpenOrders(apiKey: ExApiKey, symbol?: string): Promise<any[]> {
     return this.request({
       path: '/api/v3/openOrders',
       method: HttpMethodType.get,
@@ -337,7 +337,7 @@ export class BinanceSpotRest extends BinanceBaseRest {
       limit?: number; // 默认 500; 最大 1000
     },
   ): Promise<any> {
-    // 一些历史订单的 cummulativeQuoteQty < 0, 是指当前数据不存在
+    // 一些历史订单的 cumulativeQuoteQty < 0, 是指当前数据不存在
     return this.request({
       path: '/api/v3/allOrders',
       method: HttpMethodType.get,
