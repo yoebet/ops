@@ -9,7 +9,6 @@ import {
 } from '@/exchange/base/rest/rest.type';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { ExKline, ExPrice, FetchKlineParams } from '@/exchange/rest-types';
 
 export abstract class ExRest {
   private readonly defaultScheme: string;
@@ -54,29 +53,31 @@ export abstract class ExRest {
     uriEncode = true,
   ): string {
     let str = '';
-    if (params) {
-      let pairs: [string, any][];
-      if (params instanceof Array) {
-        pairs = params;
-      } else {
-        pairs = entries(params);
-      }
-      // 过滤掉空值
-      pairs = pairs.filter((i) => !isNil(i[1]));
-      if (pairs.length > 0) {
-        str += pairs
-          .map(
-            (i) =>
-              `${uriEncode ? encodeURIComponent(i[0]) : i[0]}=${
-                uriEncode ? encodeURIComponent(i[1]) : i[1]
-              }`,
-          )
-          .join('&');
+    if (!params) {
+      return str;
+    }
+    let pairs: [string, any][];
+    if (params instanceof Array) {
+      pairs = params;
+    } else {
+      pairs = entries(params);
+    }
+    // 过滤掉空值
+    pairs = pairs.filter((i) => !isNil(i[1]));
+    if (pairs.length === 0) {
+      return str;
+    }
+    str += pairs
+      .map(
+        (i) =>
+          `${uriEncode ? encodeURIComponent(i[0]) : i[0]}=${
+            uriEncode ? encodeURIComponent(i[1]) : i[1]
+          }`,
+      )
+      .join('&');
 
-        if (includeQuestionMark) {
-          str = '?' + str;
-        }
-      }
+    if (includeQuestionMark) {
+      str = '?' + str;
     }
     return str;
   }
@@ -130,7 +131,7 @@ export abstract class ExRest {
     return res;
   }
 
-  protected async request<T = any>(p: ExRestReqBuildParams): Promise<T> {
+  async request<T = any>(p: ExRestReqBuildParams): Promise<T> {
     return (await this.requestRaw(p)).data;
   }
 
@@ -142,10 +143,4 @@ export abstract class ExRest {
   protected abstract buildReq(
     p: ExRestReqBuildParams,
   ): Promise<ExRestReqConfig>;
-
-  abstract getKlines(params: FetchKlineParams): Promise<ExKline[]>;
-
-  abstract getSymbolInfo(symbol: string): Promise<any>;
-
-  abstract getPrice(symbol: string): Promise<ExPrice>;
 }

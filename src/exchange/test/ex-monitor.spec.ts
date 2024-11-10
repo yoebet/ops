@@ -10,7 +10,7 @@ import {
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { wait } from '@/common/utils/utils';
 import { ExchangeWsService } from '@/exchange/exchange-ws.service';
-import { OkxWs } from '@/exchange/okx/okx-ws';
+import { OkxWs } from '@/exchange/okx/ws';
 import { ExchangeModule } from '@/exchange/exchange.module';
 
 jest.setTimeout(60 * 60_000);

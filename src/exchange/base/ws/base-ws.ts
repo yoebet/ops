@@ -3,7 +3,7 @@ import { ClientOptions, RawData, WebSocket } from 'ws';
 import * as humanizeDuration from 'humanize-duration';
 import * as prettyBytes from 'pretty-bytes';
 import { URL } from 'url';
-import _ = require('lodash');
+import * as _ from 'lodash';
 import { wait } from '@/common/utils/utils';
 import { AppLogger } from '@/common/app-logger';
 
@@ -253,7 +253,7 @@ export abstract class BaseWs {
       } else if (typeof err === 'object') {
         this.logger.error(err);
       } else {
-        let msg = err?.message || err?.toString() || 'Err.';
+        const msg = err?.message || err?.toString() || 'Err.';
         this.logger.error(msg);
       }
     } finally {

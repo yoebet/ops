@@ -3,6 +3,7 @@ import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { ExchangeRestService } from '@/exchange/exchange-rest.service';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeService } from '@/exchange/rest-types';
 
 jest.setTimeout(10 * 60 * 1000);
 
@@ -20,6 +21,21 @@ describe('ExchangeRestService', () => {
   });
 
   describe('-', () => {
+    it('get latest price', async () => {
+      const symbol = 'BTC/USDT';
+      const exSymbols = await ExchangeSymbol.findBy({
+        symbol,
+      });
+      const ps = exSymbols
+        .map((es) => ({ es, rest: restService.getExRest(es.exAccount) }))
+        .map(({ es, rest }) =>
+          rest.getPrice(es.rawSymbol).then((price) => {
+            console.log(`${es.exAccount}: ${price.last}`);
+          }),
+        );
+      await Promise.all(ps);
+    });
+
     it('update symbol info - binance', async () => {
       const exAccount = ExAccountCode.binanceSpot;
       const rest = restService.getExRest(exAccount);

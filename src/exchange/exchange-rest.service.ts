@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
 import { ExAccountCode } from '@/db/models/exchange-types';
-import { ExRestTypes } from '@/exchange/exchange-accounts';
+import { ExchangeTypes } from '@/exchange/exchange-accounts';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
 import { ExchangeService } from '@/exchange/rest-types';
-import { Path } from '@nestjs/config/dist/types';
 
 @Injectable()
 export class ExchangeRestService {
@@ -19,7 +18,7 @@ export class ExchangeRestService {
   ) {
     logger.setContext('ex-rest-service');
     this.supportedExAccounts = new Set<ExAccountCode>(
-      Object.keys(ExRestTypes) as ExAccountCode[],
+      Object.keys(ExchangeTypes) as ExAccountCode[],
     );
   }
 
@@ -32,7 +31,7 @@ export class ExchangeRestService {
     if (rest) {
       return rest;
     }
-    const RestType = ExRestTypes[exAccount];
+    const RestType = ExchangeTypes[exAccount];
     if (!RestType) {
       return undefined;
     }

@@ -1,5 +1,4 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
-import * as _ from 'lodash';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeWsService } from '@/exchange/exchange-ws.service';
 import { SymbolService } from '@/common-services/symbol.service';

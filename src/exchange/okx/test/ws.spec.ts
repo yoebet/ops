@@ -1,4 +1,4 @@
-import { OkxWs } from '@/exchange/okx/okx-ws';
+import { OkxWs } from '@/exchange/okx/ws';
 import { wait } from '@/common/utils/utils';
 import {
   exWsParams,

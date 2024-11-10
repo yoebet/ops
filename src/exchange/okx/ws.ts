@@ -8,11 +8,11 @@ import {
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
 import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
-import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
 import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-types';
-import { OkxRest } from '@/exchange/okx/rest';
 import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
-import { ExKline, ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
+import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
+import { OkxExchange } from '@/exchange/okx/okx-exchange';
+import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
 
 abstract class OkxBaseWs extends ExWs {
   protected constructor(params: Partial<ExWsParams>) {
@@ -128,7 +128,7 @@ class OkxKlineWs extends OkxBaseWs {
         if (!this.candleIncludeLive && live) {
           return;
         }
-        const k = OkxRest.toCandle(c);
+        const k = OkxExchange.toKline(c);
         const kl = k as ExKlineWithSymbol;
         kl.rawSymbol = symbol;
         kl.live = live;
@@ -138,7 +138,7 @@ class OkxKlineWs extends OkxBaseWs {
   }
 
   klineSubject(interval: string): SymbolParamSubject<ExKlineWithSymbol> {
-    const channelName = `candle${OkxRest.toCandleInv(interval)}`;
+    const channelName = `candle${OkxExchange.toCandleInv(interval)}`;
     return this.symbolParamSubject(channelName);
   }
 }

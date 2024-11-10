@@ -1,5 +1,5 @@
 import { ExchangeWs } from '@/exchange/ws-types';
-import { BinanceWs } from '@/exchange/binance/binance-ws';
+import { BinanceWs } from '@/exchange/binance/ws';
 import { ExWsParams } from '@/exchange/base/ws/ex-ws';
 import { mergeId } from '@/exchange/base/ws/base-ws';
 import { ExAccountCode } from '@/db/models/exchange-types';

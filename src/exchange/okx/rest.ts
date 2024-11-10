@@ -10,25 +10,21 @@ import {
 import { enc, HmacSHA256 } from 'crypto-js';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import {
-  FetchKlineParams,
-  ExchangeService,
-  ExPrice,
-  ExKline,
-} from '@/exchange/rest-types';
-import { CandleRawDataOkx, RestBody } from '@/exchange/okx/types';
-import {
+  CandleRawDataOkx,
+  CreateOrderParams,
   GetDepositRecordsParams,
   GetWithdrawRecordsParams,
   InterestAccrued,
+  RestBody,
   RestTypes,
   WithdrawalParams,
-} from '@/exchange/okx/rest.types';
+} from '@/exchange/okx/types';
 import { ExApiKey } from '@/exchange/base/api-key';
 
 /**
  * https://www.okx.com/docs-v5/zh/
  */
-export class OkxRest extends ExRest implements ExchangeService {
+export class OkxRest extends ExRest {
   constructor(params?: Partial<ExRestParams>) {
     super({
       host: 'www.okx.com',
@@ -80,52 +76,7 @@ export class OkxRest extends ExRest implements ExchangeService {
     throw new Error(JSON.stringify(body));
   }
 
-  static toCandleInv(inv: string): string {
-    // [1s/1m/3m/5m/15m/30m/1H/2H/4H]
-    // 香港时间开盘价k线：[6H/12H/1D/2D/3D/1W/1M/3M]
-    // UTC时间开盘价k线：[6Hutc/12Hutc/1Dutc/2Dutc/3Dutc/1Wutc/1Mutc/3Mutc]
-    const u = inv.charAt(inv.length - 1);
-    if (u === 'o') {
-      inv = inv.substring(0, inv.length - 1) + 'M';
-    }
-    if (!['s', 'm'].includes(u)) {
-      inv = inv.toUpperCase();
-    }
-    if (['d', 'w', 'o'].includes(u)) {
-      return inv + 'utc';
-    }
-    return inv;
-  }
-
-  protected toFetchCandleParams(params: FetchKlineParams): Record<string, any> {
-    return {
-      instId: params.symbol,
-      bar: OkxRest.toCandleInv(params.interval),
-      before: params.startTime,
-      after: params.endTime,
-      limit: params.limit,
-    };
-  }
-
-  static toCandle(candleRaw: CandleRawDataOkx): ExKline {
-    const candle: ExKline = {
-      ts: Number(candleRaw[0]),
-      open: Number(candleRaw[1]),
-      high: Number(candleRaw[2]),
-      low: Number(candleRaw[3]),
-      close: Number(candleRaw[4]),
-      size: Number(candleRaw[6]),
-      amount: Number(candleRaw[7]),
-      // bs: 0,
-      // ba: 0,
-      // ss: 0,
-      // sa: 0,
-      // tds: 0,
-    };
-    return candle;
-  }
-
-  protected async requestPickData<T>(p: ExRestReqBuildParams): Promise<T> {
+  async requestPickData<T>(p: ExRestReqBuildParams): Promise<T> {
     const res = await this.request<RestBody>(p);
     // {code, msg, data}
     return res.data;
@@ -289,6 +240,23 @@ export class OkxRest extends ExRest implements ExchangeService {
     });
   }
 
+  // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
+  // latest 1440
+  // 限速：40次/2s
+  async getCandles(params: {
+    instId: string;
+    bar?: string;
+    before?: string | number;
+    after?: string | number;
+    limit?: number; // 最大300，默认100
+  }): Promise<CandleRawDataOkx[]> {
+    return this.requestPickData({
+      path: `/api/v5/market/candles`,
+      method: HttpMethodType.get,
+      params,
+    });
+  }
+
   // 获取指数价格K线 https://www.okx.com/docs-v5/zh/#rest-api-market-data-get-index-candlesticks
   async getIndexPriceCandles(params: {
     instId: string;
@@ -376,18 +344,7 @@ export class OkxRest extends ExRest implements ExchangeService {
   // 下单 https://www.okx.com/docs-v5/zh/#rest-api-trade-place-order
   async createOrder(
     apiKey: ExApiKey,
-    params: {
-      instId: string;
-      tdMode: RestTypes['Order']['tdMode']; // 交易模式
-      ccy?: string;
-      clOrdId?: string;
-      side: RestTypes['Order']['side'];
-      posSide?: RestTypes['Order']['posSide']; // 持仓方向 在双向持仓模式下必填
-      ordType: RestTypes['Order']['ordType'];
-      sz: string; // 委托数量
-      px?: string; // 委托价格
-      reduceOnly?: boolean; // 是否只减仓
-    },
+    params: CreateOrderParams,
   ): Promise<RestTypes['CreateOrder'][]> {
     return this.requestPickData({
       path: '/api/v5/trade/order',
@@ -604,37 +561,5 @@ export class OkxRest extends ExRest implements ExchangeService {
       apiKey,
       params,
     });
-  }
-
-  // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
-  async getKlines(params: FetchKlineParams): Promise<ExKline[]> {
-    // latest 1440
-    // 限速：40次/2s
-    // limit 最大300，默认100
-    const fetchCandleParamOkx = this.toFetchCandleParams(params);
-    const resultRaw: RestBody<CandleRawDataOkx[]> = await this.request({
-      path: '/api/v5/market/candles',
-      method: HttpMethodType.get,
-      params: fetchCandleParamOkx,
-    });
-    if (!resultRaw.data) {
-      return [];
-    }
-    return resultRaw.data.map(OkxRest.toCandle);
-  }
-
-  async getSymbolInfo(symbol: string): Promise<any> {
-    const res: RestBody<any[]> = await this.request({
-      path: '/api/v5/public/instruments',
-      method: HttpMethodType.get,
-      params: { instType: 'SPOT', instId: symbol },
-    });
-    return res.data[0];
-  }
-
-  async getPrice(symbol: string): Promise<ExPrice> {
-    const tickers = await this.getTicker({ instId: symbol });
-    const t = tickers[0];
-    return { last: +t.last };
   }
 }

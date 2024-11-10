@@ -4,7 +4,7 @@ import {
   observeWsStatus,
   observeWsSubject,
 } from '@/common/test/test-utils.spec';
-import { BinanceSpotWs } from '@/exchange/binance/binance-spot-ws';
+import { BinanceSpotWs } from '@/exchange/binance/ws-spot';
 
 const symbol_BTC_USDT = 'BTCUSDT';
 const symbol_ETH_USDT = 'ETHUSDT';

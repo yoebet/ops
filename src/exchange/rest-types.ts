@@ -1,5 +1,4 @@
 import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
-import { ExRest } from '@/exchange/base/rest/ex-rest';
 import { FtKline } from '@/data-service/models/kline';
 import { TradeSide } from '@/data-service/models/base';
 
@@ -38,4 +37,14 @@ export interface ExKlineWithSymbol extends ExKline {
   live?: boolean;
 }
 
-export declare type ExchangeService = ExRest;
+export abstract class BaseExchange {
+  protected constructor() {}
+
+  abstract getKlines(params: FetchKlineParams): Promise<ExKline[]>;
+
+  abstract getSymbolInfo(symbol: string): Promise<any>;
+
+  abstract getPrice(symbol: string): Promise<ExPrice>;
+}
+
+export declare type ExchangeService = BaseExchange;

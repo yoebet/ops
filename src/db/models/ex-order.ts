@@ -2,7 +2,7 @@ import { Column, Entity } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 
-@Entity()
+// @Entity()
 export class ExOrder extends ExSymbolBase {
   @Column()
   side: TradeSide;
@@ -24,7 +24,7 @@ export class ExOrder extends ExSymbolBase {
   status: string;
 
   @Column({ nullable: true })
-  orderId?: string;
+  exOrderId?: string;
 
   @Column()
   clientOrderId: string;
@@ -35,13 +35,22 @@ export class ExOrder extends ExSymbolBase {
   // ---
 
   @Column({ nullable: true })
-  reqPrice?: number;
+  limitPrice?: number;
 
   @Column({ nullable: true })
   reqSize?: number;
 
   @Column({ nullable: true })
   quoteAmount?: number;
+
+  @Column({ nullable: true })
+  posId?: string;
+
+  @Column({ nullable: true })
+  strategyId?: string;
+
+  @Column('jsonb', { nullable: true })
+  strategyParams?: any;
 
   // ---
 
@@ -53,4 +62,10 @@ export class ExOrder extends ExSymbolBase {
 
   @Column({ nullable: true })
   execAmount?: number;
+
+  @Column({ nullable: true })
+  filledAt?: Date;
+
+  @Column('jsonb', { nullable: true })
+  raw?: any;
 }
