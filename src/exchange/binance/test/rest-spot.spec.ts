@@ -11,6 +11,24 @@ const { socksProxies, apiKeys } = TestConfig.exchange;
 const rest = new BinanceSpotRest({ proxies: socksProxies });
 const apiKey = apiKeys[ExAccountCode.binanceSpot];
 
+it('price', async () => {
+  const result = await rest.getPrice('BTCUSDT');
+  console.log(result);
+});
+
+it('prices', async () => {
+  const result = await rest.getPrices(['BTCUSDT', 'ETHUSDT']);
+  console.log(result);
+});
+
+test('getExchangeInfo', async () => {
+  const data = await rest.getExchangeInfo({
+    symbols: ['BTCUSDT', 'ETHUSDT'],
+    showPermissionSets: false,
+  });
+  storeJson(data, 'market-pairs-btc-eth.json');
+});
+
 test('getCapitalConfigs', async () => {
   const data = await rest.getCapitalConfigs(apiKey);
   storeJson(data, 'getCapitalConfigs');
@@ -27,7 +45,7 @@ test('getSpotBalances', async () => {
       });
     // storeJson(dd, 'spot-balances-sub');
     console.log(JSON.stringify(dd));
-    storeJson(dd, 'getSpotBalances');
+    // storeJson(dd, 'getSpotBalances');
   }
 });
 
@@ -108,4 +126,32 @@ test('getSubAccountTransferRecords', async () => {
 test('getSubAccounts', async () => {
   const data = await rest.getSubAccounts(apiKey);
   storeJson(data, 'sub-accounts');
+});
+
+test('placeOrder', async () => {
+  const data = await rest.placeSpotOrder(apiKey, {
+    symbol: 'BNBUSDT',
+    side: 'SELL',
+    type: 'LIMIT',
+    // quoteOrderQty: '30',
+    quantity: '0.05',
+    price: '600',
+    timeInForce: 'GTC',
+  });
+  storeJson(data, 'spot-order-place-order.json');
+});
+
+test('cancelOpenOrders', async () => {
+  const data = await rest.cancelOpenOrders(apiKey, {
+    symbol: 'BNBUSDT',
+  });
+  storeJson(data, 'spot-order-cancel-all.json');
+});
+
+test('cancelOrder', async () => {
+  const data = await rest.cancelOrder(apiKey, {
+    symbol: 'BNBUSDT',
+    orderId: '3500182859',
+  });
+  storeJson(data, 'spot-order-cancel-one.json');
 });

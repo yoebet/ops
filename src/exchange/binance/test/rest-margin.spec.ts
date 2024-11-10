@@ -1,23 +1,18 @@
 import { TestConfig } from '@/env.local.test';
-import { BinanceSpotRest } from '@/exchange/binance/rest-spot';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { storeJson as storeJson0 } from '@/common/test/test-utils.spec';
+import { BinanceMarginRest } from '@/exchange/binance/rest-margin';
 
 function storeJson(data: any, fileName: string) {
   storeJson0(data, `${__dirname}/data`, fileName);
 }
 
 const { socksProxies, apiKeys } = TestConfig.exchange;
-const rest = new BinanceSpotRest({ proxies: socksProxies });
+const rest = new BinanceMarginRest({ proxies: socksProxies });
 const apiKey = apiKeys[ExAccountCode.binanceSpot];
 test('getPriceIndex', async () => {
   const data = await rest.getPriceIndex(apiKey, 'BNBBTC');
   console.log(JSON.stringify(data), null, 2);
-});
-
-test('getExchangeInfoAll', async () => {
-  const data = await rest.getExchangeInfoAll();
-  storeJson(data, 'market-all-pairs.json');
 });
 
 test('getAllCrossPairs', async () => {
@@ -193,7 +188,7 @@ test('marginRepay', async () => {
 });
 
 test('placeOrder', async () => {
-  const data = await rest.placeOrder(apiKey, {
+  const data = await rest.placeMarginOrder(apiKey, {
     symbol: 'BNBUSDT',
     isIsolated: true,
     side: 'SELL',
@@ -203,7 +198,7 @@ test('placeOrder', async () => {
     price: '600',
     timeInForce: 'GTC',
   });
-  storeJson(data, 'order-place-order.json');
+  storeJson(data, 'margin-place-order.json');
 });
 
 test('cancelOpenOrders', async () => {
@@ -211,7 +206,7 @@ test('cancelOpenOrders', async () => {
     symbol: 'BNBUSDT',
     isIsolated: true,
   });
-  storeJson(data, 'order-cancel-all.json');
+  storeJson(data, 'margin-order-cancel-all.json');
 });
 
 test('cancelOrder', async () => {
@@ -220,5 +215,5 @@ test('cancelOrder', async () => {
     isIsolated: true,
     orderId: '3500182859',
   });
-  storeJson(data, 'order-cancel-one.json');
+  storeJson(data, 'margin-order-cancel-one.json');
 });

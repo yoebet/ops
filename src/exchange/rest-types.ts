@@ -1,6 +1,7 @@
 import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { FtKline } from '@/data-service/models/kline';
 import { TradeSide } from '@/data-service/models/base';
+import { RestTypes } from '@/exchange/okx/types';
 
 export interface BaseKlineParams {
   exAccount?: ExAccountCode;
@@ -28,6 +29,22 @@ export interface ExTrade {
   amount?: number;
   side: TradeSide;
   ts: number; // ms
+}
+
+export interface PlaceOrderParams {
+  symbol: string;
+  settleCoin?: string;
+  mode?: 'isolated' | 'cross' | 'cash';
+  ccy?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
+  clientOrderId?: string;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit';
+  timeType?: 'gtc' | 'fok' | 'ioc';
+  size?: string; // 委托数量（base）
+  quoteAmount?: string;
+  price?: string; // 委托价格
+  posSide?: 'long' | 'short';
+  reduceOnly?: boolean; // 是否只减仓
 }
 
 export type ExKline = FtKline;

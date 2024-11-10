@@ -433,13 +433,14 @@ export interface InterestAccrued {
 export interface CreateOrderParams {
   instId: string;
   tdMode: RestTypes['Order']['tdMode']; // 交易模式
-  ccy?: string;
+  ccy?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
   clOrdId?: string;
   side: RestTypes['Order']['side'];
   posSide?: RestTypes['Order']['posSide']; // 持仓方向 在双向持仓模式下必填
   ordType: RestTypes['Order']['ordType'];
   sz: string; // 委托数量
   px?: string; // 委托价格
+  tgtCcy?: 'base_ccy' | 'quote_ccy'; // 市价单委托数量sz的单位，仅适用于币币市价订单。买单默认quote_ccy， 卖单默认base_ccy
   reduceOnly?: boolean; // 是否只减仓
 }
 

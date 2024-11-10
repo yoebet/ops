@@ -1,5 +1,5 @@
 // 下单参数
-export interface PlaceOrderParams {
+export interface CreateOrderParams {
   symbol: string;
   isIsolated?: boolean;
   side: 'BUY' | 'SELL';
@@ -41,7 +41,7 @@ export interface MarginPair {
   isSellAllowed: boolean;
 }
 
-export interface PairDetail {
+export interface SymbolInfo {
   symbol: string;
   status: string;
   baseAsset: string;
@@ -53,11 +53,11 @@ export interface PairDetail {
   permissions: string[];
 }
 
-export type ExchangeInfoAll = {
+export type ExchangeInfo = {
   timezone: string;
   serverTime: number;
   rateLimits: any[];
-  symbols: PairDetail[];
+  symbols: SymbolInfo[];
 };
 
 export interface DepositAddress {

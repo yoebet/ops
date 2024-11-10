@@ -5,9 +5,15 @@ import {
   ExKline,
   ExPrice,
   FetchKlineParams,
+  PlaceOrderParams,
 } from '@/exchange/rest-types';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
-import { CandleRawDataOkx } from '@/exchange/okx/types';
+import {
+  CandleRawDataOkx,
+  CreateOrderParams,
+  RestTypes,
+} from '@/exchange/okx/types';
+import { ExApiKey } from '@/exchange/base/api-key';
 
 @Injectable()
 export class OkxExchange extends BaseExchange {
@@ -79,5 +85,36 @@ export class OkxExchange extends BaseExchange {
     const tickers = await this.rest.getTicker({ instId: symbol });
     const t = tickers[0];
     return { last: +t.last };
+  }
+
+  async placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any> {
+    let type: RestTypes['Order']['ordType'] = params.type;
+    if (params.timeType) {
+      if (params.timeType === 'gtc') {
+        type = 'post_only';
+      } else if (params.timeType === 'fok' || params.timeType === 'ioc') {
+        type = params.timeType;
+      }
+    }
+    const op: CreateOrderParams = {
+      clOrdId: params.clientOrderId,
+      instId: params.symbol,
+      ordType: type,
+      px: params.price,
+      side: params.side,
+      sz: params.size,
+      tdMode: params.mode,
+      posSide: params.posSide,
+      ccy: params.mode === 'cross' ? params.ccy : undefined,
+      // reduceOnly: false,
+    };
+    if (params.mode === 'cash' && type === 'market') {
+      if (params.quoteAmount) {
+        op.sz = params.quoteAmount;
+        op.tgtCcy = 'quote_ccy';
+      }
+    }
+    const result = await this.rest.createOrder(apiKey, op);
+    return result;
   }
 }

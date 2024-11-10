@@ -13,11 +13,14 @@ export class ExOrder extends ExSymbolBase {
 
   // market：市价单
   // limit：限价单
-  // post_only：只做maker单
+  @Column()
+  priceType: string;
+
+  // gtc
   // fok：全部成交或立即取消
   // ioc：立即成交并取消剩余
-  @Column()
-  type: string;
+  @Column({ nullable: true })
+  timeType?: string;
 
   // filled, canceled
   @Column()
@@ -26,8 +29,8 @@ export class ExOrder extends ExSymbolBase {
   @Column({ nullable: true })
   exOrderId?: string;
 
-  @Column()
-  clientOrderId: string;
+  @Column({ nullable: true })
+  clientOrderId?: string;
 
   @Column({ nullable: true })
   positionId?: string;
