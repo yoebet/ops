@@ -259,7 +259,6 @@ export class BinanceMarginRest extends BinanceBaseRest {
     });
   }
 
-  // 杠杆账户下单
   async getOrder(
     apiKey: ExApiKey,
     params: {
@@ -277,7 +276,6 @@ export class BinanceMarginRest extends BinanceBaseRest {
     });
   }
 
-  // 杠杆账户下单
   async getOpenOrders(
     apiKey: ExApiKey,
     params: {
@@ -294,7 +292,6 @@ export class BinanceMarginRest extends BinanceBaseRest {
     });
   }
 
-  // 杠杆账户下单
   async getAllOrders(
     apiKey: ExApiKey,
     params: {

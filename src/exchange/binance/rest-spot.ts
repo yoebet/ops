@@ -301,6 +301,51 @@ export class BinanceSpotRest extends BinanceBaseRest {
     });
   }
 
+  async getOrder(
+    apiKey: ExApiKey,
+    params: {
+      symbol: string;
+      orderId?: string;
+      origClientOrderId?: string;
+    },
+  ): Promise<any> {
+    return this.request({
+      path: '/api/v3/order',
+      method: HttpMethodType.get,
+      apiKey,
+      params,
+    });
+  }
+
+  // 查询挂单
+  async getOpenOrders(apiKey: ExApiKey, symbol?: string): Promise<any> {
+    return this.request({
+      path: '/api/v3/openOrders',
+      method: HttpMethodType.get,
+      apiKey,
+      params: { symbol },
+    });
+  }
+
+  async getAllOrders(
+    apiKey: ExApiKey,
+    params: {
+      symbol: string;
+      // orderId?	LONG
+      // startTime?	LONG
+      // endTime?	LONG
+      limit?: number; // 默认 500; 最大 1000
+    },
+  ): Promise<any> {
+    // 一些历史订单的 cummulativeQuoteQty < 0, 是指当前数据不存在
+    return this.request({
+      path: '/api/v3/allOrders',
+      method: HttpMethodType.get,
+      apiKey,
+      params,
+    });
+  }
+
   // 撤销订单
   async cancelOrder(
     apiKey: ExApiKey,

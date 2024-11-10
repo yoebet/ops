@@ -23,6 +23,13 @@ user-ex-account-asset
     ex-account
     coin
 
+strategy
+
+
+user-strategy-setting
+
+strategy-deal
+
 ex-order
     user_id
     ex
@@ -30,14 +37,10 @@ ex-order
     ex_order_id
     pos-id
     strategy-id
+    deal-id
 
 ex-position
     ...
-
-strategy-template
-
-
-user-strategy
 
 
 

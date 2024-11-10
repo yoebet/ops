@@ -44,7 +44,7 @@ test('getSpotBalances', async () => {
         return a;
       });
     // storeJson(dd, 'spot-balances-sub');
-    console.log(JSON.stringify(dd));
+    console.log(JSON.stringify(dd, null, 2));
     // storeJson(dd, 'getSpotBalances');
   }
 });
@@ -138,7 +138,31 @@ test('placeOrder', async () => {
     price: '600',
     timeInForce: 'GTC',
   });
-  storeJson(data, 'spot-order-place-order.json');
+  console.log(data);
+  // storeJson(data, 'spot-place-order.json');
+});
+
+test('getOrder', async () => {
+  const data = await rest.getOrder(apiKey, {
+    symbol: 'DOGEUSDT',
+    orderId: '6426100823',
+  });
+  storeJson(data, 'spot-get-order.json');
+});
+
+test('getOpenOrders', async () => {
+  // const symbol = 'DOGEUSDT';
+  const symbol = undefined;
+  const data = await rest.getOpenOrders(apiKey, symbol);
+  console.log(JSON.stringify(data, null, 2));
+  // storeJson(data, 'spot-open-orders.json');
+});
+
+test('getAllOrders', async () => {
+  const data = await rest.getAllOrders(apiKey, {
+    symbol: 'DOGEUSDT',
+  });
+  storeJson(data, 'spot-all-orders.json');
 });
 
 test('cancelOpenOrders', async () => {

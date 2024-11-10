@@ -15,13 +15,17 @@ import {
 } from '@/exchange/binance/types';
 import { ExApiKey } from '@/exchange/base/api-key';
 import { BinanceMarginRest } from '@/exchange/binance/rest-margin';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 export class BinanceSpotMarginExchange extends BaseExchange {
   restMargin: BinanceMarginRest;
   restSpot: BinanceSpotRest;
 
   constructor(params?: Partial<ExRestParams>) {
-    super();
+    super({
+      exAccount: ExAccountCode.binanceSpot,
+      ...params,
+    });
     this.restMargin = new BinanceMarginRest(params);
     this.restSpot = new BinanceSpotRest(params);
   }
@@ -79,28 +83,37 @@ export class BinanceSpotMarginExchange extends BaseExchange {
       symbol: params.symbol,
       newClientOrderId: params.clientOrderId,
       newOrderRespType: 'FULL',
-      price: params.price,
-      quantity: params.size,
+      // price: params.price,
+      // quantity: params.size,
       // quoteOrderQty: params.quoteAmount,
       side: params.side.toUpperCase() as any,
       // sideEffectType: undefined,
       // stopPrice: '',
       // icebergQty: '',
-      timeInForce: params.timeType?.toUpperCase() as any,
+      // timeInForce: params.timeType?.toUpperCase() as any,
       type: params.type.toUpperCase() as any,
     };
-    if (op.type === 'MARKET' && !op.quantity) {
+    if (params.quoteAmount) {
       op.quoteOrderQty = params.quoteAmount;
+    } else {
+      op.quantity = params.size;
     }
-    if (op.type.includes('LIMIT') && !op.timeInForce) {
-      op.timeInForce = 'GTC';
+    if (op.type.includes('LIMIT')) {
+      op.price = params.price;
+      if (!op.timeInForce) {
+        op.timeInForce = 'GTC';
+      }
     }
+    this.logger.log(op);
+
     if (params.mode === 'cash') {
       const result = await this.restSpot.placeSpotOrder(apiKey, op);
+      this.logger.log(result);
       return result;
     } else {
       op.isIsolated = params.mode === 'isolated';
       const result = await this.restMargin.placeMarginOrder(apiKey, op);
+      this.logger.log(result);
       return result;
     }
   }

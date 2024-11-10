@@ -33,13 +33,19 @@ export class ExchangeSymbol extends BaseModel {
 
   // okx: minSz
   // binance: PRICE_FILTER.tickSize
-  @Column({ nullable: true })
-  priceTick?: string;
+  // @Column({ nullable: true })
+  // priceTick?: string;
+
+  @Column('smallint', { nullable: true })
+  priceDigits?: number;
 
   // okx: lotSz
   // binance: LOT_SIZE/MARKET_LOT_SIZE.stepSize
-  @Column({ nullable: true })
-  volumeStep?: string;
+  // @Column({ nullable: true })
+  // baseSizeStep?: string;
+
+  @Column('smallint', { nullable: true })
+  baseSizeDigits?: number;
 
   @Column('jsonb', { select: false, nullable: true })
   exchangeInfo?: any;

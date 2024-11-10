@@ -10,6 +10,7 @@ function storeJson(data: any, fileName: string) {
 const { socksProxies, apiKeys } = TestConfig.exchange;
 const rest = new BinanceMarginRest({ proxies: socksProxies });
 const apiKey = apiKeys[ExAccountCode.binanceSpot];
+
 test('getPriceIndex', async () => {
   const data = await rest.getPriceIndex(apiKey, 'BNBBTC');
   console.log(JSON.stringify(data), null, 2);

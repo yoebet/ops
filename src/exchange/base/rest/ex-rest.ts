@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { entries, isNil } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
 import {
@@ -67,14 +67,10 @@ export abstract class ExRest {
     if (pairs.length === 0) {
       return str;
     }
-    str += pairs
-      .map(
-        (i) =>
-          `${uriEncode ? encodeURIComponent(i[0]) : i[0]}=${
-            uriEncode ? encodeURIComponent(i[1]) : i[1]
-          }`,
-      )
-      .join('&');
+    if (uriEncode) {
+      pairs = pairs.map((nv) => nv.map(encodeURIComponent) as [string, any]);
+    }
+    str += pairs.map(([n, v]) => `${n}=${v}`).join('&');
 
     if (includeQuestionMark) {
       str = '?' + str;
@@ -124,7 +120,23 @@ export abstract class ExRest {
       ...config,
     };
     this.logger?.debug(config.url);
-    const res: AxiosResponse = await axios.request(requestConfig);
+
+    let res: AxiosResponse;
+    try {
+      res = await axios.request(requestConfig);
+    } catch (e) {
+      this.logger.log(config);
+      if (p.apiKey) {
+        this.logger?.log(p.apiKey.key.substring(0, 7) + '...');
+      }
+      if (e instanceof AxiosError) {
+        const response = e.response;
+        if (response?.data) {
+          throw new Error(`${e.message}: ${JSON.stringify(response.data)}`);
+        }
+      }
+      throw e;
+    }
 
     await this.handleResErrs(res);
 

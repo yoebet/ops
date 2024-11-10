@@ -2,6 +2,9 @@ import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { FtKline } from '@/data-service/models/kline';
 import { TradeSide } from '@/data-service/models/base';
 import { RestTypes } from '@/exchange/okx/types';
+import { ExApiKey } from '@/exchange/base/api-key';
+import { AppLogger } from '@/common/app-logger';
+import { ExRestParams } from '@/exchange/base/rest/rest.type';
 
 export interface BaseKlineParams {
   exAccount?: ExAccountCode;
@@ -55,13 +58,21 @@ export interface ExKlineWithSymbol extends ExKline {
 }
 
 export abstract class BaseExchange {
-  protected constructor() {}
+  protected readonly logger?: AppLogger;
+  protected exAccount: ExAccountCode;
 
-  abstract getKlines(params: FetchKlineParams): Promise<ExKline[]>;
+  protected constructor(params?: Partial<ExRestParams>) {
+    this.exAccount = params.exAccount;
+    this.logger = params.logger || AppLogger.build(`ex:${this.exAccount}`);
+  }
 
   abstract getSymbolInfo(symbol: string): Promise<any>;
 
+  abstract getKlines(params: FetchKlineParams): Promise<ExKline[]>;
+
   abstract getPrice(symbol: string): Promise<ExPrice>;
+
+  abstract placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any>;
 }
 
 export declare type ExchangeService = BaseExchange;

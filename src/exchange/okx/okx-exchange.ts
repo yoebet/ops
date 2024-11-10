@@ -14,13 +14,17 @@ import {
   RestTypes,
 } from '@/exchange/okx/types';
 import { ExApiKey } from '@/exchange/base/api-key';
+import { ExAccountCode } from '@/db/models/exchange-types';
 
 @Injectable()
 export class OkxExchange extends BaseExchange {
   rest: OkxRest;
 
   constructor(params?: Partial<ExRestParams>) {
-    super();
+    super({
+      exAccount: ExAccountCode.okxUnified,
+      ...params,
+    });
     this.rest = new OkxRest(params);
   }
 
@@ -114,6 +118,8 @@ export class OkxExchange extends BaseExchange {
         op.tgtCcy = 'quote_ccy';
       }
     }
+    this.logger.log(op);
+
     const result = await this.rest.createOrder(apiKey, op);
     return result;
   }
