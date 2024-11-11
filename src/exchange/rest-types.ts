@@ -111,6 +111,19 @@ export abstract class BaseExchange {
     apiKey: ExApiKey,
     params: { margin: boolean },
   ): Promise<any[]>;
+
+  abstract getAllOrders(
+    apiKey: ExApiKey,
+    params: {
+      margin: boolean;
+      symbol: string;
+      // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
+      // equalAndAfterOrderId?: number;
+      startTime?: number;
+      endTime?: number;
+      limit?: number;
+    },
+  ): Promise<any>;
 }
 
 export declare type ExchangeService = BaseExchange;

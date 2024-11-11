@@ -147,9 +147,11 @@ test('getOpenOrders', async () => {
 test('getClosedOrders', async () => {
   const data = await rest.getClosedOrders(apiKey, {
     instType: 'MARGIN',
+    limit: 3,
   });
-  console.log(JSON.stringify(data));
+  console.log(JSON.stringify(data, null, 2));
   // console.log(JsonToTS(data).join('\n'));
+  storeJson(data, 'getClosedOrders');
 });
 
 test('createOrder', async () => {

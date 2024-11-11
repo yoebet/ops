@@ -199,4 +199,37 @@ export class BinanceSpotMarginExchange extends BaseExchange {
       });
     }
   }
+
+  async getAllOrders(
+    apiKey: ExApiKey,
+    params: {
+      margin: boolean;
+      // 如果 isIsolated 为 true, symbol 为必填
+      symbol: string;
+      // isIsolated?: boolean;
+      // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
+      // equalAndAfterOrderId?: number;
+      startTime?: number;
+      endTime?: number;
+      limit?: number;
+    },
+  ): Promise<any[]> {
+    if (params.margin) {
+      return this.restMargin.getAllOrders(apiKey, {
+        symbol: params.symbol,
+        // orderId: params.equalAndAfterOrderId,
+        startTime: params.startTime,
+        endTime: params.endTime,
+        limit: params.limit,
+      });
+    } else {
+      return this.restSpot.getAllOrders(apiKey, {
+        symbol: params.symbol,
+        // orderId: params.equalAndAfterOrderId,
+        startTime: params.startTime,
+        endTime: params.endTime,
+        limit: params.limit,
+      });
+    }
+  }
 }

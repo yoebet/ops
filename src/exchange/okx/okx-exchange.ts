@@ -179,4 +179,27 @@ export class OkxExchange extends BaseExchange {
       ordId: params.orderId,
     });
   }
+
+  async getAllOrders(
+    apiKey: ExApiKey,
+    params: {
+      margin: boolean;
+      symbol: string;
+      // isIsolated?: boolean;
+      // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
+      // equalAndAfterOrderId?: number;
+      startTime?: number;
+      endTime?: number;
+      limit?: number;
+    },
+  ): Promise<any> {
+    return this.rest.getClosedOrders(apiKey, {
+      instType: params.margin ? 'MARGIN' : 'SPOT',
+      instId: params.symbol,
+      // before: params.equalAndAfterOrderId,
+      begin: params.startTime,
+      end: params.endTime,
+      limit: params.limit,
+    });
+  }
 }

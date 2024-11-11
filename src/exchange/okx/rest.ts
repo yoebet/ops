@@ -329,12 +329,16 @@ export class OkxRest extends ExRest {
 
   // 获取订单信息 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-details
 
-  // 获取用户已完成委托记录 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-history-last-7-days
+  // 获取用户已完成委托记录（近七天）
+  // https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-history-last-7-days
   async getClosedOrders(
     apiKey: ExApiKey,
     params: {
       instType: RestTypes['InstType'];
+      instId?: string;
       before?: string;
+      begin?: string | number;
+      end?: string | number;
       limit?: number;
     },
   ): Promise<RestTypes['Order'][]> {

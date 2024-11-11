@@ -298,9 +298,11 @@ export class BinanceMarginRest extends BinanceBaseRest {
       // 如果 isIsolated 为 true, symbol 为必填
       symbol: string;
       isIsolated?: boolean;
-      // orderId?	LONG	如果设置 orderId, 获取订单 >= orderId， 否则返回近期订单历史
-      // startTime?	LONG
-      // endTime?	LONG
+      // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
+      orderId?: number;
+      startTime?: number;
+      endTime?: number;
+      limit?: number; // 默认 500, 最大500
     },
   ): Promise<any> {
     // 一些历史订单的 cummulativeQuoteQty < 0, 是指当前数据不存在

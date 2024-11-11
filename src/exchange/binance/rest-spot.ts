@@ -331,9 +331,10 @@ export class BinanceSpotRest extends BinanceBaseRest {
     apiKey: ExApiKey,
     params: {
       symbol: string;
-      // orderId?	LONG
-      // startTime?	LONG
-      // endTime?	LONG
+      // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
+      orderId?: number;
+      startTime?: number;
+      endTime?: number;
       limit?: number; // 默认 500; 最大 1000
     },
   ): Promise<any> {
