@@ -470,7 +470,6 @@ export interface CreateOrderParams extends CreateOrderParamsBase {
 }
 
 export interface CreateAlgoOrderParams extends CreateOrderParamsBase {
-  // clOrdId?: string;
   algoClOrdId?: string;
   ordType: RestTypes['AlgoOrderType'];
   // px?: string; // 委托价格

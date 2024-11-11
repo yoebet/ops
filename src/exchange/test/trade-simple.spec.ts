@@ -5,7 +5,7 @@ import { ExchangeRestService } from '@/exchange/exchange-rest.service';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { PlaceOrderParams } from '@/exchange/rest-types';
 import { TestConfig } from '@/env.local.test';
-import { wait } from '@/common/utils/utils';
+import { round } from '@/common/utils/utils';
 
 const { apiKeys } = TestConfig.exchange;
 
@@ -44,7 +44,6 @@ describe('Exchange Trade Simple', () => {
     const price = 0.20555555555;
 
     const params: PlaceOrderParams = {
-      orderType: 'simple',
       side: 'buy',
       symbol: exSymbol.rawSymbol,
       margin,
@@ -65,24 +64,13 @@ describe('Exchange Trade Simple', () => {
     }
 
     if (params.type === 'limit') {
-      if (exSymbol.priceDigits != null) {
-        params.price = price.toFixed(exSymbol.priceDigits);
-      } else {
-        params.price = '' + price;
-      }
+      params.price = round(price, exSymbol.priceDigits);
     }
 
     if (quoteQuantity) {
       params.quoteAmount = quoteAmount.toFixed(2);
     } else {
-      let sizeStr = '';
-      if (exSymbol.baseSizeDigits != null) {
-        sizeStr = size.toFixed(exSymbol.baseSizeDigits);
-      } else {
-        // sizeStr = size.toFixed(8);
-        sizeStr = '' + size;
-      }
-      params.size = sizeStr;
+      params.size = round(size, exSymbol.baseSizeDigits);
     }
 
     const exService = restService.getExRest(exAccount);

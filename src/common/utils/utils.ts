@@ -31,3 +31,10 @@ export function promisifyStream(writer: WriteStream) {
     writer.on('error', reject);
   });
 }
+
+export function round(num: number, digits, _type?: 'price' | 'size'): string {
+  if (digits !== null) {
+    return num.toFixed(digits);
+  }
+  return '' + num;
+}

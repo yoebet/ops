@@ -6,12 +6,15 @@ import {
   ExPrice,
   FetchKlineParams,
   PlaceOrderParams,
+  PlaceTpslOrderParams,
 } from '@/exchange/rest-types';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
 import {
   Candle,
-  CreateOrderParams,
+  CreateSpotOrderParams,
+  CreateMarginOrderParams,
   SymbolInfo,
+  CreateOrderParamsBase,
 } from '@/exchange/binance/types';
 import { ExApiKey } from '@/exchange/base/api-key';
 import { BinanceMarginRest } from '@/exchange/binance/rest-margin';
@@ -79,7 +82,7 @@ export class BinanceSpotMarginExchange extends BaseExchange {
 
   // 现货/杠杆账户下单
   async placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any> {
-    const op: CreateOrderParams = {
+    const op: CreateOrderParamsBase = {
       symbol: params.symbol,
       newClientOrderId: params.clientOrderId,
       newOrderRespType: 'FULL',
@@ -104,18 +107,27 @@ export class BinanceSpotMarginExchange extends BaseExchange {
         op.timeInForce = 'GTC';
       }
     }
-    this.logger.log(op);
+    // TODO: params.tp, params.sl
 
-    if (!params.margin) {
-      const result = await this.restSpot.placeSpotOrder(apiKey, op);
+    if (params.margin) {
+      const mop = op as CreateMarginOrderParams;
+      mop.isIsolated = params.marginMode === 'isolated';
+      this.logger.log(mop);
+      const result = await this.restMargin.placeMarginOrder(apiKey, mop);
       this.logger.log(result);
       return result;
     } else {
-      op.isIsolated = params.marginMode === 'isolated';
-      const result = await this.restMargin.placeMarginOrder(apiKey, op);
+      const sop = op as CreateSpotOrderParams;
+      this.logger.log(sop);
+      const result = await this.restSpot.placeSpotOrder(apiKey, op);
       this.logger.log(result);
       return result;
     }
+  }
+
+  placeTpslOrder(apiKey: ExApiKey, params: PlaceTpslOrderParams): Promise<any> {
+    // TODO:
+    return Promise.resolve(undefined);
   }
 
   async cancelOrder(

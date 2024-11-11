@@ -144,7 +144,7 @@ test('getClosedOrders', async () => {
 
 test('createOrder', async () => {
   const data = await rest.createOrder(apiKey, {
-    instId: 'DOGE-USDT-SWAP',
+    instId: 'DOGE-USDT',
     tdMode: 'cross',
     side: 'buy',
     ordType: 'limit',

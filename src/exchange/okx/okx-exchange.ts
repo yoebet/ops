@@ -6,13 +6,13 @@ import {
   ExPrice,
   FetchKlineParams,
   PlaceOrderParams,
+  PlaceTpslOrderParams,
 } from '@/exchange/rest-types';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
   CandleRawDataOkx,
   CreateAlgoOrderParams,
   CreateOrderParams,
-  CreateOrderParamsBase,
   OrderAlgoParams,
   RestTypes,
 } from '@/exchange/okx/types';
@@ -94,9 +94,9 @@ export class OkxExchange extends BaseExchange {
     return { last: +t.last };
   }
 
-  protected async placeAlgoOrder(
+  async placeTpslOrder(
     apiKey: ExApiKey,
-    params: PlaceOrderParams,
+    params: PlaceTpslOrderParams,
   ): Promise<any> {
     const { tp, sl, mtpsl } = params;
 
@@ -154,10 +154,6 @@ export class OkxExchange extends BaseExchange {
       throw new Error(`missing marginMode`);
     }
 
-    if (params.orderType === 'tpsl') {
-      return this.placeAlgoOrder(apiKey, params);
-    }
-
     if (!params.size && !params.quoteAmount) {
       throw new Error(`missing size`);
     }
@@ -193,23 +189,21 @@ export class OkxExchange extends BaseExchange {
       throw new Error(`missing size`);
     }
 
-    if (params.orderType === 'attach-tpsl') {
-      const { tp, sl } = params;
-      const alp: OrderAlgoParams = {};
-      if (tp) {
-        if (tp.triggerPrice) {
-          alp.tpTriggerPx = tp.triggerPrice;
-        }
-        alp.tpOrdPx = tp.orderPrice;
+    const { tp, sl } = params;
+    const alp: OrderAlgoParams = {};
+    if (tp) {
+      if (tp.triggerPrice) {
+        alp.tpTriggerPx = tp.triggerPrice;
       }
-      if (sl) {
-        if (sl.triggerPrice) {
-          alp.slTriggerPx = sl.triggerPrice;
-        }
-        alp.slOrdPx = sl.orderPrice;
-      }
-      op.attachAlgoOrds = [alp];
+      alp.tpOrdPx = tp.orderPrice;
     }
+    if (sl) {
+      if (sl.triggerPrice) {
+        alp.slTriggerPx = sl.triggerPrice;
+      }
+      alp.slOrdPx = sl.orderPrice;
+    }
+    op.attachAlgoOrds = [alp];
 
     this.logger.log(op);
 

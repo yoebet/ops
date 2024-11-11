@@ -1,7 +1,6 @@
 // 下单参数
-export interface CreateOrderParams {
+export interface CreateOrderParamsBase {
   symbol: string;
-  isIsolated?: boolean;
   side: 'BUY' | 'SELL';
   type:
     | 'STOP_LOSS' // 止损单
@@ -30,6 +29,14 @@ export interface CreateOrderParams {
   // IOC: 无法立即成交的部分就撤销. 订单在失效前会尽量多的成交。
   // FOK: 无法全部立即成交就撤销. 如果无法全部成交，订单会失效。
   timeInForce?: 'GTC' | 'IOC' | 'FOK';
+}
+
+export interface CreateSpotOrderParams extends CreateOrderParamsBase {
+  trailingDelta?: number; // bp
+}
+
+export interface CreateMarginOrderParams extends CreateOrderParamsBase {
+  isIsolated?: boolean;
 }
 
 export interface MarginPair {

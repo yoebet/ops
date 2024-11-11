@@ -50,7 +50,6 @@ export interface PlaceOrderParams {
   posSide?: 'long' | 'short';
   reduceOnly?: boolean; // 是否只减仓
 
-  orderType: 'simple' | 'attach-tpsl' | 'tpsl';
   tp?: {
     triggerPrice?: string;
     orderPrice?: string;
@@ -59,6 +58,9 @@ export interface PlaceOrderParams {
     triggerPrice?: string;
     orderPrice?: string;
   };
+}
+
+export interface PlaceTpslOrderParams extends PlaceOrderParams {
   mtpsl?: {
     drawbackSpread?: string;
     drawbackRatio?: string;
@@ -89,6 +91,11 @@ export abstract class BaseExchange {
   abstract getPrice(symbol: string): Promise<ExPrice>;
 
   abstract placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any>;
+
+  abstract placeTpslOrder(
+    apiKey: ExApiKey,
+    params: PlaceTpslOrderParams,
+  ): Promise<any>;
 
   abstract cancelOrder(
     apiKey: ExApiKey,
