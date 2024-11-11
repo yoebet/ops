@@ -36,36 +36,30 @@ export interface ExTrade {
 
 export interface PlaceOrderParams {
   symbol: string;
-  settleCoin?: string;
   margin: boolean;
   marginMode?: 'isolated' | 'cross';
-  ccy?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
+  marginCoin?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
   clientOrderId?: string;
   side: 'buy' | 'sell';
-  type: 'market' | 'limit';
-  timeType?: 'gtc' | 'fok' | 'ioc';
-  size?: string; // 委托数量（base）
-  quoteAmount?: string;
+  priceType: 'market' | 'limit';
   price?: string; // 委托价格
-  posSide?: 'long' | 'short';
+  baseSize?: string; // 委托数量（base）
+  quoteAmount?: string;
+  // posSide?: 'long' | 'short';
+  timeType?: 'gtc' | 'fok' | 'ioc';
   reduceOnly?: boolean; // 是否只减仓
 
-  tp?: {
-    triggerPrice?: string;
-    orderPrice?: string;
-  };
-  sl?: {
-    triggerPrice?: string;
-    orderPrice?: string;
-  };
+  algoOrder?: boolean;
+  algoType?: 'tp' | 'sl' | 'tpsl' | 'move';
+  tpTriggerPrice?: string;
+  tpOrderPrice?: string; // 委托价格为-1时，执行市价止盈
+  slTriggerPrice?: string;
+  slOrderPrice?: string; // 委托价格为-1时，执行市价止损
 }
 
 export interface PlaceTpslOrderParams extends PlaceOrderParams {
-  mtpsl?: {
-    drawbackSpread?: string;
-    drawbackRatio?: string;
-    activePrice?: string;
-  };
+  moveDrawbackRatio?: string;
+  moveActivePrice?: string;
 }
 
 export type ExKline = FtKline;

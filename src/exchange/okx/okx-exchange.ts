@@ -98,47 +98,39 @@ export class OkxExchange extends BaseExchange {
     apiKey: ExApiKey,
     params: PlaceTpslOrderParams,
   ): Promise<any> {
-    const { tp, sl, mtpsl } = params;
-
     const op: CreateAlgoOrderParams = {
       instId: params.symbol,
       side: params.side,
-      sz: params.size,
+      sz: params.baseSize,
       tdMode: params.margin ? params.marginMode : 'cash',
-      posSide: params.posSide,
-      ccy: params.marginMode === 'cross' ? params.ccy : undefined,
+      // posSide: params.posSide,
+      ccy: params.marginMode === 'cross' ? params.marginCoin : undefined,
       reduceOnly: params.reduceOnly,
       ordType: 'conditional',
     };
 
-    if (tp || sl) {
-      const biDirection = tp && sl;
+    if (
+      params.algoType === 'tp' ||
+      params.algoType === 'sl' ||
+      params.algoType === 'tpsl'
+    ) {
+      const biDirection = params.algoType === 'tpsl';
       if (biDirection) {
         op.ordType = 'oco';
       }
-      if (tp) {
-        if (tp.triggerPrice) {
-          op.tpTriggerPx = tp.triggerPrice;
-        }
-        op.tpOrdPx = tp.orderPrice;
+      if (params.algoType === 'tp' || params.algoType === 'tpsl') {
+        op.tpTriggerPx = params.tpTriggerPrice;
+        op.tpOrdPx = params.tpOrderPrice;
+        // tpOrdKind
       }
-      if (sl) {
-        if (sl.triggerPrice) {
-          op.slTriggerPx = sl.triggerPrice;
-        }
-        op.slOrdPx = sl.orderPrice;
+      if (params.algoType === 'sl' || params.algoType === 'tpsl') {
+        op.slTriggerPx = params.slTriggerPrice;
+        op.slOrdPx = params.slOrderPrice;
       }
-    } else if (mtpsl) {
+    } else if (params.algoType === 'move') {
       op.ordType = 'move_order_stop';
-      if (mtpsl.drawbackRatio) {
-        op.callbackRatio = mtpsl.drawbackRatio;
-      }
-      if (mtpsl.drawbackSpread) {
-        op.callbackSpread = mtpsl.drawbackSpread;
-      }
-      if (mtpsl.activePrice) {
-        op.activePx = mtpsl.activePrice;
-      }
+      op.callbackRatio = params.moveDrawbackRatio;
+      op.activePx = params.moveActivePrice;
     } else {
       throw new Error('unsupported ordType');
     }
@@ -154,10 +146,10 @@ export class OkxExchange extends BaseExchange {
       throw new Error(`missing marginMode`);
     }
 
-    if (!params.size && !params.quoteAmount) {
+    if (!params.baseSize && !params.quoteAmount) {
       throw new Error(`missing size`);
     }
-    let type: RestTypes['Order']['ordType'] = params.type;
+    let type: RestTypes['Order']['ordType'] = params.priceType;
     if (params.timeType) {
       if (params.timeType === 'gtc') {
         type = 'post_only';
@@ -171,10 +163,10 @@ export class OkxExchange extends BaseExchange {
       ordType: type,
       px: params.price,
       side: params.side,
-      sz: params.size,
+      sz: params.baseSize,
       tdMode: params.margin ? params.marginMode : 'cash',
-      posSide: params.posSide,
-      ccy: params.marginMode === 'cross' ? params.ccy : undefined,
+      // posSide: params.posSide,
+      ccy: params.marginMode === 'cross' ? params.marginCoin : undefined,
       // reduceOnly: false,
     };
     if (!params.margin && type === 'market') {
@@ -189,21 +181,18 @@ export class OkxExchange extends BaseExchange {
       throw new Error(`missing size`);
     }
 
-    const { tp, sl } = params;
-    const alp: OrderAlgoParams = {};
-    if (tp) {
-      if (tp.triggerPrice) {
-        alp.tpTriggerPx = tp.triggerPrice;
+    if (params.algoType) {
+      const alp: OrderAlgoParams = {};
+      if (params.algoType === 'tp' || params.algoType === 'tpsl') {
+        alp.tpTriggerPx = params.tpTriggerPrice;
+        alp.tpOrdPx = params.tpOrderPrice;
       }
-      alp.tpOrdPx = tp.orderPrice;
-    }
-    if (sl) {
-      if (sl.triggerPrice) {
-        alp.slTriggerPx = sl.triggerPrice;
+      if (params.algoType === 'sl' || params.algoType === 'tpsl') {
+        alp.slTriggerPx = params.slTriggerPrice;
+        alp.slOrdPx = params.slOrderPrice;
       }
-      alp.slOrdPx = sl.orderPrice;
+      op.attachAlgoOrds = [alp];
     }
-    op.attachAlgoOrds = [alp];
 
     this.logger.log(op);
 

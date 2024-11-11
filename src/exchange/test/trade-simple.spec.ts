@@ -47,7 +47,7 @@ describe('Exchange Trade Simple', () => {
       side: 'buy',
       symbol: exSymbol.rawSymbol,
       margin,
-      type: 'limit',
+      priceType: 'limit',
       // size: sizeStr,
       clientOrderId: `test${Math.round(Date.now() / 1000) - 1e9}`,
       // quoteAmount: '',
@@ -60,17 +60,17 @@ describe('Exchange Trade Simple', () => {
     };
     if (margin) {
       params.marginMode = 'cross';
-      params.ccy = unifiedSymbol.quote;
+      params.marginCoin = unifiedSymbol.quote;
     }
 
-    if (params.type === 'limit') {
+    if (params.priceType === 'limit') {
       params.price = round(price, exSymbol.priceDigits);
     }
 
     if (quoteQuantity) {
       params.quoteAmount = quoteAmount.toFixed(2);
     } else {
-      params.size = round(size, exSymbol.baseSizeDigits);
+      params.baseSize = round(size, exSymbol.baseSizeDigits);
     }
 
     const exService = restService.getExRest(exAccount);

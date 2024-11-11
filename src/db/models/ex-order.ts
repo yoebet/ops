@@ -2,33 +2,16 @@ import { Column, Entity } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 
-export class TpslParams {
-  triggerPrice?: number;
-  orderPrice?: number;
-  orderKind?: 'condition' | 'limit';
-  // default last
-  // triggerPriceType?: 'last' | 'index' | 'mark';
-}
-
-export class MovingTpslParams {
-  drawbackSpread?: number;
-  drawbackRatio?: number;
-  activePrice?: number;
-}
-
 // @Entity()
 export class ExOrder extends ExSymbolBase {
   @Column()
   side: TradeSide;
 
   @Column()
-  orderType: 'simple' | 'attach-tpsl' | 'tpsl';
-
-  @Column()
-  tpslType?: 'tp' | 'sl' | 'tpsl' | 'mtpsl';
-
-  @Column()
   margin: boolean;
+
+  @Column()
+  algoOrder: boolean;
 
   @Column()
   marginMode: 'isolated' | 'cross';
@@ -51,25 +34,13 @@ export class ExOrder extends ExSymbolBase {
   @Column({ nullable: true })
   clientOrderId?: string;
 
-  @Column({ nullable: true })
-  positionId?: string;
-
-  @Column('jsonb', { nullable: true })
-  tpParams?: TpslParams;
-
-  @Column('jsonb', { nullable: true })
-  slParams?: TpslParams;
-
-  @Column('jsonb', { nullable: true })
-  mtpslParams?: MovingTpslParams;
-
   // ---
 
   @Column({ nullable: true })
-  limitPrice?: number;
+  price?: number;
 
   @Column({ nullable: true })
-  reqSize?: number;
+  baseSize?: number;
 
   @Column({ nullable: true })
   quoteAmount?: number;
@@ -77,14 +48,34 @@ export class ExOrder extends ExSymbolBase {
   @Column({ nullable: true })
   reduceOnly?: boolean;
 
-  @Column({ nullable: true })
-  posId?: string;
+  // @Column({ nullable: true })
+  // positionId?: string;
+
+  // @Column({ nullable: true })
+  // strategyId?: string;
+
+  // @Column('jsonb', { nullable: true })
+  // strategyParams?: any;
+
+  algoType?: 'tp' | 'sl' | 'tpsl' | 'move';
 
   @Column({ nullable: true })
-  strategyId?: string;
+  tpTriggerPrice?: string;
 
-  @Column('jsonb', { nullable: true })
-  strategyParams?: any;
+  @Column({ nullable: true })
+  tpOrderPrice?: string; // 委托价格为-1时，执行市价止盈
+
+  @Column({ nullable: true })
+  slTriggerPrice?: string;
+
+  @Column({ nullable: true })
+  slOrderPrice?: string; // 委托价格为-1时，执行市价止损
+
+  @Column({ nullable: true })
+  moveDrawbackRatio?: string;
+
+  @Column({ nullable: true })
+  moveActivePrice?: string;
 
   // ---
 
@@ -98,7 +89,7 @@ export class ExOrder extends ExSymbolBase {
   execAmount?: number;
 
   @Column({ nullable: true })
-  filledAt?: Date;
+  allFilledAt?: Date;
 
   @Column({ nullable: true })
   exCreatedAt?: Date;
@@ -109,6 +100,6 @@ export class ExOrder extends ExSymbolBase {
   @Column({ nullable: true })
   exClosedAt?: Date;
 
-  @Column('jsonb', { nullable: true })
+  @Column('jsonb', { select: false, nullable: true })
   raw?: any;
 }

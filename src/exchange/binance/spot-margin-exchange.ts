@@ -94,12 +94,12 @@ export class BinanceSpotMarginExchange extends BaseExchange {
       // stopPrice: '',
       // icebergQty: '',
       // timeInForce: params.timeType?.toUpperCase() as any,
-      type: params.type.toUpperCase() as any,
+      type: params.priceType.toUpperCase() as any,
     };
     if (params.quoteAmount) {
       op.quoteOrderQty = params.quoteAmount;
     } else {
-      op.quantity = params.size;
+      op.quantity = params.baseSize;
     }
     if (op.type.includes('LIMIT')) {
       op.price = params.price;

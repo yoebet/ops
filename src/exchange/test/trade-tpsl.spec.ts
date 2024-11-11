@@ -24,7 +24,7 @@ describe('Exchange Trade Tpsl', () => {
     restService = moduleRef.get(ExchangeRestService);
   });
 
-  it('place order - attach tpsl', async () => {
+  it('place order - tpsl attach', async () => {
     const symbol = 'DOGE/USDT';
     const quoteQuantity = false;
     const margin = true;
@@ -48,7 +48,7 @@ describe('Exchange Trade Tpsl', () => {
       side: 'buy',
       symbol: exSymbol.rawSymbol,
       margin,
-      type: 'limit',
+      priceType: 'limit',
       // size: sizeStr,
       clientOrderId: `test${Math.round(Date.now() / 1000) - 1e9}`,
       // quoteAmount: '',
@@ -61,40 +61,37 @@ describe('Exchange Trade Tpsl', () => {
       // tp: {},
       // sl: {},
       // mtpsl: {},
+      algoOrder: false,
     };
     if (margin) {
       params.marginMode = 'cross';
-      params.ccy = unifiedSymbol.quote;
+      params.marginCoin = unifiedSymbol.quote;
     }
 
     const priceDigits = exSymbol.priceDigits;
 
-    if (params.type === 'limit') {
+    if (params.priceType === 'limit') {
       params.price = round(price, priceDigits);
     }
 
     if (quoteQuantity) {
       params.quoteAmount = quoteAmount.toFixed(2);
-      params.ccy = unifiedSymbol.quote;
+      params.marginCoin = unifiedSymbol.quote;
     } else {
-      params.size = round(size, exSymbol.baseSizeDigits);
+      params.baseSize = round(size, exSymbol.baseSizeDigits);
     }
+
+    params.algoType = 'tpsl';
 
     const tpPrice = price * 1.1;
     const tpTriggerPrice = price * 1.05;
     const slPrice = price * 0.9;
     const slTriggerPrice = price * 0.95;
 
-    params.tp = {};
-    params.sl = {};
-    params.tp.orderPrice = round(tpPrice, priceDigits);
-    params.sl.orderPrice = round(slPrice, priceDigits);
-    if (tpTriggerPrice) {
-      params.tp.triggerPrice = round(tpTriggerPrice, priceDigits);
-    }
-    if (slTriggerPrice) {
-      params.sl.triggerPrice = round(slTriggerPrice, priceDigits);
-    }
+    params.tpOrderPrice = round(tpPrice, priceDigits);
+    params.tpTriggerPrice = round(tpTriggerPrice, priceDigits);
+    params.slOrderPrice = round(slPrice, priceDigits);
+    params.slTriggerPrice = round(slTriggerPrice, priceDigits);
 
     const exService = restService.getExRest(exAccount);
 
@@ -103,7 +100,7 @@ describe('Exchange Trade Tpsl', () => {
     const result = await exService.placeOrder(apiKey, params);
   });
 
-  it('place order - tpsl', async () => {
+  it('place order - tpsl separate', async () => {
     const symbol = 'DOGE/USDT';
     const quoteQuantity = false;
     const margin = true;
@@ -127,7 +124,7 @@ describe('Exchange Trade Tpsl', () => {
       side: 'buy',
       symbol: exSymbol.rawSymbol,
       margin,
-      type: 'limit',
+      priceType: 'limit',
       // size: sizeStr,
       clientOrderId: `test${Math.round(Date.now() / 1000) - 1e9}`,
       // quoteAmount: '',
@@ -140,46 +137,44 @@ describe('Exchange Trade Tpsl', () => {
       // tp: {},
       // sl: {},
       // mtpsl: {},
+      algoOrder: true,
     };
     if (margin) {
       params.marginMode = 'cross';
-      params.ccy = unifiedSymbol.quote;
+      params.marginCoin = unifiedSymbol.quote;
     }
 
     const priceDigits = exSymbol.priceDigits;
 
-    if (params.type === 'limit') {
+    if (params.priceType === 'limit') {
       params.price = round(price, priceDigits);
     }
 
     if (quoteQuantity) {
       params.quoteAmount = quoteAmount.toFixed(2);
-      params.ccy = unifiedSymbol.quote;
+      params.marginCoin = unifiedSymbol.quote;
     } else {
-      params.size = round(size, exSymbol.baseSizeDigits);
+      params.baseSize = round(size, exSymbol.baseSizeDigits);
     }
 
     const moving = true;
     if (moving) {
-      const ap = curPrice * 0.9;
-      params.mtpsl = {
-        drawbackRatio: '0.05',
-        activePrice: round(ap, priceDigits),
-      };
+      params.algoType = 'move';
+      params.moveDrawbackRatio = '0.05';
+      params.moveActivePrice = round(curPrice * 0.9, priceDigits);
     } else {
-      params.tp = {};
-      params.sl = {};
+      params.algoType = 'tpsl';
       const tpPrice = price * 1.1;
       const tpTriggerPrice = price * 1.05;
       const slPrice = price * 0.9;
       const slTriggerPrice = price * 0.95;
-      params.tp.orderPrice = round(tpPrice, priceDigits);
-      params.sl.orderPrice = round(slPrice, priceDigits);
+      params.tpOrderPrice = round(tpPrice, priceDigits);
+      params.slOrderPrice = round(slPrice, priceDigits);
       if (tpTriggerPrice) {
-        params.tp.triggerPrice = round(tpTriggerPrice, priceDigits);
+        params.tpTriggerPrice = round(tpTriggerPrice, priceDigits);
       }
       if (slTriggerPrice) {
-        params.sl.triggerPrice = round(slTriggerPrice, priceDigits);
+        params.slTriggerPrice = round(slTriggerPrice, priceDigits);
       }
     }
 
