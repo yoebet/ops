@@ -11,6 +11,7 @@ import { enc, HmacSHA256 } from 'crypto-js';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import {
   CandleRawDataOkx,
+  CreateAlgoOrderParams,
   CreateOrderParams,
   GetDepositRecordsParams,
   GetWithdrawRecordsParams,
@@ -109,7 +110,7 @@ export class OkxRest extends ExRest {
     apiKey: ExApiKey,
     params: {
       instId: string; // 支持多产品ID查询（不超过5个），半角逗号分隔
-      tdMode: RestTypes['Order']['tdMode'];
+      tdMode: RestTypes['TradeMode'];
       ccy?: string; // 保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单
       px?: string; // 委托价格
       leverage?: string; // 开仓杠杆倍数 默认为当前杠杆倍数 仅适用于币币杠杆/交割/永续
@@ -128,7 +129,7 @@ export class OkxRest extends ExRest {
     apiKey: ExApiKey,
     params: {
       instId: string; // 支持多产品ID查询（不超过5个），半角逗号分隔
-      tdMode: RestTypes['Order']['tdMode'];
+      tdMode: RestTypes['TradeMode'];
       ccy?: string; // 保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单
       reduceOnly?: boolean; // 是否为只减仓模式，仅适用于币币杠杆
       px?: string; // 委托价格
@@ -201,7 +202,9 @@ export class OkxRest extends ExRest {
   async getArchivedBills(
     apiKey: ExApiKey,
     params?: {
-      type?: number; // 1：划转 2：交易 3：交割 4：自动换币 5：强平 6：保证金划转 7：扣息 8：资金费 9：自动减仓 10：穿仓补偿 11：系统换币 12：策略划拨 13：对冲减仓
+      // 1：划转 2：交易 3：交割 4：自动换币 5：强平 6：保证金划转 7：扣息
+      // 8：资金费 9：自动减仓 10：穿仓补偿 11：系统换币 12：策略划拨 13：对冲减仓
+      type?: number;
       limit?: number; // 1-100
       before?: string;
     },
@@ -313,7 +316,7 @@ export class OkxRest extends ExRest {
     params: {
       instType?: RestTypes['InstType'];
       instId?: string;
-      ordType?: RestTypes['Order']['ordType'];
+      ordType?: RestTypes['OrderType'];
       state?: 'live' | 'partially_filled';
       before?: string;
       limit?: number;
@@ -326,8 +329,6 @@ export class OkxRest extends ExRest {
       apiKey,
     });
   }
-
-  // 获取订单信息 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-details
 
   // 获取用户已完成委托记录（近七天）
   // https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-history-last-7-days
@@ -357,6 +358,19 @@ export class OkxRest extends ExRest {
   ): Promise<RestTypes['CreateOrder'][]> {
     return this.requestPickData({
       path: '/api/v5/trade/order',
+      method: HttpMethodType.post,
+      params,
+      apiKey,
+    });
+  }
+
+  // 策略委托下单 https://www.okx.com/docs-v5/zh/#order-book-trading-algo-trading-post-place-algo-order
+  async createAlgoOrder(
+    apiKey: ExApiKey,
+    params: CreateAlgoOrderParams,
+  ): Promise<RestTypes['CreateOrder'][]> {
+    return this.requestPickData({
+      path: '/api/v5/trade/order-algo',
       method: HttpMethodType.post,
       params,
       apiKey,

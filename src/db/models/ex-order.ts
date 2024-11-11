@@ -2,10 +2,30 @@ import { Column, Entity } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 
+export class TpslParams {
+  triggerPrice?: number;
+  orderPrice?: number;
+  orderKind?: 'condition' | 'limit';
+  // default last
+  // triggerPriceType?: 'last' | 'index' | 'mark';
+}
+
+export class MovingTpslParams {
+  drawbackSpread?: number;
+  drawbackRatio?: number;
+  activePrice?: number;
+}
+
 // @Entity()
 export class ExOrder extends ExSymbolBase {
   @Column()
   side: TradeSide;
+
+  @Column()
+  orderType: 'simple' | 'attach-tpsl' | 'tpsl';
+
+  @Column()
+  tpslType?: 'tp' | 'sl' | 'tpsl' | 'mtpsl';
 
   @Column()
   margin: boolean;
@@ -13,20 +33,17 @@ export class ExOrder extends ExSymbolBase {
   @Column()
   marginMode: 'isolated' | 'cross';
 
-  // market：市价单
-  // limit：限价单
   @Column()
-  priceType: string;
+  priceType: 'market' | 'limit';
 
   // gtc
   // fok：全部成交或立即取消
   // ioc：立即成交并取消剩余
   @Column({ nullable: true })
-  timeType?: string;
+  timeType?: 'gtc' | 'fok' | 'ioc';
 
-  // open, partial-filled, filled, canceled
   @Column()
-  status: string;
+  status: 'pending' | 'partial-filled' | 'filled' | 'canceled';
 
   @Column({ nullable: true })
   exOrderId?: string;
@@ -36,6 +53,15 @@ export class ExOrder extends ExSymbolBase {
 
   @Column({ nullable: true })
   positionId?: string;
+
+  @Column('jsonb', { nullable: true })
+  tpParams?: TpslParams;
+
+  @Column('jsonb', { nullable: true })
+  slParams?: TpslParams;
+
+  @Column('jsonb', { nullable: true })
+  mtpslParams?: MovingTpslParams;
 
   // ---
 
@@ -47,6 +73,9 @@ export class ExOrder extends ExSymbolBase {
 
   @Column({ nullable: true })
   quoteAmount?: number;
+
+  @Column({ nullable: true })
+  reduceOnly?: boolean;
 
   @Column({ nullable: true })
   posId?: string;

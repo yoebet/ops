@@ -9,6 +9,18 @@ export interface RestBody<T = any> {
 export interface RestTypes {
   InstType: 'SPOT' | 'MARGIN' | 'SWAP' | 'FUTURES' | 'OPTION';
 
+  OrderType:
+    | 'market'
+    | 'limit'
+    | 'post_only'
+    | 'fok'
+    | 'ioc'
+    | 'optimal_limit_ioc';
+
+  AlgoOrderType: 'conditional' | 'oco' | 'trigger' | 'move_order_stop' | 'twap';
+
+  TradeMode: 'isolated' | 'cross' | 'cash';
+
   CodeAndMsg: {
     sCode: '0' | string;
     sMsg: string;
@@ -131,6 +143,7 @@ export interface RestTypes {
     totalEq: string;
     uTime: string;
   };
+
   BalanceDetail: {
     availBal: string;
     availEq: string;
@@ -248,13 +261,7 @@ export interface RestTypes {
     instType: string;
     lever: string;
     ordId: string;
-    ordType:
-      | 'market'
-      | 'limit'
-      | 'post_only'
-      | 'fok'
-      | 'ioc'
-      | 'optimal_limit_ioc';
+    ordType: RestTypes['OrderType'];
     pnl: string;
     posSide: 'long' | 'short';
     px: string;
@@ -271,7 +278,7 @@ export interface RestTypes {
     // 交易模式
     // 保证金模式：isolated：逐仓 ；cross：全仓
     // 非保证金模式：cash：非保证金
-    tdMode: 'isolated' | 'cross' | 'cash';
+    tdMode: RestTypes['TradeMode'];
     tgtCcy: string;
     tpOrdPx: string;
     tpTriggerPx: string;
@@ -430,18 +437,58 @@ export interface InterestAccrued {
   type: string;
 }
 
-export interface CreateOrderParams {
+export interface OrderAlgoParams {
+  attachAlgoClOrdId?: string;
+  tpTriggerPx?: string;
+  tpOrdPx?: string;
+  tpOrdKind?: string;
+  slTriggerPx?: string;
+  slOrdPx?: string;
+  tpTriggerPxType?: string;
+  slTriggerPxType?: string;
+  sz?: string;
+  amendPxOnTriggerType?: string;
+}
+
+export interface CreateOrderParamsBase {
   instId: string;
-  tdMode: RestTypes['Order']['tdMode']; // 交易模式
+  tdMode: RestTypes['TradeMode']; // 交易模式
   ccy?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
-  clOrdId?: string;
+  tag?: string; // 订单标签，字母（区分大小写）与数字的组合，可以是纯字母、纯数字，且长度在1-16位之
   side: RestTypes['Order']['side'];
   posSide?: RestTypes['Order']['posSide']; // 持仓方向 在双向持仓模式下必填
-  ordType: RestTypes['Order']['ordType'];
-  sz: string; // 委托数量
-  px?: string; // 委托价格
   tgtCcy?: 'base_ccy' | 'quote_ccy'; // 市价单委托数量sz的单位，仅适用于币币市价订单。买单默认quote_ccy， 卖单默认base_ccy
+  sz: string; // 委托数量
   reduceOnly?: boolean; // 是否只减仓
+}
+
+export interface CreateOrderParams extends CreateOrderParamsBase {
+  clOrdId?: string; // 客户自定义订单ID，字母（区分大小写）与数字的组合，可以是纯字母、纯数字且长度要在1-32位之间。
+  ordType: RestTypes['OrderType'];
+  px?: string; // 委托价格
+  attachAlgoOrds?: [OrderAlgoParams];
+}
+
+export interface CreateAlgoOrderParams extends CreateOrderParamsBase {
+  // clOrdId?: string;
+  algoClOrdId?: string;
+  ordType: RestTypes['AlgoOrderType'];
+  // px?: string; // 委托价格
+  // closeFraction?: string;
+  // 止盈止损 ordType=conditional
+  tpTriggerPx?: string;
+  tpTriggerPxType?: string;
+  tpOrdPx?: string;
+  tpOrdKind?: string;
+  slTriggerPx?: string;
+  slTriggerPxType?: string;
+  slOrdPx?: string;
+  cxlOnClosePos?: string;
+  // 计划委托 ...
+  // 移动止盈止损 ...
+  callbackRatio?: string;
+  callbackSpread?: string;
+  activePx?: string;
 }
 
 export interface TradeTicker {

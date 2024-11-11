@@ -49,6 +49,21 @@ export interface PlaceOrderParams {
   price?: string; // 委托价格
   posSide?: 'long' | 'short';
   reduceOnly?: boolean; // 是否只减仓
+
+  orderType: 'simple' | 'attach-tpsl' | 'tpsl';
+  tp?: {
+    triggerPrice?: string;
+    orderPrice?: string;
+  };
+  sl?: {
+    triggerPrice?: string;
+    orderPrice?: string;
+  };
+  mtpsl?: {
+    drawbackSpread?: string;
+    drawbackRatio?: string;
+    activePrice?: string;
+  };
 }
 
 export type ExKline = FtKline;

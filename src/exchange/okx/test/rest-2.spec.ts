@@ -21,7 +21,6 @@ test('getMarkets', async () => {
     // uly: 'TRB-USDT',
   });
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
 });
 
 test('getPrice', async () => {
@@ -29,7 +28,6 @@ test('getPrice', async () => {
     instId: 'BTC-USDT',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getIndexPriceCandles', async () => {
@@ -40,7 +38,6 @@ test('getIndexPriceCandles', async () => {
     })
     .catch(console.error);
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getFeeRate', async () => {
@@ -49,13 +46,12 @@ test('getFeeRate', async () => {
     uly: 'BTC-USD',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getAccount', async () => {
   const data = await rest.getAccount(apiKey);
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
+
   storeJson(data, 'getAccount');
 });
 
@@ -69,7 +65,6 @@ test('getMaxOpenSize', async () => {
     })
     .catch(console.error);
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getMaxAvailableSize', async () => {
@@ -78,7 +73,6 @@ test('getMaxAvailableSize', async () => {
     tdMode: 'cross',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getLeverageInfo', async () => {
@@ -87,27 +81,25 @@ test('getLeverageInfo', async () => {
     mgnMode: 'cross',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getAssetBalances', async () => {
   const data = await rest.getAssetBalances(apiKey, { ccy: 'USDT' });
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
+
   storeJson(data, 'getAssetBalances');
 });
 
 test('getBalances', async () => {
   const data = await rest.getBalances(apiKey, { ccy: 'USDT' });
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
+
   storeJson(data, 'getBalances');
 });
 
 test('getMaxWithdrawal', async () => {
   const data = await rest.getMaxWithdrawal(apiKey, { ccy: 'USDT' });
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
 });
 
 test('getArchivedBills', async () => {
@@ -116,7 +108,6 @@ test('getArchivedBills', async () => {
     limit: 100,
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getPositions', async () => {
@@ -124,7 +115,6 @@ test('getPositions', async () => {
     instType: 'SWAP',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('getOrder', async () => {
@@ -133,15 +123,13 @@ test('getOrder', async () => {
     ordId: '1970951179664408576',
   });
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
 });
 
 test('getOpenOrders', async () => {
   const data = await rest.getOpenOrders(apiKey, {
-    instType: 'SPOT',
+    instType: 'MARGIN',
   });
-  console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
+  console.log(JSON.stringify(data, null, 2));
 });
 
 test('getClosedOrders', async () => {
@@ -150,7 +138,7 @@ test('getClosedOrders', async () => {
     limit: 3,
   });
   console.log(JSON.stringify(data, null, 2));
-  // console.log(JsonToTS(data).join('\n'));
+
   storeJson(data, 'getClosedOrders');
 });
 
@@ -164,7 +152,6 @@ test('createOrder', async () => {
     px: '0.09',
   });
   console.log(JSON.stringify(data));
-  console.log(JsonToTS(data).join('\n'));
 });
 
 test('cancelOrder', async () => {
@@ -173,7 +160,20 @@ test('cancelOrder', async () => {
     ordId: '1970951179664408576',
   });
   console.log(JSON.stringify(data));
-  // console.log(JsonToTS(data).join('\n'));
+});
+
+test('cancelBatchOrders', async () => {
+  const data = await rest.cancelBatchOrders(apiKey, [
+    {
+      instId: 'DOGE-USDT',
+      ordId: '1973407832741560320',
+    },
+    {
+      instId: 'DOGE-USDT',
+      ordId: '1973377698714140672',
+    },
+  ]);
+  console.log(JSON.stringify(data));
 });
 
 test('getInterestRate', async () => {

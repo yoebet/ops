@@ -10,7 +10,10 @@ import {
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
   CandleRawDataOkx,
+  CreateAlgoOrderParams,
   CreateOrderParams,
+  CreateOrderParamsBase,
+  OrderAlgoParams,
   RestTypes,
 } from '@/exchange/okx/types';
 import { ExApiKey } from '@/exchange/base/api-key';
@@ -91,7 +94,73 @@ export class OkxExchange extends BaseExchange {
     return { last: +t.last };
   }
 
+  protected async placeAlgoOrder(
+    apiKey: ExApiKey,
+    params: PlaceOrderParams,
+  ): Promise<any> {
+    const { tp, sl, mtpsl } = params;
+
+    const op: CreateAlgoOrderParams = {
+      instId: params.symbol,
+      side: params.side,
+      sz: params.size,
+      tdMode: params.margin ? params.marginMode : 'cash',
+      posSide: params.posSide,
+      ccy: params.marginMode === 'cross' ? params.ccy : undefined,
+      reduceOnly: params.reduceOnly,
+      ordType: 'conditional',
+    };
+
+    if (tp || sl) {
+      const biDirection = tp && sl;
+      if (biDirection) {
+        op.ordType = 'oco';
+      }
+      if (tp) {
+        if (tp.triggerPrice) {
+          op.tpTriggerPx = tp.triggerPrice;
+        }
+        op.tpOrdPx = tp.orderPrice;
+      }
+      if (sl) {
+        if (sl.triggerPrice) {
+          op.slTriggerPx = sl.triggerPrice;
+        }
+        op.slOrdPx = sl.orderPrice;
+      }
+    } else if (mtpsl) {
+      op.ordType = 'move_order_stop';
+      if (mtpsl.drawbackRatio) {
+        op.callbackRatio = mtpsl.drawbackRatio;
+      }
+      if (mtpsl.drawbackSpread) {
+        op.callbackSpread = mtpsl.drawbackSpread;
+      }
+      if (mtpsl.activePrice) {
+        op.activePx = mtpsl.activePrice;
+      }
+    } else {
+      throw new Error('unsupported ordType');
+    }
+
+    this.logger.log(op);
+    const result = await this.rest.createAlgoOrder(apiKey, op);
+    this.logger.log(result);
+    return result;
+  }
+
   async placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any> {
+    if (params.margin && !params.marginMode) {
+      throw new Error(`missing marginMode`);
+    }
+
+    if (params.orderType === 'tpsl') {
+      return this.placeAlgoOrder(apiKey, params);
+    }
+
+    if (!params.size && !params.quoteAmount) {
+      throw new Error(`missing size`);
+    }
     let type: RestTypes['Order']['ordType'] = params.type;
     if (params.timeType) {
       if (params.timeType === 'gtc') {
@@ -99,9 +168,6 @@ export class OkxExchange extends BaseExchange {
       } else if (params.timeType === 'fok' || params.timeType === 'ioc') {
         type = params.timeType;
       }
-    }
-    if (params.margin && !params.marginMode) {
-      throw new Error(`missing marginMode`);
     }
     const op: CreateOrderParams = {
       clOrdId: params.clientOrderId,
@@ -119,8 +185,32 @@ export class OkxExchange extends BaseExchange {
       if (params.quoteAmount) {
         op.sz = params.quoteAmount;
         op.tgtCcy = 'quote_ccy';
+      } else {
+        op.tgtCcy = 'base_ccy';
       }
     }
+    if (!op.sz) {
+      throw new Error(`missing size`);
+    }
+
+    if (params.orderType === 'attach-tpsl') {
+      const { tp, sl } = params;
+      const alp: OrderAlgoParams = {};
+      if (tp) {
+        if (tp.triggerPrice) {
+          alp.tpTriggerPx = tp.triggerPrice;
+        }
+        alp.tpOrdPx = tp.orderPrice;
+      }
+      if (sl) {
+        if (sl.triggerPrice) {
+          alp.slTriggerPx = sl.triggerPrice;
+        }
+        alp.slOrdPx = sl.orderPrice;
+      }
+      op.attachAlgoOrds = [alp];
+    }
+
     this.logger.log(op);
 
     const result = await this.rest.createOrder(apiKey, op);

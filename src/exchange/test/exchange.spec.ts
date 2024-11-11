@@ -36,11 +36,15 @@ describe('ExchangeService', () => {
     });
 
     it('update symbol info - binance', async () => {
+      const reFetch = false;
       const exAccount = ExAccountCode.binanceSpot;
       const rest = restService.getExRest(exAccount);
       const exSymbols = await ExchangeSymbol.findBy({ exAccount });
       for (const exSymbol of exSymbols) {
-        const symbolInfo = await rest.getSymbolInfo(exSymbol.rawSymbol);
+        let symbolInfo = exSymbol.exchangeInfo;
+        if (reFetch || !symbolInfo) {
+          symbolInfo = await rest.getSymbolInfo(exSymbol.rawSymbol);
+        }
 
         const filters: any[] = symbolInfo.filters;
 
@@ -69,17 +73,21 @@ describe('ExchangeService', () => {
     });
 
     it('update symbol info - okx', async () => {
+      const reFetch = false;
       const exAccount = ExAccountCode.okxUnified;
       const rest = restService.getExRest(exAccount);
       const exSymbols = await ExchangeSymbol.findBy({ exAccount });
       for (const exSymbol of exSymbols) {
-        const symbolInfo = await rest.getSymbolInfo(exSymbol.rawSymbol);
+        let symbolInfo = exSymbol.exchangeInfo;
+        if (reFetch || !symbolInfo) {
+          symbolInfo = await rest.getSymbolInfo(exSymbol.rawSymbol);
+        }
 
         const sizeStep = symbolInfo.lotSz;
         // exSymbol.baseSizeStep = sizeStep;
         exSymbol.baseSizeDigits = sizeStep.length - (sizeStep.indexOf('.') + 1);
 
-        const priceTick = symbolInfo.minSz;
+        const priceTick = symbolInfo.tickSz;
         // exSymbol.priceTick = priceTick;
         exSymbol.priceDigits = priceTick.length - (priceTick.indexOf('.') + 1);
 
