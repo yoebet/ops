@@ -1,4 +1,4 @@
-import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import { BinanceSpotRest } from '@/exchange/binance/rest-spot';
 import {
   BaseExchange,
@@ -19,7 +19,6 @@ import {
   CreateOrderParamsBase,
   OrderResponse,
 } from '@/exchange/binance/types';
-import { ExApiKey } from '@/exchange/base/api-key';
 import { BinanceMarginRest } from '@/exchange/binance/rest-margin';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
@@ -115,6 +114,7 @@ export class BinanceSpotMarginExchange extends BaseExchange {
     }
     const exor: ExOrderResp = {
       exOrderId: '' + exo.orderId,
+      clientOrderId: exo.clientOrderId,
       status,
     };
     const cqq = +exo.cummulativeQuoteQty;

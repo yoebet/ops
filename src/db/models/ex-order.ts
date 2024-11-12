@@ -1,7 +1,6 @@
 import { Column, Entity, Index, Unique } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
-import { UserExAccount } from '@/db/models/user-ex-account';
 
 export enum OrderStatus {
   notSummited = 'notSummited',
@@ -15,6 +14,8 @@ export enum OrderStatus {
 
 export interface ExOrderResp {
   exOrderId?: string;
+
+  clientOrderId?: string;
 
   status: OrderStatus;
 

@@ -1,7 +1,6 @@
 import { AppLogger } from '@/common/app-logger';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ExAccountCode } from '@/db/models/exchange-types';
-import { ExApiKey } from '@/exchange/base/api-key';
 
 export interface ExRestParams {
   scheme?: string;
@@ -16,6 +15,15 @@ export enum HttpMethodType {
   post = 'POST',
   put = 'PUT',
   delete = 'DELETE',
+}
+
+export interface ExApiKey {
+  key: string;
+  secret: string;
+  password?: string;
+  secret2fa?: string;
+  subaccount?: string;
+  withdrawPassword?: string;
 }
 
 export type ExRestReqBuildParams = {

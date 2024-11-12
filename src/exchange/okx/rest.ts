@@ -1,6 +1,7 @@
 import { ExRest } from '@/exchange/base/rest/ex-rest';
 import { includes } from 'lodash';
 import {
+  ExApiKey,
   ExRestParams,
   ExRestReqBuildParams,
   ExRestReqConfig,
@@ -20,7 +21,6 @@ import {
   RestTypes,
   WithdrawalParams,
 } from '@/exchange/okx/types';
-import { ExApiKey } from '@/exchange/base/api-key';
 
 /**
  * https://www.okx.com/docs-v5/zh/

@@ -10,7 +10,7 @@ import {
   PlaceTpslOrderParams,
   SyncOrder,
 } from '@/exchange/rest-types';
-import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
   CandleRawDataOkx,
   CreateAlgoOrderParams,
@@ -18,7 +18,6 @@ import {
   OrderAlgoParams,
   RestTypes,
 } from '@/exchange/okx/types';
-import { ExApiKey } from '@/exchange/base/api-key';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
 
@@ -122,6 +121,7 @@ export class OkxExchange extends BaseExchange {
     }
     const exor: ExOrderResp = {
       exOrderId: exo.ordId,
+      clientOrderId: exo.clOrdId,
       status,
     };
     if (exo.avgPx != null) {

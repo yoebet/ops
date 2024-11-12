@@ -1,7 +1,10 @@
 import { BinanceBaseRest } from '@/exchange/binance/rest';
-import { ExRestParams, HttpMethodType } from '@/exchange/base/rest/rest.type';
+import {
+  ExApiKey,
+  ExRestParams,
+  HttpMethodType,
+} from '@/exchange/base/rest/rest.type';
 import { ExAccountCode } from '@/db/models/exchange-types';
-import { ExApiKey } from '@/exchange/base/api-key';
 import {
   MarginPair,
   CreateMarginOrderParams,

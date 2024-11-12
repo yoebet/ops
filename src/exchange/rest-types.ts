@@ -2,9 +2,8 @@ import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
 import { FtKline } from '@/data-service/models/kline';
 import { TradeSide } from '@/data-service/models/base';
 import { RestTypes } from '@/exchange/okx/types';
-import { ExApiKey } from '@/exchange/base/api-key';
 import { AppLogger } from '@/common/app-logger';
-import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import { ExOrderResp } from '@/db/models/ex-order';
 
 export interface BaseKlineParams {

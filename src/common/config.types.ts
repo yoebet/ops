@@ -5,7 +5,8 @@ import { isArray, mergeWith } from 'lodash';
 import { ServerProfile } from '@/common/server-profile.type';
 import { RedisOptions } from 'ioredis';
 import { ExAccountCode } from '@/db/models/exchange-types';
-import { ExApiKey } from '@/exchange/base/api-key';
+
+import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
 export interface HttpConfig {
   host?: string;

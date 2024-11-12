@@ -67,10 +67,27 @@ test('getMaxOpenSize', async () => {
   console.log(JSON.stringify(data));
 });
 
-test('getMaxAvailableSize', async () => {
+test('getMaxAvailableSize-swap', async () => {
   const data = await rest.getMaxAvailableSize(apiKey, {
-    instId: 'ENS-USDT-SWAP',
+    instId: 'DOGE-USDT-SWAP',
     tdMode: 'cross',
+  });
+  console.log(JSON.stringify(data));
+});
+
+test('getMaxAvailableSize-margin', async () => {
+  const data = await rest.getMaxAvailableSize(apiKey, {
+    instId: 'DOGE-USDT',
+    ccy: 'USDT',
+    tdMode: 'cross',
+  });
+  console.log(JSON.stringify(data));
+});
+
+test('getMaxAvailableSize-cash', async () => {
+  const data = await rest.getMaxAvailableSize(apiKey, {
+    instId: 'DOGE-USDT',
+    tdMode: 'cash',
   });
   console.log(JSON.stringify(data));
 });

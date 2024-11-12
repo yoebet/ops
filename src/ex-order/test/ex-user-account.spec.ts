@@ -6,7 +6,7 @@ import { UserExAccount } from '@/db/models/user-ex-account';
 
 jest.setTimeout(60_000);
 
-describe('ex-order', () => {
+describe('user-ex-account', () => {
   beforeEach(async () => {
     await Test.createTestingModule({
       imports: [SystemConfigModule],
