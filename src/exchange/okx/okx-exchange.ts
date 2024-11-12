@@ -6,7 +6,9 @@ import {
   ExPrice,
   FetchKlineParams,
   PlaceOrderParams,
+  PlaceOrderReturns,
   PlaceTpslOrderParams,
+  SyncOrder,
 } from '@/exchange/rest-types';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
@@ -18,6 +20,7 @@ import {
 } from '@/exchange/okx/types';
 import { ExApiKey } from '@/exchange/base/api-key';
 import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
 
 @Injectable()
 export class OkxExchange extends BaseExchange {
@@ -94,10 +97,55 @@ export class OkxExchange extends BaseExchange {
     return { last: +t.last };
   }
 
+  mapOrderResp(exo: RestTypes['Order']): ExOrderResp {
+    let status: OrderStatus;
+    if (!exo.state) {
+      status = OrderStatus.pending;
+    } else {
+      switch (exo.state) {
+        case 'canceled':
+        case 'mmp_canceled':
+          status = OrderStatus.canceled;
+          break;
+        case 'live':
+          status = OrderStatus.pending;
+          break;
+        case 'partially_filled':
+          status = OrderStatus.partialFilled;
+          break;
+        case 'filled':
+          status = OrderStatus.filled;
+          break;
+        default:
+          this.logger.error(`unknown order state: ${exo.state}`);
+      }
+    }
+    const exor: ExOrderResp = {
+      exOrderId: exo.ordId,
+      status,
+    };
+    if (exo.avgPx != null) {
+      exor.execPrice = +exo.avgPx;
+    }
+    if (exo.accFillSz != null) {
+      exor.execSize = +exo.accFillSz;
+    }
+    if (exor.execPrice && exor.execSize) {
+      exor.execAmount = exor.execSize * exor.execPrice;
+    }
+    if (exo.cTime) {
+      exor.exCreatedAt = new Date(+exo.cTime);
+    }
+    if (exo.uTime) {
+      exor.exUpdatedAt = new Date(+exo.uTime);
+    }
+    return exor;
+  }
+
   async placeTpslOrder(
     apiKey: ExApiKey,
     params: PlaceTpslOrderParams,
-  ): Promise<any> {
+  ): Promise<PlaceOrderReturns> {
     const op: CreateAlgoOrderParams = {
       instId: params.symbol,
       side: params.side,
@@ -138,10 +186,17 @@ export class OkxExchange extends BaseExchange {
     this.logger.log(op);
     const result = await this.rest.createAlgoOrder(apiKey, op);
     this.logger.log(result);
-    return result;
+    return {
+      rawParams: op,
+      rawOrder: result,
+      orderResp: this.mapOrderResp(result as any),
+    };
   }
 
-  async placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any> {
+  async placeOrder(
+    apiKey: ExApiKey,
+    params: PlaceOrderParams,
+  ): Promise<PlaceOrderReturns> {
     if (params.margin && !params.marginMode) {
       throw new Error(`missing marginMode`);
     }
@@ -198,7 +253,11 @@ export class OkxExchange extends BaseExchange {
 
     const result = await this.rest.createOrder(apiKey, op);
     this.logger.log(result);
-    return result;
+    return {
+      rawParams: op,
+      rawOrder: result,
+      orderResp: this.mapOrderResp(result as any),
+    };
   }
 
   async cancelOrder(
@@ -214,7 +273,7 @@ export class OkxExchange extends BaseExchange {
   async cancelBatchOrders(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string }[],
-  ): Promise<any> {
+  ): Promise<any[]> {
     return this.rest.cancelBatchOrders(
       apiKey,
       params.map((s) => ({ instId: s.symbol, ordId: s.orderId })),
@@ -232,25 +291,39 @@ export class OkxExchange extends BaseExchange {
   async getAllOpenOrders(
     apiKey: ExApiKey,
     _params: { margin: boolean },
-  ): Promise<any[]> {
-    return this.rest.getOpenOrders(apiKey, {});
+  ): Promise<SyncOrder[]> {
+    const ros = await this.rest.getOpenOrders(apiKey, {});
+    return ros.map((o) => ({
+      rawOrder: o,
+      orderResp: this.mapOrderResp(o),
+    }));
   }
 
   async getOpenOrdersBySymbol(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string },
-  ): Promise<any[]> {
-    return this.rest.getOpenOrders(apiKey, { instId: params.symbol });
+  ): Promise<SyncOrder[]> {
+    const ros = await this.rest.getOpenOrders(apiKey, {
+      instId: params.symbol,
+    });
+    return ros.map((o) => ({
+      rawOrder: o,
+      orderResp: this.mapOrderResp(o),
+    }));
   }
 
   async getOrder(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string },
-  ): Promise<any> {
-    return this.rest.getOrder(apiKey, {
+  ): Promise<SyncOrder> {
+    const ro = await this.rest.getOrder(apiKey, {
       instId: params.symbol,
       ordId: params.orderId,
     });
+    return {
+      rawOrder: ro,
+      orderResp: this.mapOrderResp(ro as any),
+    };
   }
 
   async getAllOrders(
@@ -265,8 +338,8 @@ export class OkxExchange extends BaseExchange {
       endTime?: number;
       limit?: number;
     },
-  ): Promise<any> {
-    return this.rest.getClosedOrders(apiKey, {
+  ): Promise<SyncOrder[]> {
+    const ros = await this.rest.getClosedOrders(apiKey, {
       instType: params.margin ? 'MARGIN' : 'SPOT',
       instId: params.symbol,
       // before: params.equalAndAfterOrderId,
@@ -274,5 +347,9 @@ export class OkxExchange extends BaseExchange {
       end: params.endTime,
       limit: params.limit,
     });
+    return ros.map((o) => ({
+      rawOrder: o,
+      orderResp: this.mapOrderResp(o),
+    }));
   }
 }

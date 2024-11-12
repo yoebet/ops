@@ -2,7 +2,11 @@ import { BinanceBaseRest } from '@/exchange/binance/rest';
 import { ExRestParams, HttpMethodType } from '@/exchange/base/rest/rest.type';
 import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExApiKey } from '@/exchange/base/api-key';
-import { MarginPair, CreateOrderParams } from '@/exchange/binance/types';
+import {
+  MarginPair,
+  CreateMarginOrderParams,
+  OrderResponse,
+} from '@/exchange/binance/types';
 
 export class BinanceMarginRest extends BinanceBaseRest {
   constructor(params?: Partial<ExRestParams>) {
@@ -267,7 +271,7 @@ export class BinanceMarginRest extends BinanceBaseRest {
       orderId?: string;
       origClientOrderId?: string;
     },
-  ): Promise<any> {
+  ): Promise<Partial<OrderResponse>> {
     return this.request({
       path: '/sapi/v1/margin/order',
       method: HttpMethodType.get,
@@ -283,7 +287,7 @@ export class BinanceMarginRest extends BinanceBaseRest {
       symbol?: string;
       isIsolated?: boolean;
     },
-  ): Promise<any[]> {
+  ): Promise<Partial<OrderResponse>[]> {
     return this.request({
       path: '/sapi/v1/margin/openOrders',
       method: HttpMethodType.get,
@@ -304,7 +308,7 @@ export class BinanceMarginRest extends BinanceBaseRest {
       endTime?: number;
       limit?: number; // 默认 500, 最大500
     },
-  ): Promise<any> {
+  ): Promise<Partial<OrderResponse>[]> {
     // 一些历史订单的 cummulativeQuoteQty < 0, 是指当前数据不存在
     return this.request({
       path: '/sapi/v1/margin/allOrders',
@@ -389,8 +393,8 @@ export class BinanceMarginRest extends BinanceBaseRest {
   // 杠杆账户下单
   async placeMarginOrder(
     apiKey: ExApiKey,
-    params: CreateOrderParams,
-  ): Promise<any> {
+    params: CreateMarginOrderParams,
+  ): Promise<Partial<OrderResponse>> {
     return this.request({
       path: '/sapi/v1/margin/order',
       method: HttpMethodType.post,

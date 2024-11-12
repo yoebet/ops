@@ -5,6 +5,7 @@ import { RestTypes } from '@/exchange/okx/types';
 import { ExApiKey } from '@/exchange/base/api-key';
 import { AppLogger } from '@/common/app-logger';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExOrderResp } from '@/db/models/ex-order';
 
 export interface BaseKlineParams {
   exAccount?: ExAccountCode;
@@ -62,6 +63,17 @@ export interface PlaceTpslOrderParams extends PlaceOrderParams {
   moveActivePrice?: string;
 }
 
+export interface PlaceOrderReturns {
+  rawParams: any;
+  rawOrder: any;
+  orderResp: ExOrderResp;
+}
+
+export interface SyncOrder {
+  rawOrder: any;
+  orderResp: ExOrderResp;
+}
+
 export type ExKline = FtKline;
 
 export interface ExKlineWithSymbol extends ExKline {
@@ -84,12 +96,15 @@ export abstract class BaseExchange {
 
   abstract getPrice(symbol: string): Promise<ExPrice>;
 
-  abstract placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any>;
+  abstract placeOrder(
+    apiKey: ExApiKey,
+    params: PlaceOrderParams,
+  ): Promise<PlaceOrderReturns>;
 
   abstract placeTpslOrder(
     apiKey: ExApiKey,
     params: PlaceTpslOrderParams,
-  ): Promise<any>;
+  ): Promise<PlaceOrderReturns>;
 
   abstract cancelOrder(
     apiKey: ExApiKey,
@@ -108,12 +123,12 @@ export abstract class BaseExchange {
   abstract cancelBatchOrders(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string }[],
-  ): Promise<any>;
+  ): Promise<any[]>;
 
   abstract getOrder(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string },
-  ): Promise<any>;
+  ): Promise<SyncOrder>;
 
   abstract getOpenOrdersBySymbol(
     apiKey: ExApiKey,
@@ -121,12 +136,12 @@ export abstract class BaseExchange {
       margin: boolean;
       symbol: string;
     },
-  ): Promise<any[]>;
+  ): Promise<SyncOrder[]>;
 
   abstract getAllOpenOrders(
     apiKey: ExApiKey,
     params: { margin: boolean },
-  ): Promise<any[]>;
+  ): Promise<SyncOrder[]>;
 
   abstract getAllOrders(
     apiKey: ExApiKey,
@@ -139,7 +154,7 @@ export abstract class BaseExchange {
       endTime?: number;
       limit?: number;
     },
-  ): Promise<any>;
+  ): Promise<SyncOrder[]>;
 }
 
 export declare type ExchangeService = BaseExchange;

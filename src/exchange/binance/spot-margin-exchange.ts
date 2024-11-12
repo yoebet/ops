@@ -6,7 +6,9 @@ import {
   ExPrice,
   FetchKlineParams,
   PlaceOrderParams,
+  PlaceOrderReturns,
   PlaceTpslOrderParams,
+  SyncOrder,
 } from '@/exchange/rest-types';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
 import {
@@ -15,10 +17,12 @@ import {
   CreateMarginOrderParams,
   SymbolInfo,
   CreateOrderParamsBase,
+  OrderResponse,
 } from '@/exchange/binance/types';
 import { ExApiKey } from '@/exchange/base/api-key';
 import { BinanceMarginRest } from '@/exchange/binance/rest-margin';
 import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
 
 export class BinanceSpotMarginExchange extends BaseExchange {
   restMargin: BinanceMarginRest;
@@ -80,8 +84,69 @@ export class BinanceSpotMarginExchange extends BaseExchange {
     return { last: +res.price };
   }
 
+  mapOrderResp(exo: Partial<OrderResponse>): ExOrderResp {
+    let status: OrderStatus;
+    if (!exo.status) {
+      status = OrderStatus.pending;
+    } else {
+      switch (exo.status) {
+        case 'NEW':
+          status = OrderStatus.pending;
+          break;
+        case 'PARTIALLY_FILLED':
+          status = OrderStatus.partialFilled;
+          break;
+        case 'FILLED':
+          status = OrderStatus.filled;
+          break;
+        case 'CANCELED':
+          status = OrderStatus.canceled;
+          break;
+        case 'REJECTED':
+          status = OrderStatus.rejected;
+          break;
+        case 'EXPIRED':
+        case 'EXPIRED_IN_MATCH':
+          status = OrderStatus.expired;
+          break;
+        default:
+          this.logger.error(`unknown order state: ${exo.status}`);
+      }
+    }
+    const exor: ExOrderResp = {
+      exOrderId: '' + exo.orderId,
+      status,
+    };
+    const cqq = +exo.cummulativeQuoteQty;
+    const eq = +exo.executedQty;
+    if (!isNaN(cqq) && !isNaN(eq)) {
+      if (eq !== 0.0) {
+        exor.execPrice = cqq / eq;
+      }
+      exor.execSize = eq;
+      exor.execAmount = cqq;
+    }
+    if (exo.time) {
+      exor.exCreatedAt = new Date(+exo.time);
+    }
+    if (exo.updateTime) {
+      exor.exUpdatedAt = new Date(+exo.updateTime);
+    }
+    return exor;
+  }
+
+  mapSyncOrderReturns(os: Partial<OrderResponse>[]): SyncOrder[] {
+    return os.map((o) => ({
+      rawOrder: o,
+      orderResp: this.mapOrderResp(o),
+    }));
+  }
+
   // 现货/杠杆账户下单
-  async placeOrder(apiKey: ExApiKey, params: PlaceOrderParams): Promise<any> {
+  async placeOrder(
+    apiKey: ExApiKey,
+    params: PlaceOrderParams,
+  ): Promise<PlaceOrderReturns> {
     const op: CreateOrderParamsBase = {
       symbol: params.symbol,
       newClientOrderId: params.clientOrderId,
@@ -115,17 +180,34 @@ export class BinanceSpotMarginExchange extends BaseExchange {
       this.logger.log(mop);
       const result = await this.restMargin.placeMarginOrder(apiKey, mop);
       this.logger.log(result);
-      return result;
+      return {
+        rawParams: mop,
+        rawOrder: result,
+        orderResp: {
+          exOrderId: '',
+          status: OrderStatus.pending,
+        },
+      };
     } else {
       const sop = op as CreateSpotOrderParams;
       this.logger.log(sop);
-      const result = await this.restSpot.placeSpotOrder(apiKey, op);
+      const result = await this.restSpot.placeSpotOrder(apiKey, sop);
       this.logger.log(result);
-      return result;
+      return {
+        rawParams: sop,
+        rawOrder: result,
+        orderResp: {
+          exOrderId: '',
+          status: OrderStatus.pending,
+        },
+      };
     }
   }
 
-  placeTpslOrder(apiKey: ExApiKey, params: PlaceTpslOrderParams): Promise<any> {
+  placeTpslOrder(
+    apiKey: ExApiKey,
+    params: PlaceTpslOrderParams,
+  ): Promise<PlaceOrderReturns> {
     // TODO:
     return Promise.resolve(undefined);
   }
@@ -150,14 +232,14 @@ export class BinanceSpotMarginExchange extends BaseExchange {
   async cancelBatchOrders(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string }[],
-  ): Promise<any> {
+  ): Promise<any[]> {
     throw new Error(`not supported`);
   }
 
   async cancelOrdersBySymbol(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string },
-  ): Promise<any> {
+  ): Promise<SyncOrder[]> {
     if (params.margin) {
       // isIsolated?: boolean;
       return this.restMargin.cancelOpenOrders(apiKey, {
@@ -173,43 +255,52 @@ export class BinanceSpotMarginExchange extends BaseExchange {
   async getAllOpenOrders(
     apiKey: ExApiKey,
     params: { margin: boolean },
-  ): Promise<any[]> {
+  ): Promise<SyncOrder[]> {
+    let os;
     if (params.margin) {
       // isIsolated?: boolean;
-      return this.restMargin.getOpenOrders(apiKey, {});
+      os = await this.restMargin.getOpenOrders(apiKey, {});
     } else {
-      return this.restSpot.getOpenOrders(apiKey);
+      os = await this.restSpot.getOpenOrders(apiKey);
     }
+    return this.mapSyncOrderReturns(os);
   }
 
   async getOpenOrdersBySymbol(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string },
-  ): Promise<any[]> {
+  ): Promise<SyncOrder[]> {
+    let os;
     if (params.margin) {
       // isIsolated?: boolean;
-      return this.restMargin.getOpenOrders(apiKey, { symbol: params.symbol });
+      os = this.restMargin.getOpenOrders(apiKey, { symbol: params.symbol });
     } else {
-      return this.restSpot.getOpenOrders(apiKey, params.symbol);
+      os = this.restSpot.getOpenOrders(apiKey, params.symbol);
     }
+    return this.mapSyncOrderReturns(os);
   }
 
   async getOrder(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string },
-  ): Promise<any> {
+  ): Promise<SyncOrder> {
+    let o;
     if (params.margin) {
       // isIsolated?: boolean;
-      return this.restMargin.getOrder(apiKey, {
+      o = await this.restMargin.getOrder(apiKey, {
         symbol: params.symbol,
         orderId: params.orderId,
       });
     } else {
-      return this.restSpot.getOrder(apiKey, {
+      o = await this.restSpot.getOrder(apiKey, {
         symbol: params.symbol,
         orderId: params.orderId,
       });
     }
+    return {
+      rawOrder: o,
+      orderResp: this.mapOrderResp(o),
+    };
   }
 
   async getAllOrders(
@@ -225,9 +316,10 @@ export class BinanceSpotMarginExchange extends BaseExchange {
       endTime?: number;
       limit?: number;
     },
-  ): Promise<any[]> {
+  ): Promise<SyncOrder[]> {
+    let os;
     if (params.margin) {
-      return this.restMargin.getAllOrders(apiKey, {
+      os = this.restMargin.getAllOrders(apiKey, {
         symbol: params.symbol,
         // orderId: params.equalAndAfterOrderId,
         startTime: params.startTime,
@@ -235,13 +327,14 @@ export class BinanceSpotMarginExchange extends BaseExchange {
         limit: params.limit,
       });
     } else {
-      return this.restSpot.getAllOrders(apiKey, {
+      os = this.restSpot.getAllOrders(apiKey, {
         symbol: params.symbol,
         // orderId: params.equalAndAfterOrderId,
         startTime: params.startTime,
         endTime: params.endTime,
         limit: params.limit,
       });
+      return this.mapSyncOrderReturns(os);
     }
   }
 }

@@ -5,12 +5,13 @@ import { ExApiKey } from '@/exchange/base/api-key';
 import {
   AssetTransferRecord,
   Candle,
-  CreateOrderParams,
+  CreateSpotOrderParams,
   DepositAddress,
   DepositRecord,
   DWRecordsParamsBase,
   ExchangeInfo,
   MainSubTransferParams,
+  OrderResponse,
   SubAccount,
   WithdrawRecord,
 } from '@/exchange/binance/types';
@@ -291,8 +292,8 @@ export class BinanceSpotRest extends BinanceBaseRest {
   // 现货账户下单
   async placeSpotOrder(
     apiKey: ExApiKey,
-    params: CreateOrderParams,
-  ): Promise<any> {
+    params: CreateSpotOrderParams,
+  ): Promise<Partial<OrderResponse>> {
     return this.request({
       path: '/api/v3/order',
       method: HttpMethodType.post,
@@ -308,7 +309,7 @@ export class BinanceSpotRest extends BinanceBaseRest {
       orderId?: string;
       origClientOrderId?: string;
     },
-  ): Promise<any> {
+  ): Promise<Partial<OrderResponse>> {
     return this.request({
       path: '/api/v3/order',
       method: HttpMethodType.get,
@@ -318,7 +319,10 @@ export class BinanceSpotRest extends BinanceBaseRest {
   }
 
   // 查询挂单
-  async getOpenOrders(apiKey: ExApiKey, symbol?: string): Promise<any[]> {
+  async getOpenOrders(
+    apiKey: ExApiKey,
+    symbol?: string,
+  ): Promise<Partial<OrderResponse>[]> {
     return this.request({
       path: '/api/v3/openOrders',
       method: HttpMethodType.get,
@@ -337,7 +341,7 @@ export class BinanceSpotRest extends BinanceBaseRest {
       endTime?: number;
       limit?: number; // 默认 500; 最大 1000
     },
-  ): Promise<any> {
+  ): Promise<Partial<OrderResponse>[]> {
     // 一些历史订单的 cumulativeQuoteQty < 0, 是指当前数据不存在
     return this.request({
       path: '/api/v3/allOrders',

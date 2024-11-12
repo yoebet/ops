@@ -39,6 +39,50 @@ export interface CreateMarginOrderParams extends CreateOrderParamsBase {
   isIsolated?: boolean;
 }
 
+export interface OrderResponse {
+  stopPrice: string;
+  icebergQty: string;
+  time: number;
+  updateTime: number;
+  isWorking: true;
+  origQuoteOrderQty: string;
+
+  symbol: string;
+  orderId: number;
+  orderListId: number;
+  clientOrderId: string;
+  transactTime: number;
+  price: string;
+  origQty: string;
+  executedQty: string;
+  cummulativeQuoteQty: string;
+  // NEW	订单被交易引擎接受
+  // PARTIALLY_FILLED	部分订单被成交
+  // FILLED	订单完全成交
+  // CANCELED	用户撤销了订单
+  // PENDING_CANCEL	撤销中（目前并未使用）
+  // REJECTED	订单没有被交易引擎接受，也没被处理
+  // EXPIRED	订单被交易引擎取消，比如：
+  //    LIMIT FOK 订单没有成交
+  //    市价单没有完全成交
+  //    强平期间被取消的订单
+  //    交易所维护期间被取消的订单
+  // EXPIRED_IN_MATCH	表示订单由于 STP 触发而过期 （e.g. 带有 EXPIRE_TAKER 的订单与订单簿上属于同账户或同 tradeGroupId 的订单撮合
+  status: string;
+  timeInForce: string;
+  type: string;
+  side: string;
+  workingTime: number;
+  fills: {
+    price: string;
+    qty: string;
+    commission: string;
+    commissionAsset: string;
+    tradeId: number;
+  }[];
+  selfTradePreventionMode: string;
+}
+
 export interface MarginPair {
   symbol: string;
   base: string;

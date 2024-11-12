@@ -83,6 +83,12 @@ export class OkxRest extends ExRest {
     return res.data;
   }
 
+  async requestPickData0<T>(p: ExRestReqBuildParams): Promise<T> {
+    const res = await this.request<RestBody>(p);
+    // {code, msg, data}
+    return res.data[0];
+  }
+
   // 获取市场信息 https://www.okx.com/docs-v5/zh/#rest-api-public-data-get-instruments
   async getMarkets(params: {
     instType: RestTypes['InstType'];
@@ -301,8 +307,8 @@ export class OkxRest extends ExRest {
       instId: string;
       ordId: string;
     },
-  ): Promise<RestTypes['Order'][]> {
-    return this.requestPickData({
+  ): Promise<RestTypes['Order']> {
+    return this.requestPickData0({
       path: '/api/v5/trade/order',
       method: HttpMethodType.get,
       params,
@@ -355,8 +361,8 @@ export class OkxRest extends ExRest {
   async createOrder(
     apiKey: ExApiKey,
     params: CreateOrderParams,
-  ): Promise<RestTypes['CreateOrder'][]> {
-    return this.requestPickData({
+  ): Promise<RestTypes['CreateOrder']> {
+    return this.requestPickData0({
       path: '/api/v5/trade/order',
       method: HttpMethodType.post,
       params,
@@ -368,8 +374,8 @@ export class OkxRest extends ExRest {
   async createAlgoOrder(
     apiKey: ExApiKey,
     params: CreateAlgoOrderParams,
-  ): Promise<RestTypes['CreateOrder'][]> {
-    return this.requestPickData({
+  ): Promise<RestTypes['CreateOrder']> {
+    return this.requestPickData0({
       path: '/api/v5/trade/order-algo',
       method: HttpMethodType.post,
       params,
@@ -384,8 +390,8 @@ export class OkxRest extends ExRest {
       instId: string;
       ordId: string;
     },
-  ): Promise<RestTypes['CancelOrder'][]> {
-    return this.requestPickData({
+  ): Promise<RestTypes['CancelOrder']> {
+    return this.requestPickData0({
       path: '/api/v5/trade/cancel-order',
       method: HttpMethodType.post,
       params,

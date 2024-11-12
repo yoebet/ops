@@ -272,6 +272,11 @@ export interface RestTypes {
     slTriggerPx: string;
     slTriggerPxType: string;
     source: string;
+    // canceled：撤单成功
+    // live：等待成交
+    // partially_filled：部分成交
+    // filled：完全成交
+    // mmp_canceled：做市商保护机制导致的自动撤单
     state: string;
     sz: string;
     tag: string;
@@ -283,7 +288,7 @@ export interface RestTypes {
     tpOrdPx: string;
     tpTriggerPx: string;
     tpTriggerPxType: string;
-    tradeId: string;
+    // tradeId: string;
     uTime: string;
   };
 

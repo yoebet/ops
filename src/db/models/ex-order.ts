@@ -1,23 +1,45 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index, Unique } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 
-// @Entity()
-export class ExOrder extends ExSymbolBase {
+export enum OrderStatus {
+  notSummited = 'notSummited',
+  pending = 'pending',
+  partialFilled = 'partialFilled',
+  filled = 'filled',
+  canceled = 'canceled',
+  expired = 'expired',
+  rejected = 'rejected',
+}
+
+export interface ExOrderResp {
+  exOrderId?: string;
+
+  status: OrderStatus;
+
+  execPrice?: number;
+
+  execSize?: number;
+
+  execAmount?: number;
+
+  exCreatedAt?: Date;
+
+  exUpdatedAt?: Date;
+}
+
+@Entity()
+@Unique(['ex', 'exOrderId'])
+@Unique(['ex', 'clientOrderId'])
+export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column()
   side: TradeSide;
 
   @Column()
   margin: boolean;
 
-  @Column()
-  algoOrder: boolean;
-
-  @Column()
-  marginMode: 'isolated' | 'cross';
-
-  @Column()
-  priceType: 'market' | 'limit';
+  @Column({ nullable: true })
+  marginMode?: 'isolated' | 'cross';
 
   // gtc
   // fok：全部成交或立即取消
@@ -26,23 +48,22 @@ export class ExOrder extends ExSymbolBase {
   timeType?: 'gtc' | 'fok' | 'ioc';
 
   @Column()
-  status: 'pending' | 'partial-filled' | 'filled' | 'canceled';
+  status: OrderStatus;
 
-  @Column({ nullable: true })
-  exOrderId?: string;
-
+  @Index()
   @Column({ nullable: true })
   clientOrderId?: string;
 
-  // ---
+  @Column()
+  priceType: 'market' | 'limit';
 
-  @Column({ nullable: true })
+  @Column('numeric', { nullable: true })
   price?: number;
 
-  @Column({ nullable: true })
+  @Column('numeric', { nullable: true })
   baseSize?: number;
 
-  @Column({ nullable: true })
+  @Column('numeric', { nullable: true })
   quoteAmount?: number;
 
   @Column({ nullable: true })
@@ -57,39 +78,44 @@ export class ExOrder extends ExSymbolBase {
   // @Column('jsonb', { nullable: true })
   // strategyParams?: any;
 
+  @Column()
+  algoOrder: boolean;
+
+  @Column({ nullable: true })
   algoType?: 'tp' | 'sl' | 'tpsl' | 'move';
 
-  @Column({ nullable: true })
-  tpTriggerPrice?: string;
+  @Column('numeric', { nullable: true })
+  tpTriggerPrice?: number;
 
-  @Column({ nullable: true })
-  tpOrderPrice?: string; // 委托价格为-1时，执行市价止盈
+  @Column('numeric', { nullable: true })
+  tpOrderPrice?: number; // 委托价格为-1时，执行市价止盈
 
-  @Column({ nullable: true })
-  slTriggerPrice?: string;
+  @Column('numeric', { nullable: true })
+  slTriggerPrice?: number;
 
-  @Column({ nullable: true })
-  slOrderPrice?: string; // 委托价格为-1时，执行市价止损
+  @Column('numeric', { nullable: true })
+  slOrderPrice?: number; // 委托价格为-1时，执行市价止损
 
-  @Column({ nullable: true })
-  moveDrawbackRatio?: string;
+  @Column('numeric', { nullable: true })
+  moveDrawbackRatio?: number;
 
-  @Column({ nullable: true })
-  moveActivePrice?: string;
+  @Column('numeric', { nullable: true })
+  moveActivePrice?: number;
 
   // ---
 
+  @Index()
   @Column({ nullable: true })
-  execAvgPrice?: number;
+  exOrderId?: string;
 
-  @Column({ nullable: true })
+  @Column('numeric', { nullable: true })
+  execPrice?: number;
+
+  @Column('numeric', { nullable: true })
   execSize?: number;
 
-  @Column({ nullable: true })
+  @Column('numeric', { nullable: true })
   execAmount?: number;
-
-  @Column({ nullable: true })
-  allFilledAt?: Date;
 
   @Column({ nullable: true })
   exCreatedAt?: Date;
@@ -97,9 +123,9 @@ export class ExOrder extends ExSymbolBase {
   @Column({ nullable: true })
   exUpdatedAt?: Date;
 
-  @Column({ nullable: true })
-  exClosedAt?: Date;
+  @Column('jsonb', { select: false, nullable: true })
+  rawOrderParams?: any;
 
   @Column('jsonb', { select: false, nullable: true })
-  raw?: any;
+  rawOrder?: any;
 }
