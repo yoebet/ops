@@ -3,39 +3,42 @@ import { SystemConfigModule } from '@/common-services/system-config.module';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { UserExAccount } from '@/db/models/user-ex-account';
 
 jest.setTimeout(60_000);
 
 describe('ex-order', () => {
   beforeEach(async () => {
-    const moduleRef = await Test.createTestingModule({
+    await Test.createTestingModule({
       imports: [SystemConfigModule],
     }).compile();
   });
 
   it('save order', async () => {
+    const userExAccountId = 1;
     const symbol = 'DOGE/USDT';
-    const margin = false;
-    const exAccount = ExAccountCode.okxUnified;
+
+    const ue = await UserExAccount.findOneBy({ id: userExAccountId });
 
     const exSymbol = await ExchangeSymbol.findOne({
       where: {
-        exAccount,
+        ex: ue.ex,
         symbol,
       },
       relations: ['unifiedSymbol'],
     });
+    // const exAccount = exSymbol.exAccount;
     const unifiedSymbol = exSymbol.unifiedSymbol;
 
     const order = new ExOrder();
+    order.userExAccountId = ue.id;
     order.ex = exSymbol.ex;
     order.exAccount = exSymbol.exAccount;
     order.symbol = exSymbol.symbol;
     order.rawSymbol = exSymbol.rawSymbol;
     order.baseCoin = unifiedSymbol.base;
     order.side = TradeSide.buy;
-    order.margin = margin;
+    order.margin = false;
     order.timeType = 'gtc';
     order.status = OrderStatus.notSummited;
     order.clientOrderId = `s${Math.round(Date.now() / 1000) - 1e9}`;
