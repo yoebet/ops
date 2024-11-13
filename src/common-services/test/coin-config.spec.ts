@@ -2,11 +2,7 @@ import { Test } from '@nestjs/testing';
 import { SystemConfigModule } from '@/common-services/system-config.module';
 import { Coin } from '@/db/models/coin';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
-import {
-  ExAccountCode,
-  ExchangeCode,
-  ExMarket,
-} from '@/db/models/exchange-types';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 jest.setTimeout(60_000);
@@ -58,10 +54,8 @@ describe('CoinConfigService', () => {
         bas.symbol = us.symbol;
         if (ex === ExchangeCode.binance) {
           bas.rawSymbol = `${coin}${stableCoin}`;
-          bas.exAccount = ExAccountCode.binanceSpot;
         } else if (ex === ExchangeCode.okx) {
           bas.rawSymbol = `${coin}-${stableCoin}`;
-          bas.exAccount = ExAccountCode.okxUnified;
         } else {
           continue;
         }

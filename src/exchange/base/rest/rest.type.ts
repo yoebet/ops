@@ -1,13 +1,11 @@
 import { AppLogger } from '@/common/app-logger';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ExAccountCode } from '@/db/models/exchange-types';
 
 export interface ExRestParams {
   scheme?: string;
   host: string;
   proxies?: string[];
   logger?: AppLogger;
-  exAccount: ExAccountCode;
 }
 
 export enum HttpMethodType {

@@ -10,7 +10,7 @@ import {
 import { RtPrice } from '@/data-service/models/realtime';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
-import { ExTrade } from '@/exchange/rest-types';
+import { ExTrade } from '@/exchange/exchange-service-types';
 
 export class TickerHandler {
   private rtPriceProducer: ChannelProducer<RtPrice>;
@@ -149,8 +149,9 @@ export class TickerHandler {
     this.priceCounterStartTs = Date.now();
     return tradeSubject.get().pipe(
       Rx.map((exTrade) => {
-        const exchangeSymbol = this.symbolService.getExchangeSymbol(
-          exTrade.exAccount,
+        const exchangeSymbol = this.symbolService.getExchangeSymbolByEMR(
+          exTrade.ex,
+          exTrade.market,
           exTrade.rawSymbol,
         );
         if (!exchangeSymbol || !exchangeSymbol.unifiedSymbol) {

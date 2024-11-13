@@ -4,7 +4,6 @@ import {
   ExRestParams,
   HttpMethodType,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode } from '@/db/models/exchange-types';
 import {
   AssetTransferRecord,
   Candle,
@@ -23,7 +22,6 @@ export class BinanceSpotRest extends BinanceBaseRest {
   constructor(params?: Partial<ExRestParams>) {
     super({
       host: 'api.binance.com',
-      exAccount: ExAccountCode.binanceSpot,
       ...params,
     });
   }
@@ -380,6 +378,21 @@ export class BinanceSpotRest extends BinanceBaseRest {
     return this.request({
       path: '/api/v1/openOrders',
       method: HttpMethodType.delete,
+      apiKey,
+      params,
+    });
+  }
+
+  // https://binance-docs.github.io/apidocs/spot/cn/#user_data-42
+  async getAccountBalance(
+    apiKey: ExApiKey,
+    params?: {
+      omitZeroBalances?: boolean;
+    },
+  ): Promise<any> {
+    return this.request({
+      path: `/api/v3/account`,
+      method: HttpMethodType.get,
       apiKey,
       params,
     });

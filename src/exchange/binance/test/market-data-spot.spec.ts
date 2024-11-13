@@ -1,10 +1,10 @@
 import { TestConfig } from '@/env.local.test';
-import { BinanceSpotMarginExchange } from '@/exchange/binance/spot-margin-exchange';
+import { BinanceMarketSpot } from '@/exchange/binance/binance-market-spot';
 
 const symbol_BTC_USDT = 'BTCUSDT';
 
 const proxyUrls = TestConfig.exchange.socksProxies;
-const exchange = new BinanceSpotMarginExchange({ proxies: proxyUrls });
+const exchange = new BinanceMarketSpot({ proxies: proxyUrls });
 
 jest.setTimeout(5000_000);
 

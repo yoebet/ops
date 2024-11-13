@@ -1,18 +1,18 @@
 import { Test } from '@nestjs/testing';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
-import { ExchangeRestService } from '@/exchange/exchange-rest.service';
+import { ExchangeServiceLocator } from '@/exchange/exchange-service-locator';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { PlaceOrderParams } from '@/exchange/rest-types';
+import { PlaceOrderParams } from '@/exchange/exchange-service-types';
 import { TestConfig } from '@/env.local.test';
 import { round } from '@/common/utils/utils';
 
-const { apiKeys } = TestConfig.exchange;
+const { testApiKeys: apiKeys } = TestConfig.exchange;
 
 jest.setTimeout(10 * 60 * 1000);
 
 describe('Exchange Trade Simple', () => {
-  let restService: ExchangeRestService;
+  let restService: ExchangeServiceLocator;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -21,18 +21,22 @@ describe('Exchange Trade Simple', () => {
 
     await moduleRef.init();
 
-    restService = moduleRef.get(ExchangeRestService);
+    restService = moduleRef.get(ExchangeServiceLocator);
   });
 
   it('place order', async () => {
     const symbol = 'DOGE/USDT';
     const quoteQuantity = false;
     const margin = false;
-    const exAccount = ExAccountCode.okxUnified;
+
+    const ex = ExchangeCode.okx;
+    const tradeType: ExTradeType = margin
+      ? ExTradeType.margin
+      : ExTradeType.spot;
 
     const exSymbol = await ExchangeSymbol.findOne({
       where: {
-        exAccount,
+        ex: ExchangeCode.okx,
         symbol,
       },
       relations: ['unifiedSymbol'],
@@ -46,7 +50,6 @@ describe('Exchange Trade Simple', () => {
     const params: PlaceOrderParams = {
       side: 'buy',
       symbol: exSymbol.rawSymbol,
-      margin,
       priceType: 'limit',
       // size: sizeStr,
       clientOrderId: `test${Math.round(Date.now() / 1000) - 1e9}`,
@@ -73,9 +76,9 @@ describe('Exchange Trade Simple', () => {
       params.baseSize = round(size, exSymbol.baseSizeDigits);
     }
 
-    const exService = restService.getExRest(exAccount);
+    const exService = restService.getExTradeService(ex, tradeType);
 
-    const apiKey = apiKeys[exAccount];
+    const apiKey = apiKeys[ex];
 
     const result = await exService.placeOrder(apiKey, params);
   });

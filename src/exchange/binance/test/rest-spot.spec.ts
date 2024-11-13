@@ -1,15 +1,15 @@
 import { TestConfig } from '@/env.local.test';
 import { BinanceSpotRest } from '@/exchange/binance/rest-spot';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { storeJson as storeJson0 } from '@/common/test/test-utils.spec';
 
 function storeJson(data: any, fileName: string) {
   storeJson0(data, `${__dirname}/data`, fileName);
 }
 
-const { socksProxies, apiKeys } = TestConfig.exchange;
+const { socksProxies, testApiKeys: apiKeys } = TestConfig.exchange;
 const rest = new BinanceSpotRest({ proxies: socksProxies });
-const apiKey = apiKeys[ExAccountCode.binanceSpot];
+const apiKey = apiKeys[ExchangeCode.binance];
 
 it('price', async () => {
   const result = await rest.getPrice('BTCUSDT');
@@ -31,11 +31,6 @@ test('getExchangeInfo', async () => {
 
 test('getCapitalConfigs', async () => {
   const data = await rest.getCapitalConfigs(apiKey);
-  storeJson(data, 'getCapitalConfigs');
-});
-
-test('getSpotBalances', async () => {
-  const data = await rest.getCapitalConfigs(apiKey);
   if (data) {
     const dd = data
       .filter((a) => a.free !== '0')
@@ -43,10 +38,15 @@ test('getSpotBalances', async () => {
         delete a.networkList;
         return a;
       });
-    // storeJson(dd, 'spot-balances-sub');
     console.log(JSON.stringify(dd, null, 2));
     // storeJson(dd, 'getSpotBalances');
   }
+});
+
+test('getSpotBalances', async () => {
+  const data = await rest.getAccountBalance(apiKey, { omitZeroBalances: true });
+  console.log(JSON.stringify(data, null, 2));
+  storeJson(data, 'getSpotBalances');
 });
 
 test('getFundingAssets', async () => {

@@ -2,33 +2,34 @@ import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeWsService } from '@/exchange/exchange-ws.service';
 import { SymbolService } from '@/common-services/symbol.service';
-import { ExWsTypes } from '@/exchange/exchange-accounts';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { ConfigService } from '@nestjs/config';
 import { TaskScope } from '@/common/server-profile.type';
-import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
-import { ExchangeWs } from '@/exchange/ws-types';
+import { ExchangeMarketDataWs } from '@/exchange/exchange-ws-types';
 import { TickerHandler } from '@/data-ex-ws/ticker-handler';
 import { KlineHandler } from '@/data-ex-ws/kline-handler';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { Observable, Subject } from 'rxjs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
-import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
+import { ExWsKline, ExTrade } from '@/exchange/exchange-service-types';
+import { ExMarketDataWss } from '@/exchange/exchange-services';
 
-interface ExAccountWs {
-  exAccount: ExAccountCode;
-  ws: ExchangeWs;
+interface ExMarketWs {
+  ex: ExchangeCode;
+  market: ExMarket;
+  ws: ExchangeMarketDataWs;
   tradeSubject?: SymbolParamSubject<ExTrade>;
   // tradeObs?: Observable<Trade>;
   klineSubjects: {
-    [interval: string]: SymbolParamSubject<ExKlineWithSymbol>;
+    [interval: string]: SymbolParamSubject<ExWsKline>;
   };
 }
 
 @Injectable()
 export class ExWsService implements OnApplicationShutdown {
-  private runningWs = new Map<ExAccountCode, ExAccountWs>();
+  private runningWs = new Map<string, ExMarketWs>();
   private clientId = 0;
   private rtPriceObs: {
     // ex-symbol
@@ -71,30 +72,32 @@ export class ExWsService implements OnApplicationShutdown {
 
   async start(_profile: TaskScope) {}
 
-  private getExAccountWs(exAccount: ExAccountCode): ExAccountWs {
-    let exAccountWs = this.runningWs.get(exAccount);
-    if (exAccountWs) {
-      return exAccountWs;
+  private getExMarketWs(ex: ExchangeCode, market: ExMarket): ExMarketWs {
+    const key = `${ex}:${market}`;
+    let exMarketWs = this.runningWs.get(key);
+    if (exMarketWs) {
+      return exMarketWs;
     }
-    const WsType = ExWsTypes[exAccount];
+    const WsType = ExMarketDataWss[ex]?.[market];
     if (!WsType) {
-      throw new Error(`no ExWs for ${exAccount}`);
+      throw new Error(`no ExWs for ${key}`);
     }
-    const ws = this.exchangeWsService.init(exAccount, WsType, {
+    const ws = this.exchangeWsService.init(key, WsType, {
       idComponents: {},
       agent: this.agent,
       candleIncludeLive: false,
     });
-    exAccountWs = {
-      exAccount,
+    exMarketWs = {
+      ex,
+      market,
       ws,
       klineSubjects: {},
     };
-    this.runningWs.set(exAccount, exAccountWs);
-    return exAccountWs;
+    this.runningWs.set(key, exMarketWs);
+    return exMarketWs;
   }
 
-  private setupRtPriceReceiver(exAccountWs: ExAccountWs) {
+  private setupRtPriceReceiver(exAccountWs: ExMarketWs) {
     let tradeSubject = exAccountWs.tradeSubject;
     if (tradeSubject) {
       return;
@@ -120,9 +123,9 @@ export class ExWsService implements OnApplicationShutdown {
     symbol: string,
   ): Promise<{ obs: Observable<RtPrice>; unsubs: () => void }> {
     await this.symbolService.ensureLoaded();
-    const exAccount = this.symbolService.getExAccount(ex, symbol);
-    const rawSymbol = this.symbolService.getRawSymbol(exAccount, symbol);
-    const exAccountWs = this.getExAccountWs(exAccount);
+    const exchangeSymbol = this.symbolService.getExchangeSymbolByES(ex, symbol);
+    const rawSymbol = exchangeSymbol.rawSymbol;
+    const exAccountWs = this.getExMarketWs(ex, exchangeSymbol.market);
 
     this.setupRtPriceReceiver(exAccountWs);
 
@@ -152,16 +155,18 @@ export class ExWsService implements OnApplicationShutdown {
     };
   }
 
-  private setupRtKlineReceiver(exAccountWs: ExAccountWs, interval: string) {
-    const klineSubjects = exAccountWs.klineSubjects;
+  private setupRtKlineReceiver(
+    { klineSubjects, ws }: ExMarketWs,
+    interval: string,
+  ) {
     let klineSubject = klineSubjects[interval];
     if (klineSubject) {
       return;
     }
-    klineSubject = exAccountWs.ws.klineSubject(interval);
+    klineSubject = ws.klineSubject(interval);
     klineSubjects[interval] = klineSubject;
     this.klineHandler
-      .receiveWsKlines(exAccountWs.exAccount, interval, klineSubject)
+      .receiveWsKlines(interval, klineSubject)
       .subscribe((kl) => {
         const key = `${kl.ex}-${kl.symbol}-${interval}`;
         let symbolObs = this.rtKlineObs[key];
@@ -182,11 +187,11 @@ export class ExWsService implements OnApplicationShutdown {
     interval: string,
   ): Promise<{ obs: Observable<RtKline>; unsubs: () => void }> {
     await this.symbolService.ensureLoaded();
-    const exAccount = this.symbolService.getExAccount(ex, symbol);
-    const rawSymbol = this.symbolService.getRawSymbol(exAccount, symbol);
-    const exAccountWs = this.getExAccountWs(exAccount);
+    const exchangeSymbol = this.symbolService.getExchangeSymbolByES(ex, symbol);
+    const rawSymbol = exchangeSymbol.rawSymbol;
+    const exMarketWs = this.getExMarketWs(ex, exchangeSymbol.market);
 
-    this.setupRtKlineReceiver(exAccountWs, interval);
+    this.setupRtKlineReceiver(exMarketWs, interval);
 
     const key = `${ex}-${symbol}-${interval}`;
     let symbolObs = this.rtKlineObs[key];
@@ -198,7 +203,7 @@ export class ExWsService implements OnApplicationShutdown {
       this.rtKlineObs[key] = symbolObs;
     }
     const clients = symbolObs.clients;
-    const klineSubject = exAccountWs.klineSubjects[interval];
+    const klineSubject = exMarketWs.klineSubjects[interval];
     if (clients.size === 0) {
       klineSubject.subs([rawSymbol]);
     }

@@ -1,13 +1,10 @@
-import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { FtKline } from '@/data-service/models/kline';
 import { TradeSide } from '@/data-service/models/base';
-import { RestTypes } from '@/exchange/okx/types';
-import { AppLogger } from '@/common/app-logger';
-import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrderResp } from '@/db/models/ex-order';
 
 export interface BaseKlineParams {
-  exAccount?: ExAccountCode;
   symbol: string;
   interval: string;
 }
@@ -24,7 +21,7 @@ export interface ExPrice {
 
 export interface ExTrade {
   ex: ExchangeCode;
-  exAccount: ExAccountCode;
+  market: ExMarket;
   rawSymbol: string; //交易所内的symbol
   tradeId: string;
   price: number;
@@ -36,7 +33,7 @@ export interface ExTrade {
 
 export interface PlaceOrderParams {
   symbol: string;
-  margin: boolean;
+
   marginMode?: 'isolated' | 'cross';
   marginCoin?: string; // 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
   clientOrderId?: string;
@@ -73,79 +70,87 @@ export interface SyncOrder {
   orderResp: ExOrderResp;
 }
 
+export interface AssetItem {
+  coin: string;
+  eq: number;
+  eqUsd: number;
+  frozenBal: number;
+  ordFrozen: number; // 其中挂单冻结
+  availBal: number;
+}
+
+export interface TradingAccountAsset {
+  totalEqUsd: string;
+  coinAssets: AssetItem[];
+  timestamp: number;
+}
+
 export type ExKline = FtKline;
 
-export interface ExKlineWithSymbol extends ExKline {
+export interface ExWsKline extends ExKline {
+  ex: ExchangeCode;
+  market: ExMarket;
   rawSymbol: string;
   live?: boolean;
 }
 
-export abstract class BaseExchange {
-  protected readonly logger?: AppLogger;
-  protected exAccount: ExAccountCode;
+export interface ExchangeMarketDataService {
+  getSymbolInfo(symbol: string): Promise<any>;
 
-  protected constructor(params?: Partial<ExRestParams>) {
-    this.exAccount = params.exAccount;
-    this.logger = params.logger || AppLogger.build(`ex:${this.exAccount}`);
-  }
+  getKlines(params: FetchKlineParams): Promise<ExKline[]>;
 
-  abstract getSymbolInfo(symbol: string): Promise<any>;
+  getPrice(symbol: string): Promise<ExPrice>;
+}
 
-  abstract getKlines(params: FetchKlineParams): Promise<ExKline[]>;
-
-  abstract getPrice(symbol: string): Promise<ExPrice>;
-
-  abstract placeOrder(
+export interface ExchangeTradeService {
+  placeOrder(
     apiKey: ExApiKey,
     params: PlaceOrderParams,
   ): Promise<PlaceOrderReturns>;
 
-  abstract placeTpslOrder(
+  placeTpslOrder(
     apiKey: ExApiKey,
     params: PlaceTpslOrderParams,
   ): Promise<PlaceOrderReturns>;
 
-  abstract cancelOrder(
+  cancelOrder(
     apiKey: ExApiKey,
     params: {
-      margin: boolean;
       symbol: string;
       orderId: string;
     },
   ): Promise<any>;
 
-  abstract cancelOrdersBySymbol(
+  cancelOrdersBySymbol(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string },
+    params: { symbol: string },
   ): Promise<any>;
 
-  abstract cancelBatchOrders(
+  cancelBatchOrders(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string; orderId: string }[],
+    params: { symbol: string; orderId: string }[],
   ): Promise<any[]>;
 
-  abstract getOrder(
+  getOrder(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string; orderId: string },
+    params: { symbol: string; orderId: string },
   ): Promise<SyncOrder>;
 
-  abstract getOpenOrdersBySymbol(
+  getOpenOrdersBySymbol(
     apiKey: ExApiKey,
     params: {
-      margin: boolean;
       symbol: string;
     },
   ): Promise<SyncOrder[]>;
 
-  abstract getAllOpenOrders(
+  getAllOpenOrders(
     apiKey: ExApiKey,
     params: { margin: boolean },
   ): Promise<SyncOrder[]>;
 
-  abstract getAllOrders(
+  getAllOrders(
     apiKey: ExApiKey,
     params: {
-      margin: boolean;
       symbol: string;
       // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
       // equalAndAfterOrderId?: number;
@@ -154,6 +159,13 @@ export abstract class BaseExchange {
       limit?: number;
     },
   ): Promise<SyncOrder[]>;
-}
 
-export declare type ExchangeService = BaseExchange;
+  getTradingAccountBalance(apiKey: ExApiKey): Promise<TradingAccountAsset>;
+
+  getTradingAccountCoinBalance(
+    apiKey: ExApiKey,
+    params: {
+      coin: string;
+    },
+  ): Promise<AssetItem>;
+}

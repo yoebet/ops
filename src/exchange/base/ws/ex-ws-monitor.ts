@@ -25,10 +25,7 @@ import { AppLogger } from '@/common/app-logger';
 export class ExWsMonitor {
   private logger: AppLogger;
 
-  constructor(
-    protected exWs: ExWs,
-    private params?: {},
-  ) {
+  constructor(protected exWs: ExWs) {
     this.logger = this.exWs.logger.subLogger('monitor');
   }
 

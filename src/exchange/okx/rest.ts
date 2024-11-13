@@ -9,7 +9,6 @@ import {
   HttpMethodType,
 } from '@/exchange/base/rest/rest.type';
 import { enc, HmacSHA256 } from 'crypto-js';
-import { ExAccountCode } from '@/db/models/exchange-types';
 import {
   CandleRawDataOkx,
   CreateAlgoOrderParams,
@@ -29,7 +28,6 @@ export class OkxRest extends ExRest {
   constructor(params?: Partial<ExRestParams>) {
     super({
       host: 'www.okx.com',
-      exAccount: ExAccountCode.okxUnified,
       ...params,
     });
   }
@@ -182,8 +180,8 @@ export class OkxRest extends ExRest {
   async getBalances(
     apiKey: ExApiKey,
     params?: { ccy?: string },
-  ): Promise<RestTypes['Balance'][]> {
-    return this.requestPickData({
+  ): Promise<RestTypes['Balance']> {
+    return this.requestPickData0({
       path: '/api/v5/account/balance',
       method: HttpMethodType.get,
       params,

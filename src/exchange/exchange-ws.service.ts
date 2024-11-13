@@ -5,12 +5,12 @@ import {
   MonitorCommand,
   MonitorStreamCommand,
 } from '@/exchange/base/ws/ex-ws-monitor-types';
-import { CapableWs } from '@/exchange/ws-types';
 import { ExWsMonitor } from '@/exchange/base/ws/ex-ws-monitor';
-import { ExWsParams } from '@/exchange/base/ws/ex-ws';
+import { ExWs, ExWsParams } from '@/exchange/base/ws/ex-ws';
+import { ExchangeMarketDataWs } from '@/exchange/exchange-ws-types';
 
 interface WsInst {
-  ws: CapableWs;
+  ws: ExchangeMarketDataWs;
   monitor: ExWsMonitor;
 }
 
@@ -24,9 +24,9 @@ export class ExchangeWsService {
 
   init(
     instKey: string,
-    ExWsType: Type<CapableWs>,
+    ExWsType: Type<ExchangeMarketDataWs>,
     args?: ExWsParams,
-  ): CapableWs {
+  ): ExchangeMarketDataWs {
     if (!ExWsType) {
       this.logger.debug(`no ws instance for: ${instKey}`);
       return;
@@ -36,7 +36,7 @@ export class ExchangeWsService {
       return wsFacet.ws;
     }
     const ws = new ExWsType(args);
-    const monitor = new ExWsMonitor(ws);
+    const monitor = new ExWsMonitor(ws as any as ExWs);
     wsFacet = { ws, monitor };
     this.instMap.set(instKey, wsFacet);
     return ws;
@@ -62,6 +62,6 @@ export class ExchangeWsService {
   }
 
   shutdown(): any {
-    this.instMap.forEach((facet) => facet.ws.shutdown());
+    this.instMap.forEach((facet) => (facet.ws as any as ExWs).shutdown());
   }
 }

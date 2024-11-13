@@ -1,13 +1,13 @@
 import { Test } from '@nestjs/testing';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
-import { ExchangeRestService } from '@/exchange/exchange-rest.service';
+import { ExchangeServiceLocator } from '@/exchange/exchange-service-locator';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 jest.setTimeout(10 * 60 * 1000);
 
 describe('ExchangeService', () => {
-  let restService: ExchangeRestService;
+  let restService: ExchangeServiceLocator;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -16,7 +16,7 @@ describe('ExchangeService', () => {
 
     await moduleRef.init();
 
-    restService = moduleRef.get(ExchangeRestService);
+    restService = moduleRef.get(ExchangeServiceLocator);
   });
 
   describe('-', () => {
@@ -26,10 +26,13 @@ describe('ExchangeService', () => {
         symbol,
       });
       const ps = exSymbols
-        .map((es) => ({ es, rest: restService.getExRest(es.exAccount) }))
+        .map((es) => ({
+          es,
+          rest: restService.getExMarketDataService(es.ex, es.market),
+        }))
         .map(({ es, rest }) =>
           rest.getPrice(es.rawSymbol).then((price) => {
-            console.log(`${es.exAccount}: ${price.last}`);
+            console.log(`${es}: ${price.last}`);
           }),
         );
       await Promise.all(ps);
@@ -37,9 +40,13 @@ describe('ExchangeService', () => {
 
     it('update symbol info - binance', async () => {
       const reFetch = false;
-      const exAccount = ExAccountCode.binanceSpot;
-      const rest = restService.getExRest(exAccount);
-      const exSymbols = await ExchangeSymbol.findBy({ exAccount });
+      const ex = ExchangeCode.binance;
+      const market = ExMarket.spot;
+      const rest = restService.getExMarketDataService(ex, market);
+      const exSymbols = await ExchangeSymbol.findBy({
+        ex,
+        market,
+      });
       for (const exSymbol of exSymbols) {
         let symbolInfo = exSymbol.exchangeInfo;
         if (reFetch || !symbolInfo) {
@@ -74,9 +81,10 @@ describe('ExchangeService', () => {
 
     it('update symbol info - okx', async () => {
       const reFetch = false;
-      const exAccount = ExAccountCode.okxUnified;
-      const rest = restService.getExRest(exAccount);
-      const exSymbols = await ExchangeSymbol.findBy({ exAccount });
+      const ex = ExchangeCode.okx;
+      const market = ExMarket.spot;
+      const rest = restService.getExMarketDataService(ex, market);
+      const exSymbols = await ExchangeSymbol.findBy({ ex, market });
       for (const exSymbol of exSymbols) {
         let symbolInfo = exSymbol.exchangeInfo;
         if (reFetch || !symbolInfo) {

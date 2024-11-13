@@ -7,16 +7,19 @@ import {
 } from '@/exchange/base/ws/ex-ws';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
-import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
-import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-types';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import {
+  ExchangeMarketDataWs,
+  TradeChannelEvent,
+} from '@/exchange/exchange-ws-types';
 import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
-import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
-import { OkxExchange } from '@/exchange/okx/okx-exchange';
+import { ExWsKline, ExTrade } from '@/exchange/exchange-service-types';
 import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
+import { OkxMarketData } from '@/exchange/okx/okx-market-data';
 
 abstract class OkxBaseWs extends ExWs {
   protected constructor(params: Partial<ExWsParams>) {
-    super(mergeId({ entityCode: ExAccountCode.okxUnified }, params));
+    super(mergeId({}, params));
   }
 
   protected heartbeat(): void {
@@ -55,6 +58,15 @@ abstract class OkxBaseWs extends ExWs {
     }
     return true;
   }
+
+  evalExMarket(rawSymbol: string) {
+    if (rawSymbol.endsWith('-USD-SWAP')) {
+      return ExMarket.perp_inv;
+    } else if (rawSymbol.endsWith('-SWAP')) {
+      return ExMarket.perp;
+    }
+    return ExMarket.spot;
+  }
 }
 
 class OkxTradeWs extends OkxBaseWs {
@@ -63,6 +75,10 @@ class OkxTradeWs extends OkxBaseWs {
 
   constructor(params: Partial<ExWsParams>) {
     super(mergeId({ category: 'trade' }, params));
+  }
+
+  tradeSubject(): SymbolParamSubject<ExTrade> {
+    return this.symbolParamSubject(OkxTradeWs.CHANNEL_TRADE);
   }
 
   protected async address(): Promise<string> {
@@ -81,10 +97,11 @@ class OkxTradeWs extends OkxBaseWs {
         return;
       }
       for (const t of trades) {
+        const rawSymbol = t.instId;
         const exTrade: ExTrade = {
           ex: ExchangeCode.okx,
-          exAccount: ExAccountCode.okxUnified,
-          rawSymbol: t.instId,
+          market: this.evalExMarket(rawSymbol),
+          rawSymbol,
           tradeId: t.tradeId,
           price: +t.px,
           size: +t.sz,
@@ -96,10 +113,6 @@ class OkxTradeWs extends OkxBaseWs {
       }
     }
   }
-
-  tradeSubject(): SymbolParamSubject<ExTrade> {
-    return this.symbolParamSubject(OkxTradeWs.CHANNEL_TRADE);
-  }
 }
 
 class OkxKlineWs extends OkxBaseWs {
@@ -108,6 +121,11 @@ class OkxKlineWs extends OkxBaseWs {
 
   constructor(params: Partial<ExWsParams>) {
     super(mergeId({ category: 'kline' }, params));
+  }
+
+  klineSubject(interval: string): SymbolParamSubject<ExWsKline> {
+    const channelName = `candle${OkxMarketData.toCandleInv(interval)}`;
+    return this.symbolParamSubject(channelName);
   }
 
   protected async address(): Promise<string> {
@@ -128,30 +146,27 @@ class OkxKlineWs extends OkxBaseWs {
         if (!this.candleIncludeLive && live) {
           return;
         }
-        const k = OkxExchange.toKline(c);
-        const kl = k as ExKlineWithSymbol;
+        const k = OkxMarketData.toKline(c);
+        const kl = k as ExWsKline;
+        kl.ex = ExchangeCode.okx;
+        kl.market = this.evalExMarket(symbol);
         kl.rawSymbol = symbol;
         kl.live = live;
         this.publishMessage(channel, kl);
       });
     }
   }
-
-  klineSubject(interval: string): SymbolParamSubject<ExKlineWithSymbol> {
-    const channelName = `candle${OkxExchange.toCandleInv(interval)}`;
-    return this.symbolParamSubject(channelName);
-  }
 }
 
 /**
  * https://www.okx.com/docs-v5/zh/#websocket-api
  */
-export class OkxWs extends ExWsComposite implements ExchangeWs {
+export class OkxWs extends ExWsComposite implements ExchangeMarketDataWs {
   tradeWs: OkxTradeWs;
   klineWs: OkxKlineWs;
 
   constructor(params: Partial<ExWsParams>) {
-    super(mergeId({ entityCode: ExAccountCode.okxUnified }, params));
+    super(mergeId({}, params));
 
     this.tradeWs = new OkxTradeWs(params);
     this.klineWs = new OkxKlineWs(params);
@@ -162,7 +177,7 @@ export class OkxWs extends ExWsComposite implements ExchangeWs {
     return this.tradeWs.tradeSubject();
   }
 
-  klineSubject(interval: string): SymbolParamSubject<ExKlineWithSymbol> {
+  klineSubject(interval: string): SymbolParamSubject<ExWsKline> {
     return this.klineWs.klineSubject(interval);
   }
 

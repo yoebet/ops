@@ -4,7 +4,7 @@ import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
 import { isArray, mergeWith } from 'lodash';
 import { ServerProfile } from '@/common/server-profile.type';
 import { RedisOptions } from 'ioredis';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
@@ -70,8 +70,8 @@ export interface Config {
   exchange: {
     socksProxies?: string[];
     publishKafka?: boolean;
-    apiKeys?: {
-      [ex in ExAccountCode]?: ExApiKey;
+    testApiKeys?: {
+      [ex in ExchangeCode]?: ExApiKey;
     };
   };
   auth: AuthConfig;

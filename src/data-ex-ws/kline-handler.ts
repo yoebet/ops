@@ -7,10 +7,10 @@ import {
 } from '@/data-service/data-channel.service';
 import { AppLogger } from '@/common/app-logger';
 import { RtKline } from '@/data-service/models/realtime';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExMarket } from '@/db/models/exchange-types';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
-import { ExKlineWithSymbol } from '@/exchange/rest-types';
+import { ExWsKline } from '@/exchange/exchange-service-types';
 
 export class KlineHandler {
   private klineProducer: ChannelProducer<RtKline>;
@@ -23,14 +23,14 @@ export class KlineHandler {
   ) {}
 
   receiveWsKlines(
-    exAccount: ExAccountCode,
     interval: string,
-    klineSubject: SymbolParamSubject<ExKlineWithSymbol>,
+    klineSubject: SymbolParamSubject<ExWsKline>,
   ): Observable<RtKline> {
     return klineSubject.get().pipe(
       Rx.map((exKl) => {
-        const exSymbol = this.symbolService.getExchangeSymbol(
-          exAccount,
+        const exSymbol = this.symbolService.getExchangeSymbolByEMR(
+          exKl.ex,
+          ExMarket.spot,
           exKl.rawSymbol,
         );
         if (!exSymbol || !exSymbol.unifiedSymbol) {

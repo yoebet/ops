@@ -4,7 +4,6 @@ import {
   ExRestParams,
   HttpMethodType,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode } from '@/db/models/exchange-types';
 import {
   MarginPair,
   CreateMarginOrderParams,
@@ -15,7 +14,6 @@ export class BinanceMarginRest extends BinanceBaseRest {
   constructor(params?: Partial<ExRestParams>) {
     super({
       host: 'api.binance.com',
-      exAccount: ExAccountCode.binanceSpot,
       ...params,
     });
   }

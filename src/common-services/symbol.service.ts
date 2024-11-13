@@ -1,17 +1,16 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { ExAccountCode } from '@/db/models/exchange-types';
 
 @Injectable()
 export class SymbolService implements OnModuleInit {
   private exchangeSymbols: ExchangeSymbol[] = [];
-  // exAccount:symbol -> rawSymbol
-  private rawSymbolMap = new Map<string, string>();
-  // exAccount:rawSymbol -> ExchangeSymbol
-  private exchangeSymbolMap = new Map<string, ExchangeSymbol>(); // with unifiedConfig
   // ex:symbol -> rawSymbol
-  private exAccountSymbolMap = new Map<string, ExAccountCode>();
+  private symbolToRawMap = new Map<string, string>();
+  // ex:market:rawSymbol -> ExchangeSymbol
+  private exMarketRawSymbolMap = new Map<string, ExchangeSymbol>(); // with unifiedConfig
+  // ex:symbol -> ExchangeSymbol
+  private exSymbolMap = new Map<string, ExchangeSymbol>();
 
   constructor(private logger: AppLogger) {
     logger.setContext('symbol-service');
@@ -34,44 +33,24 @@ export class SymbolService implements OnModuleInit {
     });
     this.exchangeSymbols = ess;
 
-    this.exchangeSymbolMap.clear();
-    this.rawSymbolMap.clear();
+    this.exMarketRawSymbolMap.clear();
     for (const es of ess) {
-      const rawSymbolKey = this.genExSymbolKey(es.exAccount, es.rawSymbol);
-      this.exchangeSymbolMap.set(rawSymbolKey, es);
-      const symbolKey = this.genExSymbolKey(es.exAccount, es.symbol);
-      this.rawSymbolMap.set(symbolKey, es.rawSymbol);
-      const symbolKey2 = this.genExSymbolKey(es.ex, es.symbol);
-      this.exAccountSymbolMap.set(symbolKey2, es.exAccount);
+      const rawSymbolKey = this.genKey(es.ex, es.market, es.rawSymbol);
+      this.exMarketRawSymbolMap.set(rawSymbolKey, es);
     }
   }
 
-  async getExchangeSymbols() {
-    return this.exchangeSymbols;
+  private genKey(...parts: string[]) {
+    return parts.join(':');
   }
 
-  private genExSymbolKey(exAccount: string, symbol: string) {
-    return `${exAccount}:${symbol}`;
+  getExchangeSymbolByEMR(ex: string, market: string, rawSymbol: string) {
+    const key = this.genKey(ex, market, rawSymbol);
+    return this.exMarketRawSymbolMap.get(key);
   }
 
-  getExchangeSymbol(exAccount: string, rawSymbol: string) {
-    const rawSymbolKey = this.genExSymbolKey(exAccount, rawSymbol);
-    return this.exchangeSymbolMap.get(rawSymbolKey);
-  }
-
-  getSymbol(exAccount: string, rawSymbol: string) {
-    const rawSymbolKey = this.genExSymbolKey(exAccount, rawSymbol);
-    const es = this.exchangeSymbolMap.get(rawSymbolKey);
-    return es?.symbol;
-  }
-
-  getRawSymbol(exAccount: string, symbol: string) {
-    const symbolKey = this.genExSymbolKey(exAccount, symbol);
-    return this.rawSymbolMap.get(symbolKey);
-  }
-
-  getExAccount(ex: string, symbol: string) {
-    const symbolKey = this.genExSymbolKey(ex, symbol);
-    return this.exAccountSymbolMap.get(symbolKey);
+  getExchangeSymbolByES(ex: string, symbol: string) {
+    const key = this.genKey(ex, symbol);
+    return this.exSymbolMap.get(key);
   }
 }

@@ -114,8 +114,8 @@ export interface RestTypes {
    */
   MaxAvailableSize: {
     instId: string;
-    availBuy: string;
-    availSell: string;
+    availBuy: string; // 最大可买的交易币数量
+    availSell: string; // 最大可卖的计价币数量
   };
 
   /**

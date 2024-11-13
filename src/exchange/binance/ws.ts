@@ -6,30 +6,33 @@ import {
 } from '@/exchange/base/ws/ex-ws';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
-import { ExAccountCode, ExchangeCode } from '@/db/models/exchange-types';
-import { TradeChannelEvent, ExchangeWs } from '@/exchange/ws-types';
+import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import {
+  TradeChannelEvent,
+  ExchangeMarketDataWs,
+} from '@/exchange/exchange-ws-types';
 import { TradeSide } from '@/data-service/models/base';
 import * as Rx from 'rxjs';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
-import { ExKlineWithSymbol, ExTrade } from '@/exchange/rest-types';
+import { ExWsKline, ExTrade } from '@/exchange/exchange-service-types';
 import { TradeTicker, WsCandle } from '@/exchange/binance/types';
 
-export abstract class BinanceWs extends ExWs implements ExchangeWs {
+export abstract class BinanceWs extends ExWs implements ExchangeMarketDataWs {
   // https://binance-docs.github.io/apidocs/spot/cn/#2b149598d9
   static CHANNEL_TRADE = 'trade';
   // https://binance-docs.github.io/apidocs/spot/cn/#utc-k-streams
   // kline_<interval>
 
-  protected exAccountCode: ExAccountCode;
-
-  protected heartbeat() {
-    super.pong();
-  }
+  protected market: ExMarket;
 
   protected constructor(params: Partial<ExWsParams>) {
     super(mergeId({}, params));
     this.symbolsAwareChannels = [BinanceWs.CHANNEL_TRADE];
     this.tickerSubjectForReconnectCheck = BinanceWs.CHANNEL_TRADE;
+  }
+
+  protected heartbeat() {
+    super.pong();
   }
 
   protected operateWsChannel(
@@ -60,7 +63,7 @@ export abstract class BinanceWs extends ExWs implements ExchangeWs {
       const trade = obj as TradeTicker;
       const exTrade: ExTrade = {
         ex: ExchangeCode.binance,
-        exAccount: this.exAccountCode,
+        market: this.market,
         rawSymbol: trade.s,
         tradeId: trade.t,
         price: +trade.p,
@@ -77,7 +80,10 @@ export abstract class BinanceWs extends ExWs implements ExchangeWs {
       if (!this.candleIncludeLive && !klClosed) {
         return;
       }
-      const kline: ExKlineWithSymbol = {
+      const kline: ExWsKline = {
+        ex: ExchangeCode.binance,
+        market: this.market,
+        rawSymbol: symbol,
         ts: Number(candle.t),
         open: Number(candle.o),
         high: Number(candle.h),
@@ -90,7 +96,6 @@ export abstract class BinanceWs extends ExWs implements ExchangeWs {
         ss: Number(candle.v) - Number(candle.V),
         sa: Number(candle.q) - Number(candle.Q),
         tds: Number(candle.n),
-        rawSymbol: symbol,
         live: !klClosed,
       };
       this.publishMessage(`kline_${candle.i}`, kline);
@@ -101,7 +106,7 @@ export abstract class BinanceWs extends ExWs implements ExchangeWs {
     return this.symbolParamSubject(BinanceWs.CHANNEL_TRADE);
   }
 
-  klineSubject(interval: string): SymbolParamSubject<ExKlineWithSymbol> {
+  klineSubject(interval: string): SymbolParamSubject<ExWsKline> {
     const channelName = `kline_${BinanceBaseRest.toCandleInv(interval)}`;
     return this.symbolParamSubject(channelName);
   }

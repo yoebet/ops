@@ -1,5 +1,5 @@
 import { TestConfig } from '@/env.local.test';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { storeJson as storeJson0 } from '@/common/test/test-utils.spec';
 import { BinanceMarginRest } from '@/exchange/binance/rest-margin';
 
@@ -7,9 +7,9 @@ function storeJson(data: any, fileName: string) {
   storeJson0(data, `${__dirname}/data`, fileName);
 }
 
-const { socksProxies, apiKeys } = TestConfig.exchange;
+const { socksProxies, testApiKeys: apiKeys } = TestConfig.exchange;
 const rest = new BinanceMarginRest({ proxies: socksProxies });
-const apiKey = apiKeys[ExAccountCode.binanceSpot];
+const apiKey = apiKeys[ExchangeCode.binance];
 
 test('getPriceIndex', async () => {
   const data = await rest.getPriceIndex(apiKey, 'BNBBTC');

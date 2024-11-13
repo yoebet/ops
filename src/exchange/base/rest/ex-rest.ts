@@ -7,7 +7,6 @@ import {
   ExRestReqConfig,
   ExRestRes,
 } from '@/exchange/base/rest/rest.type';
-import { ExAccountCode } from '@/db/models/exchange-types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export abstract class ExRest {
@@ -17,15 +16,13 @@ export abstract class ExRest {
   private readonly agents?: SocksProxyAgent[];
   protected readonly logger?: AppLogger;
 
-  protected exAccount: ExAccountCode;
-
   protected constructor(params?: Partial<ExRestParams>) {
     this.defaultScheme = params.scheme ?? 'https';
     this.defaultHost = params.host;
     this.proxies = params.proxies;
     this.agents = [];
-    this.exAccount = params.exAccount;
-    this.logger = params.logger || AppLogger.build(`rest:${this.exAccount}`);
+    this.logger =
+      params.logger || AppLogger.build(`rest:${this.constructor.name}`);
   }
 
   protected scheme(p: ExRestReqBuildParams): string {

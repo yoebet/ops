@@ -7,7 +7,7 @@ import {
   MonitorStreamCommandName,
   WsStatusType,
 } from '@/exchange/base/ws/ex-ws-monitor-types';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { wait } from '@/common/utils/utils';
 import { ExchangeWsService } from '@/exchange/exchange-ws.service';
 import { OkxWs } from '@/exchange/okx/ws';
@@ -15,7 +15,7 @@ import { ExchangeModule } from '@/exchange/exchange.module';
 
 jest.setTimeout(60 * 60_000);
 
-const ExCode = ExAccountCode.okxUnified;
+const ExCode = ExchangeCode.okx;
 console.log(`ex: ${ExCode}`);
 
 describe('ExMonitor', () => {

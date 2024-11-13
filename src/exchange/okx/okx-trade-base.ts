@@ -1,99 +1,31 @@
-import { Injectable } from '@nestjs/common';
 import { OkxRest } from '@/exchange/okx/rest';
 import {
-  BaseExchange,
-  ExKline,
-  ExPrice,
-  FetchKlineParams,
+  AssetItem,
+  ExchangeTradeService,
   PlaceOrderParams,
   PlaceOrderReturns,
   PlaceTpslOrderParams,
   SyncOrder,
-} from '@/exchange/rest-types';
+  TradingAccountAsset,
+} from '@/exchange/exchange-service-types';
 import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
-  CandleRawDataOkx,
   CreateAlgoOrderParams,
   CreateOrderParams,
   OrderAlgoParams,
   RestTypes,
 } from '@/exchange/okx/types';
-import { ExAccountCode } from '@/db/models/exchange-types';
 import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
+import { AppLogger } from '@/common/app-logger';
 
-@Injectable()
-export class OkxExchange extends BaseExchange {
-  rest: OkxRest;
+export class OkxTradeBase implements ExchangeTradeService {
+  protected rest: OkxRest;
+  protected tradeMode: RestTypes['TradeMode'] = 'cash';
+  protected readonly logger: AppLogger;
 
   constructor(params?: Partial<ExRestParams>) {
-    super({
-      exAccount: ExAccountCode.okxUnified,
-      ...params,
-    });
     this.rest = new OkxRest(params);
-  }
-
-  static toCandleInv(inv: string): string {
-    // [1s/1m/3m/5m/15m/30m/1H/2H/4H]
-    // 香港时间开盘价k线：[6H/12H/1D/2D/3D/1W/1M/3M]
-    // UTC时间开盘价k线：[6Hutc/12Hutc/1Dutc/2Dutc/3Dutc/1Wutc/1Mutc/3Mutc]
-    const u = inv.charAt(inv.length - 1);
-    if (u === 'o') {
-      inv = inv.substring(0, inv.length - 1) + 'M';
-    }
-    if (!['s', 'm'].includes(u)) {
-      inv = inv.toUpperCase();
-    }
-    if (['d', 'w', 'o'].includes(u)) {
-      return inv + 'utc';
-    }
-    return inv;
-  }
-
-  static toKline(raw: CandleRawDataOkx): ExKline {
-    return {
-      ts: Number(raw[0]),
-      open: Number(raw[1]),
-      high: Number(raw[2]),
-      low: Number(raw[3]),
-      close: Number(raw[4]),
-      size: Number(raw[6]),
-      amount: Number(raw[7]),
-      // bs: 0,
-      // ba: 0,
-      // ss: 0,
-      // sa: 0,
-      // tds: 0,
-    };
-  }
-
-  // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
-  async getKlines(params: FetchKlineParams): Promise<ExKline[]> {
-    const candles: CandleRawDataOkx[] = await this.rest.getCandles({
-      instId: params.symbol,
-      bar: OkxExchange.toCandleInv(params.interval),
-      before: params.startTime,
-      after: params.endTime,
-      limit: params.limit,
-    });
-    if (!candles) {
-      return [];
-    }
-    return candles.map(OkxExchange.toKline);
-  }
-
-  async getSymbolInfo(symbol: string): Promise<any> {
-    const res = await this.rest.getMarkets({
-      instType: 'SPOT',
-      instId: symbol,
-    });
-    return res[0];
-  }
-
-  async getPrice(symbol: string): Promise<ExPrice> {
-    const tickers = await this.rest.getTicker({ instId: symbol });
-    const t = tickers[0];
-    return { last: +t.last };
+    this.logger = params.logger || AppLogger.build(this.constructor.name);
   }
 
   mapOrderResp(exo: RestTypes['Order']): ExOrderResp {
@@ -150,7 +82,7 @@ export class OkxExchange extends BaseExchange {
       instId: params.symbol,
       side: params.side,
       sz: params.baseSize,
-      tdMode: params.margin ? params.marginMode : 'cash',
+      tdMode: this.tradeMode,
       // posSide: params.posSide,
       ccy: params.marginMode === 'cross' ? params.marginCoin : undefined,
       reduceOnly: params.reduceOnly,
@@ -197,7 +129,7 @@ export class OkxExchange extends BaseExchange {
     apiKey: ExApiKey,
     params: PlaceOrderParams,
   ): Promise<PlaceOrderReturns> {
-    if (params.margin && !params.marginMode) {
+    if (this.tradeMode !== 'cash' && !params.marginMode) {
       throw new Error(`missing marginMode`);
     }
 
@@ -219,12 +151,12 @@ export class OkxExchange extends BaseExchange {
       px: params.price,
       side: params.side,
       sz: params.baseSize,
-      tdMode: params.margin ? params.marginMode : 'cash',
+      tdMode: this.tradeMode,
       // posSide: params.posSide,
       ccy: params.marginMode === 'cross' ? params.marginCoin : undefined,
       // reduceOnly: false,
     };
-    if (!params.margin && type === 'market') {
+    if (this.tradeMode === 'cash' && type === 'market') {
       if (params.quoteAmount) {
         op.sz = params.quoteAmount;
         op.tgtCcy = 'quote_ccy';
@@ -262,7 +194,7 @@ export class OkxExchange extends BaseExchange {
 
   async cancelOrder(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string; orderId: string },
+    params: { symbol: string; orderId: string },
   ): Promise<any> {
     return this.rest.cancelOrder(apiKey, {
       instId: params.symbol,
@@ -272,7 +204,7 @@ export class OkxExchange extends BaseExchange {
 
   async cancelBatchOrders(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string; orderId: string }[],
+    params: { symbol: string; orderId: string }[],
   ): Promise<any[]> {
     return this.rest.cancelBatchOrders(
       apiKey,
@@ -282,7 +214,7 @@ export class OkxExchange extends BaseExchange {
 
   async cancelOrdersBySymbol(
     _apiKey: ExApiKey,
-    _params: { margin: boolean; symbol: string },
+    _params: { symbol: string },
   ): Promise<any> {
     // return this.rest.cancelBatchOrders()
     throw new Error(`not supported`);
@@ -301,7 +233,7 @@ export class OkxExchange extends BaseExchange {
 
   async getOpenOrdersBySymbol(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string },
+    params: { symbol: string },
   ): Promise<SyncOrder[]> {
     const ros = await this.rest.getOpenOrders(apiKey, {
       instId: params.symbol,
@@ -314,7 +246,7 @@ export class OkxExchange extends BaseExchange {
 
   async getOrder(
     apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string; orderId: string },
+    params: { symbol: string; orderId: string },
   ): Promise<SyncOrder> {
     const ro = await this.rest.getOrder(apiKey, {
       instId: params.symbol,
@@ -329,7 +261,6 @@ export class OkxExchange extends BaseExchange {
   async getAllOrders(
     apiKey: ExApiKey,
     params: {
-      margin: boolean;
       symbol: string;
       // isIsolated?: boolean;
       // 如设置 orderId , 订单量将 >= orderId。否则将返回最新订单。
@@ -340,7 +271,7 @@ export class OkxExchange extends BaseExchange {
     },
   ): Promise<SyncOrder[]> {
     const ros = await this.rest.getClosedOrders(apiKey, {
-      instType: params.margin ? 'MARGIN' : 'SPOT',
+      instType: this.tradeMode === 'cash' ? 'SPOT' : 'MARGIN',
       instId: params.symbol,
       // before: params.equalAndAfterOrderId,
       begin: params.startTime,
@@ -351,5 +282,69 @@ export class OkxExchange extends BaseExchange {
       rawOrder: o,
       orderResp: this.mapOrderResp(o),
     }));
+  }
+
+  async getMaxAvailableSize(
+    apiKey: ExApiKey,
+    params: {
+      symbols: string[];
+
+      // tdMode: RestTypes['TradeMode'];
+      marginCoin?: string; // 保证金币种，仅适用于单币种保证金模式下的全仓杠杆订单
+      reduceOnly?: boolean; // 是否为只减仓模式，仅适用于币币杠杆
+      // px?: string; // 委托价格
+    },
+  ): Promise<
+    {
+      symbol: string;
+      availBuy: string; // 最大可买的交易币数量
+      availSell: string; // 最大可卖的计价币数量
+    }[]
+  > {
+    const mas = await this.rest.getMaxAvailableSize(apiKey, {
+      instId: params.symbols.join(','),
+      tdMode: this.tradeMode,
+      ccy: params.marginCoin,
+      reduceOnly: params.reduceOnly,
+    });
+    return mas.map((m) => ({
+      symbol: m.instId,
+      availBuy: m.availBuy,
+      availSell: m.availSell,
+    }));
+  }
+
+  private mapAssetItem(a: RestTypes['BalanceDetail']): AssetItem {
+    return {
+      coin: a.ccy,
+      eq: +a.eq,
+      eqUsd: +a.eqUsd,
+      frozenBal: +a.frozenBal,
+      ordFrozen: +a.ordFrozen,
+      availBal: +a.availBal,
+    };
+  }
+
+  async getTradingAccountBalance(
+    apiKey: ExApiKey,
+  ): Promise<TradingAccountAsset> {
+    const bals = await this.rest.getBalances(apiKey);
+    return {
+      totalEqUsd: bals.totalEq,
+      timestamp: +bals.uTime,
+      coinAssets: bals.details.map(this.mapAssetItem),
+    };
+  }
+
+  async getTradingAccountCoinBalance(
+    apiKey: ExApiKey,
+    params: { coin: string },
+  ): Promise<AssetItem> {
+    const bals = await this.rest.getBalances(apiKey, { ccy: params.coin });
+    const ci = bals.details.filter((a) => a.ccy === params.coin);
+    if (ci.length === 0) {
+      throw new Error(`no balance for coin: ${params.coin}`);
+    }
+    return this.mapAssetItem(ci[0]);
   }
 }

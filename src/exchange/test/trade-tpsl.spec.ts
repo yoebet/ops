@@ -1,18 +1,21 @@
 import { Test } from '@nestjs/testing';
-import { ExAccountCode } from '@/db/models/exchange-types';
+import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
-import { ExchangeRestService } from '@/exchange/exchange-rest.service';
+import { ExchangeServiceLocator } from '@/exchange/exchange-service-locator';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { PlaceOrderParams, PlaceTpslOrderParams } from '@/exchange/rest-types';
+import {
+  PlaceOrderParams,
+  PlaceTpslOrderParams,
+} from '@/exchange/exchange-service-types';
 import { TestConfig } from '@/env.local.test';
 import { round } from '@/common/utils/utils';
 
-const { apiKeys } = TestConfig.exchange;
+const { testApiKeys: apiKeys } = TestConfig.exchange;
 
 jest.setTimeout(10 * 60 * 1000);
 
 describe('Exchange Trade Tpsl', () => {
-  let restService: ExchangeRestService;
+  let restService: ExchangeServiceLocator;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -21,18 +24,22 @@ describe('Exchange Trade Tpsl', () => {
 
     await moduleRef.init();
 
-    restService = moduleRef.get(ExchangeRestService);
+    restService = moduleRef.get(ExchangeServiceLocator);
   });
 
   it('place order - tpsl attach', async () => {
     const symbol = 'DOGE/USDT';
     const quoteQuantity = false;
     const margin = true;
-    const exAccount = ExAccountCode.okxUnified;
+
+    const ex = ExchangeCode.okx;
+    const tradeType: ExTradeType = margin
+      ? ExTradeType.margin
+      : ExTradeType.spot;
 
     const exSymbol = await ExchangeSymbol.findOne({
       where: {
-        exAccount,
+        ex,
         symbol,
       },
       relations: ['unifiedSymbol'],
@@ -47,7 +54,6 @@ describe('Exchange Trade Tpsl', () => {
     const params: PlaceOrderParams = {
       side: 'buy',
       symbol: exSymbol.rawSymbol,
-      margin,
       priceType: 'limit',
       // size: sizeStr,
       clientOrderId: `test${Math.round(Date.now() / 1000) - 1e9}`,
@@ -93,9 +99,9 @@ describe('Exchange Trade Tpsl', () => {
     params.slOrderPrice = round(slPrice, priceDigits);
     params.slTriggerPrice = round(slTriggerPrice, priceDigits);
 
-    const exService = restService.getExRest(exAccount);
+    const exService = restService.getExTradeService(ex, tradeType);
 
-    const apiKey = apiKeys[exAccount];
+    const apiKey = apiKeys[ex];
 
     const result = await exService.placeOrder(apiKey, params);
   });
@@ -104,11 +110,15 @@ describe('Exchange Trade Tpsl', () => {
     const symbol = 'DOGE/USDT';
     const quoteQuantity = false;
     const margin = true;
-    const exAccount = ExAccountCode.okxUnified;
+
+    const ex = ExchangeCode.okx;
+    const tradeType: ExTradeType = margin
+      ? ExTradeType.margin
+      : ExTradeType.spot;
 
     const exSymbol = await ExchangeSymbol.findOne({
       where: {
-        exAccount,
+        ex,
         symbol,
       },
       relations: ['unifiedSymbol'],
@@ -123,7 +133,6 @@ describe('Exchange Trade Tpsl', () => {
     const params: PlaceTpslOrderParams = {
       side: 'buy',
       symbol: exSymbol.rawSymbol,
-      margin,
       priceType: 'limit',
       // size: sizeStr,
       clientOrderId: `test${Math.round(Date.now() / 1000) - 1e9}`,
@@ -178,9 +187,9 @@ describe('Exchange Trade Tpsl', () => {
       }
     }
 
-    const exService = restService.getExRest(exAccount);
+    const exService = restService.getExTradeService(ex, tradeType);
 
-    const apiKey = apiKeys[exAccount];
+    const apiKey = apiKeys[ex];
 
     const result = await exService.placeTpslOrder(apiKey, params);
   });
