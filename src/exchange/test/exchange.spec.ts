@@ -1,13 +1,13 @@
 import { Test } from '@nestjs/testing';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
-import { ExchangeServiceLocator } from '@/exchange/exchange-service-locator';
+import { Exchanges } from '@/exchange/exchanges';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 jest.setTimeout(10 * 60 * 1000);
 
 describe('ExchangeService', () => {
-  let restService: ExchangeServiceLocator;
+  let restService: Exchanges;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -16,7 +16,7 @@ describe('ExchangeService', () => {
 
     await moduleRef.init();
 
-    restService = moduleRef.get(ExchangeServiceLocator);
+    restService = moduleRef.get(Exchanges);
   });
 
   describe('-', () => {

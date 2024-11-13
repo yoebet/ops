@@ -1,20 +1,21 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { ExchangeWsService } from '@/exchange/exchange-ws.service';
 import { SymbolService } from '@/common-services/symbol.service';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import { ConfigService } from '@nestjs/config';
 import { TaskScope } from '@/common/server-profile.type';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
-import { ExchangeMarketDataWs } from '@/exchange/exchange-ws-types';
 import { TickerHandler } from '@/data-ex-ws/ticker-handler';
 import { KlineHandler } from '@/data-ex-ws/kline-handler';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { Observable, Subject } from 'rxjs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
-import { ExWsKline, ExTrade } from '@/exchange/exchange-service-types';
-import { ExMarketDataWss } from '@/exchange/exchange-services';
+import {
+  ExWsKline,
+  ExTrade,
+  ExchangeMarketDataWs,
+} from '@/exchange/exchange-service-types';
+import { Exchanges } from '@/exchange/exchanges';
 
 interface ExMarketWs {
   ex: ExchangeCode;
@@ -43,12 +44,10 @@ export class ExWsService implements OnApplicationShutdown {
   private tickerHandler: TickerHandler;
   private klineHandler: KlineHandler;
 
-  private agent: SocksProxyAgent;
-
   constructor(
     readonly configService: ConfigService,
     readonly symbolService: SymbolService,
-    readonly exchangeWsService: ExchangeWsService,
+    readonly exchangeServices: Exchanges,
     readonly dataChannelService: DataChannelService,
     readonly logger: AppLogger,
   ) {
@@ -65,9 +64,6 @@ export class ExWsService implements OnApplicationShutdown {
       false,
       logger.newLogger('kline-handler'),
     );
-
-    const ps = this.configService.get('exchange.socksProxies');
-    this.agent = ps && ps.length > 0 ? new SocksProxyAgent(ps[0]) : undefined;
   }
 
   async start(_profile: TaskScope) {}
@@ -78,15 +74,7 @@ export class ExWsService implements OnApplicationShutdown {
     if (exMarketWs) {
       return exMarketWs;
     }
-    const WsType = ExMarketDataWss[ex]?.[market];
-    if (!WsType) {
-      throw new Error(`no ExWs for ${key}`);
-    }
-    const ws = this.exchangeWsService.init(key, WsType, {
-      idComponents: {},
-      agent: this.agent,
-      candleIncludeLive: false,
-    });
+    const ws = this.exchangeServices.getExMarketDataWs(ex, market);
     exMarketWs = {
       ex,
       market,
@@ -220,12 +208,7 @@ export class ExWsService implements OnApplicationShutdown {
     };
   }
 
-  shutdown() {
-    this.logger.warn(`shutdown ...`);
-    this.exchangeWsService.shutdown();
-  }
-
   onApplicationShutdown(_signal?: string): any {
-    this.shutdown();
+    this.logger.warn(`shutdown ...`);
   }
 }

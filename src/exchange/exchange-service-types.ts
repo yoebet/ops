@@ -1,8 +1,15 @@
-import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import {
+  ExchangeCode,
+  ExMarket,
+  ExTradeType,
+} from '@/db/models/exchange-types';
 import { FtKline } from '@/data-service/models/kline';
 import { TradeSide } from '@/data-service/models/base';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrderResp } from '@/db/models/ex-order';
+import { ChannelConnectionEvent } from '@/exchange/base/ws/ex-ws';
+import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
+import * as Rx from 'rxjs';
 
 export interface BaseKlineParams {
   symbol: string;
@@ -168,4 +175,24 @@ export interface ExchangeTradeService {
       coin: string;
     },
   ): Promise<AssetItem>;
+}
+
+export type TradeChannelEvent = ChannelConnectionEvent<ExTrade>;
+
+export interface ExchangeMarketDataWs {
+  tradeSubject(): SymbolParamSubject<ExTrade>;
+
+  klineSubject(interval: string): SymbolParamSubject<ExWsKline>;
+
+  tradeConnectionEvent(): Rx.Observable<TradeChannelEvent>;
+}
+
+export interface ExchangeFacade {
+  getExTradeService(tradeType: ExTradeType): ExchangeTradeService;
+
+  getExMarketDataService(market: ExMarket): ExchangeMarketDataService;
+
+  getExMarketDataWs(market: ExMarket): ExchangeMarketDataWs;
+
+  shutdown(): void;
 }

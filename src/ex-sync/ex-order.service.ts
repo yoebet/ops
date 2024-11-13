@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ExchangeServiceLocator } from '@/exchange/exchange-service-locator';
+import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { UserExAccount } from '@/db/models/user-ex-account';
@@ -7,7 +7,7 @@ import { UserExAccount } from '@/db/models/user-ex-account';
 @Injectable()
 export class ExOrderService {
   constructor(
-    private readonly exchangeRestService: ExchangeServiceLocator,
+    private readonly exchangeRestService: Exchanges,
     private logger: AppLogger,
   ) {
     logger.setContext('ExOrderService');

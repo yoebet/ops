@@ -20,18 +20,22 @@ export class BinanceMarketSpot implements ExchangeMarketDataService {
   }
 
   static toKline(raw: Candle): ExKline {
+    const size = Number(raw[5]);
+    const amount = Number(raw[7]);
+    const bs = Number(raw[9]);
+    const ba = Number(raw[10]);
     return {
       ts: Number(raw[0]),
       open: Number(raw[1]),
       high: Number(raw[2]),
       low: Number(raw[3]),
       close: Number(raw[4]),
-      size: Number(raw[5]),
-      amount: Number(raw[7]),
-      bs: Number(raw[9]),
-      ba: Number(raw[10]),
-      ss: Number(raw[5]) - Number(raw[9]),
-      sa: Number(raw[7]) - Number(raw[10]),
+      size,
+      amount,
+      bs,
+      ba,
+      ss: size - bs,
+      sa: amount - ba,
       tds: Number(raw[8]),
     };
   }

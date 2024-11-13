@@ -8,12 +8,13 @@ import {
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
 import {
+  ExWsKline,
+  ExTrade,
   ExchangeMarketDataWs,
   TradeChannelEvent,
-} from '@/exchange/exchange-ws-types';
-import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
-import { ExWsKline, ExTrade } from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service-types';
 import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
 import { OkxMarketData } from '@/exchange/okx/okx-market-data';
 

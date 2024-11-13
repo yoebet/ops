@@ -7,14 +7,15 @@ import {
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
-import {
-  TradeChannelEvent,
-  ExchangeMarketDataWs,
-} from '@/exchange/exchange-ws-types';
 import { TradeSide } from '@/data-service/models/base';
 import * as Rx from 'rxjs';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
-import { ExWsKline, ExTrade } from '@/exchange/exchange-service-types';
+import {
+  ExWsKline,
+  ExTrade,
+  ExchangeMarketDataWs,
+  TradeChannelEvent,
+} from '@/exchange/exchange-service-types';
 import { TradeTicker, WsCandle } from '@/exchange/binance/types';
 
 export abstract class BinanceWs extends ExWs implements ExchangeMarketDataWs {

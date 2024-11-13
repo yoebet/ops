@@ -12,7 +12,8 @@ import {
   SymbolParamSubject,
 } from '@/exchange/base/ws/ex-ws-subjects';
 import { wait } from '@/common/utils/utils';
-import { TradeChannelEvent } from '@/exchange/exchange-ws-types';
+
+import { TradeChannelEvent } from '@/exchange/exchange-service-types';
 
 const zhDuration = humanizeDuration.humanizer({
   language: 'zh_CN',

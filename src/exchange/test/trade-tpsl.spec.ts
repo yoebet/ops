@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
-import { ExchangeServiceLocator } from '@/exchange/exchange-service-locator';
+import { Exchanges } from '@/exchange/exchanges';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import {
   PlaceOrderParams,
@@ -15,7 +15,7 @@ const { testApiKeys: apiKeys } = TestConfig.exchange;
 jest.setTimeout(10 * 60 * 1000);
 
 describe('Exchange Trade Tpsl', () => {
-  let restService: ExchangeServiceLocator;
+  let restService: Exchanges;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -24,7 +24,7 @@ describe('Exchange Trade Tpsl', () => {
 
     await moduleRef.init();
 
-    restService = moduleRef.get(ExchangeServiceLocator);
+    restService = moduleRef.get(Exchanges);
   });
 
   it('place order - tpsl attach', async () => {
