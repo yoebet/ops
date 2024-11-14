@@ -22,9 +22,10 @@ test('getAllCrossPairs', async () => {
   storeJson(data, 'market-cross-pairs.json');
 });
 
-test('getMarginAsset', async () => {
-  const data = await rest.getMarginAsset(apiKey, 'LTC');
-  storeJson(data, 'margin-asset.json');
+test('getAllMarginPairs', async () => {
+  const data = await rest.getAllMarginPairs(apiKey, 'LTCUSDT');
+  console.log(JSON.stringify(data, null, 2));
+  storeJson(data, 'getAllMarginPairs-LTCUSDT.json');
 });
 
 test('getAllMarginAssets', async () => {

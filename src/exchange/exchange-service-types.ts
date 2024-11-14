@@ -77,14 +77,14 @@ export interface SyncOrder {
 export interface AssetItem {
   coin: string;
   eq: number;
-  eqUsd: number;
+  eqUsd?: number;
   frozenBal: number;
-  ordFrozen: number; // 其中挂单冻结
+  ordFrozen?: number; // 其中挂单冻结
   availBal: number;
 }
 
-export interface TradingAccountAsset {
-  totalEqUsd: string;
+export interface AccountAsset {
+  totalEqUsd?: number;
   coinAssets: AssetItem[];
   timestamp: number;
 }
@@ -164,14 +164,14 @@ export interface ExchangeTradeService {
     },
   ): Promise<SyncOrder[]>;
 
-  getTradingAccountBalance(apiKey: ExApiKey): Promise<TradingAccountAsset>;
+  getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
 
-  getTradingAccountCoinBalance(
-    apiKey: ExApiKey,
-    params: {
-      coin: string;
-    },
-  ): Promise<AssetItem>;
+  // getTradingAccountCoinBalance(
+  //   apiKey: ExApiKey,
+  //   params: {
+  //     coin: string;
+  //   },
+  // ): Promise<AssetItem>;
 }
 
 export type TradeChannelEvent = ChannelConnectionEvent<ExTrade>;

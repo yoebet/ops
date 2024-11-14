@@ -246,3 +246,55 @@ export interface TradeRaw {
   isBuyerMaker: boolean;
   isBestMatch?: boolean;
 }
+
+export interface SpotBalances {
+  makerCommission: number;
+  takerCommission: number;
+  buyerCommission: number;
+  sellerCommission: number;
+  commissionRates: {
+    maker: string;
+    taker: string;
+    buyer: string;
+    seller: string;
+  };
+  canTrade: boolean;
+  canWithdraw: boolean;
+  canDeposit: boolean;
+  brokered: boolean;
+  requireSelfTradePrevention: boolean;
+  preventSor: boolean;
+  updateTime: number;
+  accountType: string;
+  balances: {
+    asset: string;
+    free: string;
+    locked: string;
+  }[];
+  permissions: [string];
+  uid: number;
+}
+
+export interface MarginBalances {
+  tradeEnabled: boolean;
+  transferEnabled: boolean;
+  transferInEnabled: boolean;
+  transferOutEnabled: boolean;
+  borrowEnabled: boolean;
+  marginLevel: string;
+  totalAssetOfBtc: string;
+  totalLiabilityOfBtc: string;
+  totalNetAssetOfBtc: string;
+  userAssets: {
+    asset: string;
+    free: string;
+    locked: string;
+    borrowed: string;
+    interest: string;
+    netAsset: string;
+  }[];
+  collateralMarginLevel: string;
+  totalCollateralValueInUSDT: string;
+  accountType: string;
+  created: boolean;
+}

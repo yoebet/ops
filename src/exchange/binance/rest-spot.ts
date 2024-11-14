@@ -14,6 +14,7 @@ import {
   ExchangeInfo,
   MainSubTransferParams,
   OrderResponse,
+  SpotBalances,
   SubAccount,
   WithdrawRecord,
 } from '@/exchange/binance/types';
@@ -389,7 +390,7 @@ export class BinanceSpotRest extends BinanceBaseRest {
     params?: {
       omitZeroBalances?: boolean;
     },
-  ): Promise<any> {
+  ): Promise<SpotBalances> {
     return this.request({
       path: `/api/v3/account`,
       method: HttpMethodType.get,

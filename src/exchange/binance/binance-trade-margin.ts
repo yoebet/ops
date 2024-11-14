@@ -5,7 +5,7 @@ import {
   PlaceOrderReturns,
   PlaceTpslOrderParams,
   SyncOrder,
-  TradingAccountAsset,
+  AccountAsset,
 } from '@/exchange/exchange-service-types';
 import {
   CreateMarginOrderParams,
@@ -163,16 +163,27 @@ export class BinanceTradeMargin extends BinanceTradeBase {
     return this.mapSyncOrderReturns(os);
   }
 
+  async getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
+    const bals = await this.restMargin.getMarginAccount(apiKey);
+    return {
+      timestamp: Date.now(),
+      // totalEqUsd: undefined,
+      coinAssets: bals.userAssets
+        .map((a) => ({
+          coin: a.asset,
+          eq: +a.netAsset,
+          availBal: +a.free,
+          frozenBal: +a.locked,
+        }))
+        .filter((a) => a.eq !== 0 || a.availBal !== 0 || a.frozenBal !== 0),
+    };
+  }
+
   async getTradingAccountCoinBalance(
     apiKey: ExApiKey,
     params: { coin: string },
   ): Promise<AssetItem> {
-    return Promise.resolve(undefined);
-  }
-
-  async getTradingAccountBalance(
-    apiKey: ExApiKey,
-  ): Promise<TradingAccountAsset> {
-    return Promise.resolve(undefined);
+    const bals = await this.getTradingAccountBalance(apiKey);
+    return bals.coinAssets.filter((a) => a.coin === params.coin)[0];
   }
 }

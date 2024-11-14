@@ -8,6 +8,7 @@ import {
   MarginPair,
   CreateMarginOrderParams,
   OrderResponse,
+  MarginBalances,
 } from '@/exchange/binance/types';
 
 export class BinanceMarginRest extends BinanceBaseRest {
@@ -44,12 +45,15 @@ export class BinanceMarginRest extends BinanceBaseRest {
   }
 
   // 查询杠杆资产
-  async getMarginAsset(apiKey: ExApiKey, asset: string): Promise<MarginPair[]> {
+  async getAllMarginPairs(
+    apiKey: ExApiKey,
+    symbol: string,
+  ): Promise<MarginPair[]> {
     return this.request({
-      path: '/sapi/v1/margin/asset',
+      path: '/sapi/v1/margin/allPairs',
       method: HttpMethodType.get,
       apiKey,
-      params: { asset },
+      params: { symbol },
     });
   }
 
@@ -63,7 +67,7 @@ export class BinanceMarginRest extends BinanceBaseRest {
   }
 
   // 查询全仓杠杆账户详情
-  async getMarginAccount(apiKey: ExApiKey): Promise<any> {
+  async getMarginAccount(apiKey: ExApiKey): Promise<MarginBalances> {
     return this.request({
       path: '/sapi/v1/margin/account',
       method: HttpMethodType.get,

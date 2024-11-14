@@ -6,7 +6,7 @@ import {
   PlaceOrderReturns,
   PlaceTpslOrderParams,
   SyncOrder,
-  TradingAccountAsset,
+  AccountAsset,
 } from '@/exchange/exchange-service-types';
 import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
@@ -325,12 +325,10 @@ export class OkxTradeBase implements ExchangeTradeService {
     };
   }
 
-  async getTradingAccountBalance(
-    apiKey: ExApiKey,
-  ): Promise<TradingAccountAsset> {
+  async getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
     const bals = await this.rest.getBalances(apiKey);
     return {
-      totalEqUsd: bals.totalEq,
+      totalEqUsd: +bals.totalEq,
       timestamp: +bals.uTime,
       coinAssets: bals.details.map(this.mapAssetItem),
     };
