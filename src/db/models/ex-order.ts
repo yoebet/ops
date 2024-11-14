@@ -1,6 +1,7 @@
 import { Column, Entity, Index, Unique } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
+import { ExTradeType } from '@/db/models/exchange-types';
 
 export enum OrderStatus {
   notSummited = 'notSummited',
@@ -38,16 +39,22 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   // userId: number;
 
   @Column()
+  @Index()
   userExAccountId: number;
+
+  @Column({ nullable: true })
+  @Index()
+  strategyId?: number;
+
+  @Column({ nullable: true })
+  @Index()
+  dealId?: number;
 
   @Column()
   side: TradeSide;
 
-  @Column()
-  margin: boolean;
-
   @Column({ nullable: true })
-  marginMode?: 'isolated' | 'cross';
+  tradeType?: ExTradeType;
 
   // gtc
   // fok：全部成交或立即取消
@@ -76,15 +83,6 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
 
   @Column({ nullable: true })
   reduceOnly?: boolean;
-
-  // @Column({ nullable: true })
-  // positionId?: string;
-
-  // @Column({ nullable: true })
-  // strategyId?: string;
-
-  // @Column('jsonb', { nullable: true })
-  // strategyParams?: any;
 
   @Column()
   algoOrder: boolean;

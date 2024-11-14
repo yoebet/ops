@@ -1,9 +1,5 @@
 import { Column, Entity, Unique } from 'typeorm';
-import {
-  ExchangeCode,
-  ExMarket,
-  ExTradeType,
-} from '@/db/models/exchange-types';
+import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { BaseModel } from '@/db/models/base-model';
 
 @Entity()
@@ -17,9 +13,6 @@ export class ExAsset extends BaseModel {
 
   @Column()
   ex: ExchangeCode;
-
-  // @Column()
-  // market: ExMarket;
 
   @Column()
   tradeType: ExTradeType;
