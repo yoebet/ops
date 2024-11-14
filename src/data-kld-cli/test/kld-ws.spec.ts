@@ -5,16 +5,16 @@ import { TestConfig } from '@/env.local.test';
 
 jest.setTimeout(100_000);
 
-const oflowServer = TestConfig.oflow;
+const server = TestConfig.kld;
 
-describe('oflow-ws', () => {
+describe('kld-ws', () => {
   let oflowWs: DataSource;
 
   beforeAll(() => {
     oflowWs = new DataSource({
       debug: true,
-      serverBase: oflowServer.base,
-      wsPath: oflowServer.wsPath,
+      serverBase: server.base,
+      wsPath: server.wsPath,
       // transports: ['polling'],
       accessToken: '',
     });

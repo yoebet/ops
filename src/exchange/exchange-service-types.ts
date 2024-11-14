@@ -11,12 +11,9 @@ import { ChannelConnectionEvent } from '@/exchange/base/ws/ex-ws';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import * as Rx from 'rxjs';
 
-export interface BaseKlineParams {
+export interface FetchKlineParams {
   symbol: string;
   interval: string;
-}
-
-export interface FetchKlineParams extends BaseKlineParams {
   startTime?: number;
   endTime?: number;
   limit?: number;

@@ -1,4 +1,4 @@
-import { ExSymbolCodes, ExSymbolScope } from '@/data-cli/commands';
+import { ExSymbolCodes, ExSymbolScope } from '@/data-kld-cli/commands';
 import { ES } from '@/data-service/models/base';
 
 let symbolKeyCounter = 1;

@@ -52,7 +52,7 @@ export interface AuthConfig {
   };
 }
 
-export interface OflowServerConfig {
+export interface KldServerConfig {
   base: string;
   wsPath: string;
 }
@@ -66,7 +66,7 @@ export interface Config {
   };
   log: LogConfig;
   kafka: KafkaConfig;
-  oflow: OflowServerConfig;
+  kld: KldServerConfig;
   exchange: {
     socksProxies?: string[];
     publishKafka?: boolean;

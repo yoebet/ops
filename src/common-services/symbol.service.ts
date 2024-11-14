@@ -5,10 +5,8 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 @Injectable()
 export class SymbolService implements OnModuleInit {
   private exchangeSymbols: ExchangeSymbol[] = [];
-  // ex:symbol -> rawSymbol
-  private symbolToRawMap = new Map<string, string>();
   // ex:market:rawSymbol -> ExchangeSymbol
-  private exMarketRawSymbolMap = new Map<string, ExchangeSymbol>(); // with unifiedConfig
+  private rawSymbolMap = new Map<string, ExchangeSymbol>(); // with unifiedConfig
   // ex:symbol -> ExchangeSymbol
   private exSymbolMap = new Map<string, ExchangeSymbol>();
 
@@ -33,10 +31,13 @@ export class SymbolService implements OnModuleInit {
     });
     this.exchangeSymbols = ess;
 
-    this.exMarketRawSymbolMap.clear();
+    this.rawSymbolMap.clear();
+    this.exSymbolMap.clear();
     for (const es of ess) {
       const rawSymbolKey = this.genKey(es.ex, es.market, es.rawSymbol);
-      this.exMarketRawSymbolMap.set(rawSymbolKey, es);
+      this.rawSymbolMap.set(rawSymbolKey, es);
+      const exSymbolKey = this.genKey(es.ex, es.symbol);
+      this.exSymbolMap.set(exSymbolKey, es);
     }
   }
 
@@ -46,7 +47,7 @@ export class SymbolService implements OnModuleInit {
 
   getExchangeSymbolByEMR(ex: string, market: string, rawSymbol: string) {
     const key = this.genKey(ex, market, rawSymbol);
-    return this.exMarketRawSymbolMap.get(key);
+    return this.rawSymbolMap.get(key);
   }
 
   getExchangeSymbolByES(ex: string, symbol: string) {

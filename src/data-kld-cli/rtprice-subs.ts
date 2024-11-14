@@ -1,8 +1,11 @@
 import { Observable, Observer, Subscription } from 'rxjs';
 import { OflowDataChannel, TickerDataScope } from './commands';
 import { DataSource } from './data-source';
-import { DEFAULT_TICKET_THROTTLE, UNSUB_DELAY_MS } from '@/data-cli/constants';
-import { buildDataScopeExSymbol } from '@/data-cli/multiple-markets';
+import {
+  DEFAULT_TICKET_THROTTLE,
+  UNSUB_DELAY_MS,
+} from '@/data-kld-cli/constants';
+import { buildDataScopeExSymbol } from '@/data-kld-cli/multiple-markets';
 import { RtPrice } from '@/data-service/models/realtime';
 
 export interface PriceSubs {

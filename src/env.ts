@@ -54,7 +54,7 @@ const DefaultConfig: PartialConfig = {
       },
     },
   },
-  oflow: {
+  kld: {
     base: 'http://localhost:5000',
     wsPath: '/oflow/ws',
   },
