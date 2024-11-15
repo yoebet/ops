@@ -23,6 +23,9 @@ export class UserExAccount extends BaseModel {
   @Column({ nullable: true })
   apikeyPassword?: string;
 
+  @Column({ nullable: true })
+  apikeyLabel?: string;
+
   static buildExApiKey(ue: UserExAccount): ExApiKey {
     return {
       key: ue.apikeyKey,

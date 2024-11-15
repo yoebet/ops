@@ -1,74 +1,18 @@
 import * as Rx from 'rxjs';
-import {
-  ExWs,
-  ExWsParams,
-  WsChannelOp,
-  WsSubscription,
-} from '@/exchange/base/ws/ex-ws';
+import { ExWsParams } from '@/exchange/base/ws/ex-ws';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { mergeId } from '@/exchange/base/ws/base-ws';
-import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { ExWsComposite } from '@/exchange/base/ws/ex-ws-composite';
 import {
-  ExWsKline,
-  ExTrade,
   ExchangeMarketDataWs,
+  ExTrade,
+  ExWsKline,
   TradeChannelEvent,
 } from '@/exchange/exchange-service-types';
-import { CandleRawDataOkx, TradeTicker } from '@/exchange/okx/types';
+import { CandleRaw, TradeTicker } from '@/exchange/okx/types';
 import { OkxMarketData } from '@/exchange/okx/okx-market-data';
-
-abstract class OkxBaseWs extends ExWs {
-  protected constructor(params: Partial<ExWsParams>) {
-    super(mergeId({}, params));
-  }
-
-  protected heartbeat(): void {
-    super.send('ping');
-  }
-
-  protected async subscribeWsChannel(ss: WsSubscription[]): Promise<void> {
-    await super.subscribeWsChannelChunked(ss, 500, 1000);
-  }
-
-  protected operateWsChannel(
-    op: WsChannelOp,
-    subscriptions: WsSubscription[],
-  ): void {
-    const req = {
-      op: op.toLowerCase(),
-      args: subscriptions.map((s) => ({
-        channel: s.channel,
-        instId: s.symbol,
-      })),
-    };
-    this.sendJson(req);
-  }
-
-  protected checkMessage(obj) {
-    const event = obj.event;
-    if (event) {
-      if (event === 'subscribe' || event === 'unsubscribe') {
-        return false;
-      }
-      if (event === 'error') {
-        this.logError(obj, 'onMessageObj');
-        return false;
-      }
-      this.logger.warn(`unknown event: ${event}`);
-    }
-    return true;
-  }
-
-  evalExMarket(rawSymbol: string) {
-    if (rawSymbol.endsWith('-USD-SWAP')) {
-      return ExMarket.perp_inv;
-    } else if (rawSymbol.endsWith('-SWAP')) {
-      return ExMarket.perp;
-    }
-    return ExMarket.spot;
-  }
-}
+import { OkxBaseWs } from '@/exchange/okx/okx-ws-base';
 
 class OkxTradeWs extends OkxBaseWs {
   // https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-ws-trades-channel
@@ -141,7 +85,7 @@ class OkxKlineWs extends OkxBaseWs {
     const channel = obj.arg?.channel;
     if (channel.startsWith('candle')) {
       const symbol = obj.arg.instId;
-      const candles = obj.data as CandleRawDataOkx[];
+      const candles = obj.data as CandleRaw[];
       candles.forEach((c) => {
         const live = c[8] === '0';
         if (!this.candleIncludeLive && live) {
@@ -162,7 +106,7 @@ class OkxKlineWs extends OkxBaseWs {
 /**
  * https://www.okx.com/docs-v5/zh/#websocket-api
  */
-export class OkxWs extends ExWsComposite implements ExchangeMarketDataWs {
+export class OkxPublicWs extends ExWsComposite implements ExchangeMarketDataWs {
   tradeWs: OkxTradeWs;
   klineWs: OkxKlineWs;
 

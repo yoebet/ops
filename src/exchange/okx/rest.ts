@@ -10,7 +10,7 @@ import {
 } from '@/exchange/base/rest/rest.type';
 import { enc, HmacSHA256 } from 'crypto-js';
 import {
-  CandleRawDataOkx,
+  CandleRaw,
   CreateAlgoOrderParams,
   CreateOrderParams,
   GetDepositRecordsParams,
@@ -19,6 +19,8 @@ import {
   RestBody,
   RestTypes,
   WithdrawalParams,
+  InstType,
+  Balance,
 } from '@/exchange/okx/types';
 
 /**
@@ -89,7 +91,7 @@ export class OkxRest extends ExRest {
 
   // 获取市场信息 https://www.okx.com/docs-v5/zh/#rest-api-public-data-get-instruments
   async getMarkets(params: {
-    instType: RestTypes['InstType'];
+    instType: InstType;
     uly?: string;
     instId?: string;
   }): Promise<RestTypes['Symbol'][]> {
@@ -180,7 +182,7 @@ export class OkxRest extends ExRest {
   async getBalances(
     apiKey: ExApiKey,
     params?: { ccy?: string },
-  ): Promise<RestTypes['Balance']> {
+  ): Promise<Balance> {
     return this.requestPickData0({
       path: '/api/v5/account/balance',
       method: HttpMethodType.get,
@@ -193,7 +195,7 @@ export class OkxRest extends ExRest {
   async getMaxWithdrawal(
     apiKey: ExApiKey,
     params?: { ccy?: string },
-  ): Promise<RestTypes['Balance'][]> {
+  ): Promise<Balance[]> {
     return this.requestPickData({
       path: '/api/v5/account/max-withdrawal',
       method: HttpMethodType.get,
@@ -225,7 +227,7 @@ export class OkxRest extends ExRest {
   async getPositions(
     apiKey: ExApiKey,
     params?: {
-      instType: RestTypes['InstType'];
+      instType: InstType;
     },
   ): Promise<RestTypes['Position'][]> {
     return this.requestPickData({
@@ -254,7 +256,7 @@ export class OkxRest extends ExRest {
     before?: string | number;
     after?: string | number;
     limit?: number; // 最大300，默认100
-  }): Promise<CandleRawDataOkx[]> {
+  }): Promise<CandleRaw[]> {
     return this.requestPickData({
       path: `/api/v5/market/candles`,
       method: HttpMethodType.get,
@@ -283,7 +285,7 @@ export class OkxRest extends ExRest {
   async getFeeRate(
     apiKey: ExApiKey,
     params: {
-      instType: RestTypes['InstType'];
+      instType: InstType;
       // instId，uly，category必须且只允许传其中一个参数
       instId?: string;
       uly?: string;
@@ -318,7 +320,7 @@ export class OkxRest extends ExRest {
   async getOpenOrders(
     apiKey: ExApiKey,
     params: {
-      instType?: RestTypes['InstType'];
+      instType?: InstType;
       instId?: string;
       ordType?: RestTypes['OrderType'];
       state?: 'live' | 'partially_filled';
@@ -339,7 +341,7 @@ export class OkxRest extends ExRest {
   async getClosedOrders(
     apiKey: ExApiKey,
     params: {
-      instType: RestTypes['InstType'];
+      instType: InstType;
       instId?: string;
       before?: string;
       begin?: string | number;
@@ -597,7 +599,7 @@ export class OkxRest extends ExRest {
   async getSubAccountBalances(
     apiKey: ExApiKey,
     params: { subAcct: string },
-  ): Promise<RestTypes['Balance'][]> {
+  ): Promise<Balance[]> {
     return this.requestPickData({
       path: '/api/v5/account/subaccount/balances',
       method: HttpMethodType.get,

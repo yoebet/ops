@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
 import { BaseExchange } from '@/exchange/base/base-exchange';
 import { OkxMarketData } from '@/exchange/okx/okx-market-data';
-import { OkxWs } from '@/exchange/okx/ws';
+import { OkxPublicWs } from '@/exchange/okx/okx-ws-public';
 import { OkxTradeSpot } from '@/exchange/okx/okx-trade-spot';
 import { OkxTradeMargin } from '@/exchange/okx/okx-trade-margin';
 import { ExWs } from '@/exchange/base/ws/ex-ws';
@@ -36,7 +36,7 @@ export class OkxExchange extends BaseExchange {
 
   getExMarketDataWs(_market: ExMarket): ExchangeMarketDataWs {
     if (!this.marketDataWs) {
-      this.marketDataWs = new OkxWs({
+      this.marketDataWs = new OkxPublicWs({
         agent: this.agent,
         candleIncludeLive: false,
       });

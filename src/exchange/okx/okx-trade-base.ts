@@ -10,6 +10,7 @@ import {
 } from '@/exchange/exchange-service-types';
 import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
+  BalanceDetail,
   CreateAlgoOrderParams,
   CreateOrderParams,
   OrderAlgoParams,
@@ -314,7 +315,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     }));
   }
 
-  private mapAssetItem(a: RestTypes['BalanceDetail']): AssetItem {
+  private mapAssetItem(a: BalanceDetail): AssetItem {
     return {
       coin: a.ccy,
       eq: +a.eq,

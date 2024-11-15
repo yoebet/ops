@@ -1,5 +1,51 @@
 import { TradeSide } from '@/data-service/models/base';
 
+export declare type InstType =
+  | 'SPOT'
+  | 'MARGIN'
+  | 'SWAP'
+  | 'FUTURES'
+  | 'OPTION';
+
+export interface BalanceDetail {
+  availBal: string;
+  availEq: string;
+  cashBal: string;
+  ccy: string;
+  crossLiab: string;
+  disEq: string;
+  eq: string;
+  eqUsd: string;
+  frozenBal: string;
+  interest: string;
+  isoEq: string;
+  isoLiab: string;
+  isoUpl: string;
+  liab: string;
+  maxLoan: string;
+  mgnRatio: string;
+  notionalLever: string;
+  ordFrozen: string;
+  stgyEq: string;
+  twap: string;
+  uTime: string;
+  upl: string;
+  uplLiab: string;
+}
+
+export interface Balance {
+  adjEq: string;
+  details: BalanceDetail[];
+  imr: string;
+  isoEq: string;
+  mgnRatio: string;
+  mmr: string;
+  notionalUsd: string;
+  ordFroz: string;
+  totalEq: string;
+  uTime: string;
+}
+
 export interface RestBody<T = any> {
   code: string;
   msg: string;
@@ -7,8 +53,6 @@ export interface RestBody<T = any> {
 }
 
 export interface RestTypes {
-  InstType: 'SPOT' | 'MARGIN' | 'SWAP' | 'FUTURES' | 'OPTION';
-
   OrderType:
     | 'market'
     | 'limit'
@@ -126,48 +170,6 @@ export interface RestTypes {
     mgnMode: string;
     posSide: string;
     lever: string;
-  };
-
-  /**
-   * getBalances
-   */
-  Balance: {
-    adjEq: string;
-    details: RestTypes['BalanceDetail'][];
-    imr: string;
-    isoEq: string;
-    mgnRatio: string;
-    mmr: string;
-    notionalUsd: string;
-    ordFroz: string;
-    totalEq: string;
-    uTime: string;
-  };
-
-  BalanceDetail: {
-    availBal: string;
-    availEq: string;
-    cashBal: string;
-    ccy: string;
-    crossLiab: string;
-    disEq: string;
-    eq: string;
-    eqUsd: string;
-    frozenBal: string;
-    interest: string;
-    isoEq: string;
-    isoLiab: string;
-    isoUpl: string;
-    liab: string;
-    maxLoan: string;
-    mgnRatio: string;
-    notionalLever: string;
-    ordFrozen: string;
-    stgyEq: string;
-    twap: string;
-    uTime: string;
-    upl: string;
-    uplLiab: string;
   };
 
   /**
@@ -504,7 +506,7 @@ export interface TradeTicker {
   ts: string; // ms
 }
 
-export type CandleRawDataOkx = [
+export type CandleRaw = [
   string, // 0开盘时间
   string, // 1开盘价
   string, // 2最高价
@@ -516,11 +518,45 @@ export type CandleRawDataOkx = [
   string, // 8 K线状态 0 代表 K 线未完结，1 代表 K 线已完结。
 ];
 
-export interface TradeRawDataOkx {
+export interface TradeRawData {
   instId: string;
   tradeId: string;
   px: string; //Trade price
   sz: string; //Trade quantity
   side: string; //Trade side buy||sell
   ts: string; //Trade time, Unix timestamp format in milliseconds, e.g. 1597026383085
+}
+
+export declare type WsLivePosition = RestTypes['Position'];
+
+// positions频道
+export interface WsPosition {
+  avgPx: string;
+  baseBal: string;
+  ccy: string;
+  instId: string;
+  instType: InstType;
+  mgnMode: string; // cross/isolated
+  pos: string;
+  posCcy: string;
+  posId: string;
+  posSide: string;
+  quoteBal: string;
+  tradeId: string;
+  uTime: string;
+}
+
+declare type RestOrder = RestTypes['Order'];
+
+export interface WsOrder extends RestOrder {
+  amendResult: string;
+  code: string;
+  execType: string;
+  fillFee: string;
+  fillFeeCcy: string;
+  fillNotionalUsd: string;
+  msg: string;
+  notionalUsd: string;
+  reduceOnly: string;
+  reqId: string;
 }

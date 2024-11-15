@@ -5,7 +5,7 @@ import {
   FetchKlineParams,
 } from '@/exchange/exchange-service-types';
 import { OkxRest } from '@/exchange/okx/rest';
-import { CandleRawDataOkx } from '@/exchange/okx/types';
+import { CandleRaw } from '@/exchange/okx/types';
 import { AppLogger } from '@/common/app-logger';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
 
@@ -35,7 +35,7 @@ export class OkxMarketData implements ExchangeMarketDataService {
     return inv;
   }
 
-  static toKline(raw: CandleRawDataOkx): ExKline {
+  static toKline(raw: CandleRaw): ExKline {
     return {
       ts: Number(raw[0]),
       open: Number(raw[1]),
@@ -54,7 +54,7 @@ export class OkxMarketData implements ExchangeMarketDataService {
 
   // 获取交易产品K线数据 https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks
   async getKlines(params: FetchKlineParams): Promise<ExKline[]> {
-    const candles: CandleRawDataOkx[] = await this.rest.getCandles({
+    const candles: CandleRaw[] = await this.rest.getCandles({
       instId: params.symbol,
       bar: OkxMarketData.toCandleInv(params.interval),
       before: params.startTime,

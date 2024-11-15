@@ -22,6 +22,7 @@ export interface ExApiKey {
   secret2fa?: string;
   subaccount?: string;
   withdrawPassword?: string;
+  label?: string;
 }
 
 export type ExRestReqBuildParams = {

@@ -17,6 +17,9 @@ export interface IdComponents {
   entityCode?: string;
   category?: string;
   instanceIndex?: number;
+  key?: string;
+  keyLabel?: string;
+  accountName?: string; // 应用账户名/交易所账户名
 }
 
 export interface InstanceCriteria {
@@ -176,7 +179,19 @@ export abstract class BaseWs {
   }
 
   protected buildIdWithoutEx() {
-    const parts: string[] = ['ws'];
+    const { key } = this.idComponents;
+    const parts: string[] = [];
+    if (key) {
+      parts.push('private-ws');
+      parts.push(key.substring(0, 7) + '*');
+      const { keyLabel, accountName } = this.idComponents;
+      const name = accountName || keyLabel;
+      if (name) {
+        parts.push(name);
+      }
+    } else {
+      parts.push('ws');
+    }
     return parts.concat(this.categoryAndIndex()).join(':');
   }
 
