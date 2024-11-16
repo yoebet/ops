@@ -128,9 +128,7 @@ test('getArchivedBills', async () => {
 });
 
 test('getPositions', async () => {
-  const data = await rest.getPositions(apiKey, {
-    instType: 'SWAP',
-  });
+  const data = await rest.getPositions(apiKey);
   console.log(JSON.stringify(data));
 });
 

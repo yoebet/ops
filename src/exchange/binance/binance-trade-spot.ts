@@ -157,7 +157,7 @@ export class BinanceTradeSpot extends BinanceTradeBase {
     return this.mapSyncOrderReturns(os);
   }
 
-  async getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
+  async getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
     const bals = await this.restSpot.getAccountBalance(apiKey, {
       omitZeroBalances: true,
     });
@@ -173,11 +173,11 @@ export class BinanceTradeSpot extends BinanceTradeBase {
     };
   }
 
-  async getTradingAccountCoinBalance(
+  async getAccountCoinBalance(
     apiKey: ExApiKey,
     params: { coin: string },
   ): Promise<AssetItem> {
-    const bals = await this.getTradingAccountBalance(apiKey);
+    const bals = await this.getAccountBalance(apiKey);
     return bals.coinAssets.filter((a) => a.coin === params.coin)[0];
   }
 }

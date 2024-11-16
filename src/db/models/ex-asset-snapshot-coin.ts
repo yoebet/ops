@@ -1,16 +1,19 @@
 import { Column, Entity, Unique } from 'typeorm';
-import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
+import { ExAccountType, ExchangeCode } from '@/db/models/exchange-types';
 import { BaseModel } from '@/db/models/base-model';
 
 @Entity()
-@Unique(['exAssetId', 'coin'])
-@Unique(['userExAccountId', 'tradeType', 'coin'])
-export class ExAssetCoin extends BaseModel {
+@Unique(['snapshotId', 'coin'])
+@Unique(['time', 'userExAccountId', 'accountType', 'coin'])
+export class ExAssetSnapshotCoin extends BaseModel {
   // @Column()
   // userId: number;
 
   @Column()
-  exAssetId: number;
+  time: Date;
+
+  @Column()
+  snapshotId: number;
 
   @Column()
   userExAccountId: number;
@@ -19,10 +22,7 @@ export class ExAssetCoin extends BaseModel {
   ex: ExchangeCode;
 
   @Column()
-  tradeType: ExTradeType;
-
-  @Column()
-  updatedAt: Date;
+  accountType: ExAccountType;
 
   @Column()
   coin: string;
@@ -30,14 +30,14 @@ export class ExAssetCoin extends BaseModel {
   @Column('decimal', { nullable: true })
   eq?: number;
 
+  @Column('decimal', { nullable: true })
+  eqUsd?: number;
+
   @Column('decimal')
   availBal: number;
 
   @Column('decimal')
   frozenBal: number;
-
-  @Column('decimal', { nullable: true })
-  eqUsd?: number;
 
   @Column('decimal', { nullable: true })
   ordFrozen?: number;

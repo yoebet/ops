@@ -326,7 +326,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     };
   }
 
-  async getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
+  async getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
     const bals = await this.rest.getBalances(apiKey);
     return {
       totalEqUsd: +bals.totalEq,
@@ -335,7 +335,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     };
   }
 
-  async getTradingAccountCoinBalance(
+  async getAccountCoinBalance(
     apiKey: ExApiKey,
     params: { coin: string },
   ): Promise<AssetItem> {
@@ -345,5 +345,11 @@ export class OkxTradeBase implements ExchangeTradeService {
       throw new Error(`no balance for coin: ${params.coin}`);
     }
     return this.mapAssetItem(ci[0]);
+  }
+
+  async getPositions(apiKey: ExApiKey): Promise<any[]> {
+    return this.rest.getPositions(apiKey, {
+      instType: 'MARGIN',
+    });
   }
 }

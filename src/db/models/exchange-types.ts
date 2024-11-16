@@ -3,6 +3,12 @@ export enum ExchangeCode {
   okx = 'okx',
 }
 
+export enum ExAccountType {
+  unified = 'unified',
+  spot = 'spot',
+  margin = 'margin', // spot margin - cross
+}
+
 export enum ExTradeType {
   spot = 'spot',
   margin = 'margin', // spot margin - cross

@@ -119,12 +119,12 @@ export abstract class BinanceTradeBase implements ExchangeTradeService {
     params: { symbol: string; orderId: string },
   ): Promise<SyncOrder>;
 
-  abstract getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
+  abstract getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
 
-  // abstract getTradingAccountCoinBalance(
-  //   apiKey: ExApiKey,
-  //   params: { coin: string },
-  // ): Promise<AssetItem>;
+  abstract getAccountCoinBalance(
+    apiKey: ExApiKey,
+    params: { coin: string },
+  ): Promise<AssetItem>;
 
   abstract placeOrder(
     apiKey: ExApiKey,
@@ -135,4 +135,8 @@ export abstract class BinanceTradeBase implements ExchangeTradeService {
     apiKey: ExApiKey,
     params: PlaceTpslOrderParams,
   ): Promise<PlaceOrderReturns>;
+
+  async getPositions(apiKey: ExApiKey): Promise<any[]> {
+    return [];
+  }
 }

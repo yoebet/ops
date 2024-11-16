@@ -164,14 +164,16 @@ export interface ExchangeTradeService {
     },
   ): Promise<SyncOrder[]>;
 
-  getTradingAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
+  getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
 
-  // getTradingAccountCoinBalance(
-  //   apiKey: ExApiKey,
-  //   params: {
-  //     coin: string;
-  //   },
-  // ): Promise<AssetItem>;
+  getAccountCoinBalance(
+    apiKey: ExApiKey,
+    params: {
+      coin: string;
+    },
+  ): Promise<AssetItem>;
+
+  getPositions(apiKey: ExApiKey): Promise<any[]>;
 }
 
 export type TradeChannelEvent = ChannelConnectionEvent<ExTrade>;
