@@ -29,7 +29,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     this.logger = params.logger || AppLogger.build(this.constructor.name);
   }
 
-  mapOrderResp(exo: RestTypes['Order']): ExOrderResp {
+  static mapOrderResp(exo: RestTypes['Order'], logger: AppLogger): ExOrderResp {
     let status: OrderStatus;
     if (!exo.state) {
       status = OrderStatus.pending;
@@ -49,7 +49,8 @@ export class OkxTradeBase implements ExchangeTradeService {
           status = OrderStatus.filled;
           break;
         default:
-          this.logger.error(`unknown order state: ${exo.state}`);
+          status = exo.state as any;
+          logger.error(`unknown order state: ${exo.state}`);
       }
     }
     const exor: ExOrderResp = {
@@ -122,7 +123,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     return {
       rawParams: op,
       rawOrder: result,
-      orderResp: this.mapOrderResp(result as any),
+      orderResp: OkxTradeBase.mapOrderResp(result as any, this.logger),
     };
   }
 
@@ -189,7 +190,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     return {
       rawParams: op,
       rawOrder: result,
-      orderResp: this.mapOrderResp(result as any),
+      orderResp: OkxTradeBase.mapOrderResp(result as any, this.logger),
     };
   }
 
@@ -228,7 +229,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     const ros = await this.rest.getOpenOrders(apiKey, {});
     return ros.map((o) => ({
       rawOrder: o,
-      orderResp: this.mapOrderResp(o),
+      orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
     }));
   }
 
@@ -241,7 +242,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     });
     return ros.map((o) => ({
       rawOrder: o,
-      orderResp: this.mapOrderResp(o),
+      orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
     }));
   }
 
@@ -255,7 +256,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     });
     return {
       rawOrder: ro,
-      orderResp: this.mapOrderResp(ro as any),
+      orderResp: OkxTradeBase.mapOrderResp(ro as any, this.logger),
     };
   }
 
@@ -281,7 +282,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     });
     return ros.map((o) => ({
       rawOrder: o,
-      orderResp: this.mapOrderResp(o),
+      orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
     }));
   }
 

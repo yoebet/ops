@@ -73,7 +73,7 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   priceType: 'market' | 'limit';
 
   @Column('numeric', { nullable: true })
-  price?: number;
+  limitPrice?: number;
 
   @Column('numeric', { nullable: true })
   baseSize?: number;

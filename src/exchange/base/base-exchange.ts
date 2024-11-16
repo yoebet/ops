@@ -1,8 +1,9 @@
-import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
   ExchangeFacade,
   ExchangeMarketDataService,
   ExchangeMarketDataWs,
+  ExchangePrivateDataWs,
   ExchangeTradeService,
 } from '@/exchange/exchange-service-types';
 import { AppLogger } from '@/common/app-logger';
@@ -37,6 +38,13 @@ export class BaseExchange implements ExchangeFacade {
   }
 
   getExTradeService(tradeType: ExTradeType): ExchangeTradeService {
+    throw new Error(`Not implemented for ${tradeType}`);
+  }
+
+  getExPrivateDataWs(
+    apiKey: ExApiKey,
+    tradeType: ExTradeType,
+  ): ExchangePrivateDataWs {
     throw new Error(`Not implemented for ${tradeType}`);
   }
 

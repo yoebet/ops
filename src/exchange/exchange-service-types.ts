@@ -8,7 +8,10 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrderResp } from '@/db/models/ex-order';
 import { ChannelConnectionEvent } from '@/exchange/base/ws/ex-ws';
-import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
+import {
+  NoParamSubject,
+  SymbolParamSubject,
+} from '@/exchange/base/ws/ex-ws-subjects';
 import * as Rx from 'rxjs';
 
 export interface FetchKlineParams {
@@ -184,6 +187,14 @@ export interface ExchangeMarketDataWs {
   klineSubject(interval: string): SymbolParamSubject<ExWsKline>;
 
   tradeConnectionEvent(): Rx.Observable<TradeChannelEvent>;
+
+  shutdown(): void;
+}
+
+export interface ExchangePrivateDataWs {
+  orderSubject(): NoParamSubject<SyncOrder>;
+
+  shutdown(): void;
 }
 
 export interface ExchangeFacade {
@@ -192,6 +203,11 @@ export interface ExchangeFacade {
   getExMarketDataService(market: ExMarket): ExchangeMarketDataService;
 
   getExMarketDataWs(market: ExMarket): ExchangeMarketDataWs;
+
+  getExPrivateDataWs(
+    apiKey: ExApiKey,
+    tradeType: ExTradeType,
+  ): ExchangePrivateDataWs;
 
   shutdown(): void;
 }

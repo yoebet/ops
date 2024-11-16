@@ -4,6 +4,7 @@ import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { UserExAccount } from '@/db/models/user-ex-account';
+import { ExTradeType } from '@/db/models/exchange-types';
 
 jest.setTimeout(60_000);
 
@@ -33,17 +34,17 @@ describe('ex-order', () => {
     const order = new ExOrder();
     order.userExAccountId = ue.id;
     order.ex = exSymbol.ex;
-    order.exAccount = exSymbol.exAccount;
+    order.market = exSymbol.market;
     order.symbol = exSymbol.symbol;
     order.rawSymbol = exSymbol.rawSymbol;
     order.baseCoin = unifiedSymbol.base;
     order.side = TradeSide.buy;
-    order.margin = false;
+    order.tradeType = ExTradeType.spot;
     order.timeType = 'gtc';
     order.status = OrderStatus.notSummited;
     order.clientOrderId = `s${Math.round(Date.now() / 1000) - 1e9}`;
     order.priceType = 'limit';
-    order.price = 0.35;
+    order.limitPrice = 0.35;
     order.baseSize = 1000;
     // order.quoteAmount = 2000;
     // order.reduceOnly = true;

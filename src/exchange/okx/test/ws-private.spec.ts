@@ -55,7 +55,7 @@ test('live-position', async () => {
 test('order', async () => {
   // observeWsStatus(privateWs, 20_000);
 
-  const subject = privateWs.orderSubject().subs(['MARGIN']);
+  const subject = privateWs.instOrderSubject('MARGIN').subs();
   observeWsSubject(subject.get());
 
   await wait(60 * 60 * 1000);

@@ -12,15 +12,18 @@ import {
   SymbolParamSubject,
 } from '@/exchange/base/ws/ex-ws-subjects';
 import {
-  RestTypes,
+  Balance,
+  InstType,
   WsLivePosition,
   WsOrder,
-  WsPosition,
-  InstType,
-  Balance,
 } from '@/exchange/okx/types';
+import {
+  ExchangePrivateDataWs,
+  SyncOrder,
+} from '@/exchange/exchange-service-types';
+import { OkxTradeBase } from '@/exchange/okx/okx-trade-base';
 
-export class OkxWsPrivate extends OkxBaseWs {
+export class OkxWsPrivate extends OkxBaseWs implements ExchangePrivateDataWs {
   // #websocket-api-private-channel-account-channel
   protected static CHANNEL_ACCOUNT = 'account';
   // #websocket-api-private-channel-positions-channel
@@ -34,7 +37,7 @@ export class OkxWsPrivate extends OkxBaseWs {
   protected static SUBJECT_BALANCE = 'balance';
   protected static SUBJECT_POSITION = 'position';
 
-  // protected instType: InstType = 'MARGIN';
+  protected instType: InstType = 'MARGIN';
 
   constructor(
     private apiKey: ExApiKey,
@@ -155,8 +158,21 @@ export class OkxWsPrivate extends OkxBaseWs {
 
     if (channel === OkxWsPrivate.CHANNEL_ORDER) {
       const orders: WsOrder[] = obj.data;
-      this.publishMessage(OkxWsPrivate.CHANNEL_ORDER, orders);
+      for (const o of orders) {
+        const so = {
+          rawOrder: o,
+          orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
+        };
+        this.publishMessage(
+          this.instSubjectName(channel, o.instType as InstType),
+          so,
+        );
+      }
     }
+  }
+
+  private instSubjectName(base: string, instType: InstType): string {
+    return `${base}-${instType}`;
   }
 
   liveBalanceSubject(): SymbolParamSubject<Balance> {
@@ -185,7 +201,13 @@ export class OkxWsPrivate extends OkxBaseWs {
     return this.symbolParamSubject(OkxWsPrivate.CHANNEL_LIVE_POSITION);
   }
 
-  orderSubject(): SymbolParamSubject<WsOrder> {
-    return this.symbolParamSubject(OkxWsPrivate.CHANNEL_ORDER);
+  instOrderSubject(instType: InstType): NoParamSubject<SyncOrder> {
+    const channel = OkxWsPrivate.CHANNEL_ORDER;
+    const subject = this.instSubjectName(channel, instType);
+    return this.fixedParamSubject([instType], channel, subject);
+  }
+
+  orderSubject(): NoParamSubject<SyncOrder> {
+    return this.instOrderSubject('SPOT');
   }
 }

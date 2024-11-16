@@ -1,8 +1,10 @@
-import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
   ExchangeMarketDataService,
   ExchangeMarketDataWs,
+  ExchangePrivateDataWs,
   ExchangeTradeService,
+  SyncOrder,
 } from '@/exchange/exchange-service-types';
 import { ExMarket, ExTradeType } from '@/db/models/exchange-types';
 import { ConfigService } from '@nestjs/config';
@@ -12,13 +14,16 @@ import { OkxMarketData } from '@/exchange/okx/okx-market-data';
 import { OkxPublicWs } from '@/exchange/okx/okx-ws-public';
 import { OkxTradeSpot } from '@/exchange/okx/okx-trade-spot';
 import { OkxTradeMargin } from '@/exchange/okx/okx-trade-margin';
-import { ExWs } from '@/exchange/base/ws/ex-ws';
+import { OkxWsPrivate } from '@/exchange/okx/okx-ws-private';
+import { InstType } from '@/exchange/okx/types';
+import { NoParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 
 export class OkxExchange extends BaseExchange {
   private marketDataService: ExchangeMarketDataService;
   private marketDataWs: ExchangeMarketDataWs;
   private tradeSpot: ExchangeTradeService;
   private tradeMargin: ExchangeTradeService;
+  private privateWsMap = new Map<string, ExchangePrivateDataWs>();
 
   constructor(
     protected configService: ConfigService<Config>,
@@ -59,10 +64,47 @@ export class OkxExchange extends BaseExchange {
     throw new Error(`Not implemented for ${tradeType}`);
   }
 
+  private tradeTypeToInstType(tradeType: ExTradeType): InstType {
+    if (tradeType === ExTradeType.spot) {
+      return 'SPOT';
+    }
+    if (tradeType === ExTradeType.margin) {
+      return 'MARGIN';
+    }
+    if (tradeType === ExTradeType.perp) {
+      return 'SWAP';
+    }
+    return 'SPOT';
+  }
+
+  getExPrivateDataWs(
+    apiKey: ExApiKey,
+    tradeType: ExTradeType,
+  ): ExchangePrivateDataWs {
+    const key = apiKey.key;
+    let ws = this.privateWsMap.get(key);
+    if (!ws) {
+      ws = new OkxWsPrivate(apiKey, { agent: this.agent });
+      this.privateWsMap.set(key, ws);
+    }
+    const instType = this.tradeTypeToInstType(tradeType);
+
+    return {
+      orderSubject(): NoParamSubject<SyncOrder> {
+        return (ws as OkxWsPrivate).instOrderSubject(instType);
+      },
+      shutdown() {
+        ws.shutdown();
+        this.privateWsMap.remove(key);
+      },
+    };
+  }
+
   shutdown() {
     super.shutdown();
-    if (this.marketDataWs) {
-      (this.marketDataWs as any as ExWs).shutdown();
+    this.marketDataWs?.shutdown();
+    for (const ws of this.privateWsMap.values()) {
+      ws.shutdown();
     }
   }
 }

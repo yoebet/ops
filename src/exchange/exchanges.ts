@@ -12,10 +12,12 @@ import {
   ExchangeFacade,
   ExchangeMarketDataService,
   ExchangeMarketDataWs,
+  ExchangePrivateDataWs,
   ExchangeTradeService,
 } from '@/exchange/exchange-service-types';
 import { BinanceExchange } from '@/exchange/binance/binance-exchange';
 import { OkxExchange } from '@/exchange/okx/okx-exchange';
+import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
 @Injectable()
 export class Exchanges implements OnApplicationShutdown {
@@ -67,6 +69,14 @@ export class Exchanges implements OnApplicationShutdown {
     market: ExMarket,
   ): ExchangeMarketDataWs | undefined {
     return this.getExchange(ex).getExMarketDataWs(market);
+  }
+
+  getExPrivateDataWs(
+    apiKey: ExApiKey,
+    ex: ExchangeCode,
+    tradeType: ExTradeType,
+  ): ExchangePrivateDataWs | undefined {
+    return this.getExchange(ex).getExPrivateDataWs(apiKey, tradeType);
   }
 
   onApplicationShutdown(_signal?: string): any {

@@ -13,7 +13,10 @@ import {
 } from '@/exchange/base/ws/ex-ws-subjects';
 import { wait } from '@/common/utils/utils';
 
-import { TradeChannelEvent } from '@/exchange/exchange-service-types';
+import {
+  SyncOrder,
+  TradeChannelEvent,
+} from '@/exchange/exchange-service-types';
 
 const zhDuration = humanizeDuration.humanizer({
   language: 'zh_CN',
@@ -663,6 +666,29 @@ export abstract class ExWs extends BaseWs {
         return this;
       },
       get(): Rx.Observable<T> {
+        return ws.subject(subject || channel);
+      },
+    };
+  }
+
+  fixedParamSubject(
+    symbols: string[],
+    channel: string,
+    subject?: string,
+  ): NoParamSubject<SyncOrder> {
+    const ws = this;
+    // const channel = OkxWsPrivate.CHANNEL_ORDER;
+    // const subject = this.instSubjectName(channel, instType);
+    return {
+      subs() {
+        ws.addSymbolsSubscriptions(channel, symbols);
+        return this;
+      },
+      unsubs() {
+        ws.removeSymbolsSubscriptions(channel, symbols);
+        return this;
+      },
+      get(): Rx.Observable<SyncOrder> {
         return ws.subject(subject || channel);
       },
     };

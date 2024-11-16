@@ -2,7 +2,6 @@ import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
 import { SymbolService } from '@/common-services/symbol.service';
 import { ConfigService } from '@nestjs/config';
-import { TaskScope } from '@/common/server-profile.type';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
 import { TickerHandler } from '@/data-ex-ws/ticker-handler';
@@ -29,7 +28,7 @@ interface ExMarketWs {
 }
 
 @Injectable()
-export class ExWsService implements OnApplicationShutdown {
+export class ExPublicWsService implements OnApplicationShutdown {
   private runningWs = new Map<string, ExMarketWs>();
   private clientId = 0;
   private rtPriceObs: {
@@ -51,7 +50,7 @@ export class ExWsService implements OnApplicationShutdown {
     readonly dataChannelService: DataChannelService,
     readonly logger: AppLogger,
   ) {
-    logger.setContext('ex-ws-service');
+    logger.setContext('ex-public-ws-service');
     this.tickerHandler = new TickerHandler(
       symbolService,
       dataChannelService,
@@ -65,8 +64,6 @@ export class ExWsService implements OnApplicationShutdown {
       logger.newLogger('kline-handler'),
     );
   }
-
-  async start(_profile: TaskScope) {}
 
   private getExMarketWs(ex: ExchangeCode, market: ExMarket): ExMarketWs {
     const key = `${ex}:${market}`;

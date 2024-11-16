@@ -1,14 +1,14 @@
 import { Test } from '@nestjs/testing';
 import { SystemConfigModule } from '@/common-services/system-config.module';
 import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
-import { ExWsService } from '@/data-ex-ws/ex-ws.service';
+import { ExPublicWsService } from '@/data-ex-ws/ex-public-ws.service';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { wait } from '@/common/utils/utils';
 
 jest.setTimeout(500_000);
 
-describe('ex-ws-service', () => {
-  let service: ExWsService;
+describe('ex-private-ws-service', () => {
+  let service: ExPublicWsService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -17,7 +17,7 @@ describe('ex-ws-service', () => {
     }).compile();
 
     await moduleRef.init();
-    service = moduleRef.get(ExWsService);
+    service = moduleRef.get(ExPublicWsService);
   });
 
   it('sub btc price', async () => {

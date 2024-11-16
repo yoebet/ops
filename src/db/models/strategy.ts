@@ -12,10 +12,6 @@ export class Strategy extends ExSymbolBase {
   @Column()
   name: string;
 
-  @Column()
-  @Index()
-  code: string;
-
   // @Column()
   // userId: number;
 
@@ -25,6 +21,12 @@ export class Strategy extends ExSymbolBase {
 
   @Column()
   tradeType: ExTradeType;
+
+  @Column({ nullable: true })
+  currentDealId?: number;
+
+  @Column({ nullable: true })
+  lastDealId?: number;
 
   @Column()
   active: boolean;

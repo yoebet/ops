@@ -1,6 +1,7 @@
 import { Column, Entity, Index } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { ExTradeType } from '@/db/models/exchange-types';
+import { ExOrder } from '@/db/models/ex-order';
 
 @Entity()
 export class StrategyDeal extends ExSymbolBase {
@@ -17,6 +18,9 @@ export class StrategyDeal extends ExSymbolBase {
 
   @Column()
   tradeType: ExTradeType;
+
+  @Column('jsonb', { nullable: true })
+  lastOrder?: Pick<ExOrder, 'id' | 'side' | 'execPrice' | 'execAmount'>;
 
   @Column('numeric', { nullable: true })
   pnlUsd?: number;
