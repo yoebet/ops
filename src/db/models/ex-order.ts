@@ -134,4 +134,12 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
 
   @Column('jsonb', { select: false, nullable: true })
   rawOrder?: any;
+
+  static OrderFinished(order: ExOrder): boolean {
+    return ![
+      OrderStatus.notSummited,
+      OrderStatus.pending,
+      OrderStatus.partialFilled,
+    ].includes(order.status);
+  }
 }

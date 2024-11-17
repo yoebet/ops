@@ -23,7 +23,8 @@ export interface FetchKlineParams {
 }
 
 export interface ExPrice {
-  last?: number;
+  last: number;
+  ts: number;
 }
 
 export interface ExTrade {

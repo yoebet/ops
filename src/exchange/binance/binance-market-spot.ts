@@ -67,6 +67,6 @@ export class BinanceMarketSpot implements ExchangeMarketDataService {
 
   async getPrice(symbol: string): Promise<ExPrice> {
     const res: any = await this.restSpot.getPrice(symbol);
-    return { last: +res.price };
+    return { last: +res.price, ts: Date.now() };
   }
 }

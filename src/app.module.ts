@@ -16,6 +16,8 @@ import { AdminLoggerController } from '@/controller/admin-logger.controller';
 import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
 import { AuthModule } from '@/common-web/auth/auth.module';
 import { JobsModule } from '@/job/jobs.module';
+import { StrategyModule } from '@/trade-strategy/strategy.module';
+import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { JobsModule } from '@/job/jobs.module';
     SystemConfigModule,
     MarketDataModule,
     ExWsModule,
+    StrategyModule,
+    ExSyncModule,
   ],
   controllers: [AppController, ExchangeController, AdminLoggerController],
   providers: [AppServers],

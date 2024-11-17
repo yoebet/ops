@@ -78,6 +78,6 @@ export class OkxMarketData implements ExchangeMarketDataService {
   async getPrice(symbol: string): Promise<ExPrice> {
     const tickers = await this.rest.getTicker({ instId: symbol });
     const t = tickers[0];
-    return { last: +t.last };
+    return { last: +t.last, ts: +t.ts };
   }
 }
