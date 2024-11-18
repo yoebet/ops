@@ -6,7 +6,7 @@ import { Strategy } from '@/db/models/strategy';
 
 export type DealOrder = Pick<
   ExOrder,
-  'id' | 'side' | 'execPrice' | 'execAmount'
+  'id' | 'exOrderId' | 'clientOrderId' | 'side' | 'execPrice' | 'execAmount'
 >;
 
 @Entity()

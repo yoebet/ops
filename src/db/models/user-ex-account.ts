@@ -1,5 +1,5 @@
 import { BaseModel } from '@/db/models/base-model';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
@@ -15,6 +15,7 @@ export class UserExAccount extends BaseModel {
   name: string;
 
   @Column()
+  @Index({ unique: true })
   apikeyKey: string;
 
   @Column()

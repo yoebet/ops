@@ -11,12 +11,13 @@ import {
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExPublicWsService } from '@/data-ex-ws/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex-ws/ex-private-ws.service';
-import { ExKline, SyncOrder } from '@/exchange/exchange-service-types';
+import { ExKline } from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
 import { StrategyTemplate } from '@/db/models/strategy-template';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
+import { ExOrder } from '@/db/models/ex-order';
 
 @Injectable()
 export class StrategyService {
@@ -68,13 +69,29 @@ export class StrategyService {
         );
       },
       subscribeForOrder(order: {
-        exOrderId: string;
+        exOrderId?: string;
         clientOrderId?: string;
-      }): Promise<{
-        obs: Observable<SyncOrder>;
-        unsubs: () => void;
-      }> {
-        return service.subscribeForOrder(strategy, order);
+      }): Observable<ExOrder> {
+        const sub = () =>
+          service.privateWsService.subscribeForOrder(
+            strategy.apiKey,
+            strategy.ex,
+            strategy.tradeType,
+            order,
+          );
+        if (strategy.apiKey) {
+          return sub();
+        }
+        return Rx.from(
+          UserExAccount.findOneBy({
+            id: strategy.userExAccountId,
+          }),
+        ).pipe(
+          Rx.switchMap((ua) => {
+            strategy.apiKey = UserExAccount.buildExApiKey(ua);
+            return sub();
+          }),
+        );
       },
     };
 
@@ -102,34 +119,6 @@ export class StrategyService {
       ex,
       tradeType,
     );
-  }
-
-  async subscribeForOrder(
-    strategy: Strategy,
-    order: { exOrderId: string; clientOrderId?: string },
-  ): Promise<{ obs: Observable<SyncOrder>; unsubs: () => void }> {
-    if (!strategy.apiKey) {
-      const ua = await UserExAccount.findOneBy({
-        id: strategy.userExAccountId,
-      });
-      strategy.apiKey = UserExAccount.buildExApiKey(ua);
-    }
-    const { obs, unsubs } = await this.privateWsService.subscribeExOrder(
-      strategy.apiKey,
-      strategy.ex,
-      strategy.tradeType,
-    );
-    return {
-      obs: obs.pipe(
-        Rx.filter((o) => {
-          if (order.clientOrderId) {
-            return o.orderResp.clientOrderId === order.clientOrderId;
-          }
-          return o.orderResp.exOrderId === order.exOrderId;
-        }),
-      ),
-      unsubs,
-    };
   }
 
   async getLastPrice(

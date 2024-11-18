@@ -1,7 +1,7 @@
-import { Strategy } from '@/db/models/strategy';
 import { Observable } from 'rxjs';
-import { ExKline, SyncOrder } from '@/exchange/exchange-service-types';
+import { ExKline } from '@/exchange/exchange-service-types';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import { ExOrder } from '@/db/models/ex-order';
 
 export interface StrategyHelper {
   getLastPrice(params?: {
@@ -19,8 +19,8 @@ export interface StrategyHelper {
     limit?: number;
   }): Promise<ExKline[]>;
 
-  subscribeForOrder(
-    order: { exOrderId: string; clientOrderId?: string },
-    strategy?: Strategy,
-  ): Promise<{ obs: Observable<SyncOrder>; unsubs: () => void }>;
+  subscribeForOrder(order: {
+    exOrderId?: string;
+    clientOrderId?: string;
+  }): Observable<ExOrder>;
 }

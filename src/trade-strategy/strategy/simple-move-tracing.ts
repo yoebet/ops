@@ -1,7 +1,7 @@
 import { Strategy } from '@/db/models/strategy';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
-import { StrategyDeal } from '@/db/models/strategy-deal';
+import { DealOrder, StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder } from '@/db/models/ex-order';
 import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
@@ -81,6 +81,18 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
   protected async checkTradeOpportunity(side: TradeSide): Promise<boolean> {
     return true;
+  }
+
+  protected async waitForOrder(pendingOrder: DealOrder): Promise<ExOrder> {
+    const obs = this.subscribeForOrder({
+      clientOrderId: pendingOrder.clientOrderId,
+    });
+
+    obs.subscribe((order) => {
+      //
+    });
+
+    return undefined;
   }
 
   async start() {

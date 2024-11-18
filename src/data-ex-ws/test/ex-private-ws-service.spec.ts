@@ -59,4 +59,16 @@ describe('ex-private-ws-service', () => {
 
     await wait(60 * 60 * 1000);
   });
+
+  it('sub for order', async () => {
+    const obs = service.subscribeForOrder(
+      apiKey,
+      ExchangeCode.okx,
+      ExTradeType.spot,
+      { exOrderId: '1234' },
+    );
+    obs.subscribe(console.log);
+
+    await wait(30 * 1000);
+  });
 });

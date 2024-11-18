@@ -1,9 +1,10 @@
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
-import { ExKline, SyncOrder } from '@/exchange/exchange-service-types';
+import { ExKline } from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { Observable } from 'rxjs';
 import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
+import { ExOrder } from '@/db/models/ex-order';
 
 export abstract class BaseStrategyRunner {
   protected constructor(
@@ -35,10 +36,10 @@ export abstract class BaseStrategyRunner {
     return this.strategyHelper.getLatestKlines(params);
   }
 
-  protected async subscribeForOrder(order: {
-    exOrderId: string;
+  protected subscribeForOrder(order: {
+    exOrderId?: string;
     clientOrderId?: string;
-  }): Promise<{ obs: Observable<SyncOrder>; unsubs: () => void }> {
+  }): Observable<ExOrder> {
     return this.strategyHelper.subscribeForOrder(order);
   }
 }
