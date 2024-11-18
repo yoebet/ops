@@ -17,7 +17,7 @@ import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
 import { StrategyTemplate } from '@/db/models/strategy-template';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
-import { ExOrder } from '@/db/models/ex-order';
+import { ExOrder, OrderIds } from '@/db/models/ex-order';
 
 @Injectable()
 export class StrategyService {
@@ -68,16 +68,13 @@ export class StrategyService {
           params.interval,
         );
       },
-      subscribeForOrder(order: {
-        exOrderId?: string;
-        clientOrderId?: string;
-      }): Observable<ExOrder> {
+      subscribeForOrder(ids: OrderIds): Observable<ExOrder> {
         const sub = () =>
           service.privateWsService.subscribeForOrder(
             strategy.apiKey,
             strategy.ex,
             strategy.tradeType,
-            order,
+            ids,
           );
         if (strategy.apiKey) {
           return sub();
@@ -91,6 +88,24 @@ export class StrategyService {
             strategy.apiKey = UserExAccount.buildExApiKey(ua);
             return sub();
           }),
+        );
+      },
+      async waitForOrder(
+        ids: OrderIds,
+        timeoutSeconds?: number,
+      ): Promise<ExOrder> {
+        if (!strategy.apiKey) {
+          const ua = await UserExAccount.findOneBy({
+            id: strategy.userExAccountId,
+          });
+          strategy.apiKey = UserExAccount.buildExApiKey(ua);
+        }
+        return service.privateWsService.waitForOrder(
+          strategy.apiKey,
+          strategy.ex,
+          strategy.tradeType,
+          ids,
+          timeoutSeconds,
         );
       },
     };

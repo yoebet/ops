@@ -69,12 +69,6 @@ export interface PlaceTpslOrderParams extends PlaceOrderParams {
 
 export interface PlaceOrderReturns {
   rawParams: any;
-  rawOrder: any;
-  orderResp: ExOrderResp;
-}
-
-export interface SyncOrder {
-  rawOrder: any;
   orderResp: ExOrderResp;
 }
 
@@ -94,6 +88,8 @@ export interface AccountAsset {
 }
 
 export type ExKline = FtKline;
+
+export type SyncOrder = ExOrderResp;
 
 export interface ExWsKline extends ExKline {
   ex: ExchangeCode;
@@ -142,19 +138,19 @@ export interface ExchangeTradeService {
   getOrder(
     apiKey: ExApiKey,
     params: { symbol: string; orderId: string },
-  ): Promise<SyncOrder>;
+  ): Promise<ExOrderResp>;
 
   getOpenOrdersBySymbol(
     apiKey: ExApiKey,
     params: {
       symbol: string;
     },
-  ): Promise<SyncOrder[]>;
+  ): Promise<ExOrderResp[]>;
 
   getAllOpenOrders(
     apiKey: ExApiKey,
     params: { margin: boolean },
-  ): Promise<SyncOrder[]>;
+  ): Promise<ExOrderResp[]>;
 
   getAllOrders(
     apiKey: ExApiKey,
@@ -166,7 +162,7 @@ export interface ExchangeTradeService {
       endTime?: number;
       limit?: number;
     },
-  ): Promise<SyncOrder[]>;
+  ): Promise<ExOrderResp[]>;
 
   getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
 
@@ -193,7 +189,7 @@ export interface ExchangeMarketDataWs {
 }
 
 export interface ExchangePrivateDataWs {
-  orderSubject(): NoParamSubject<SyncOrder>;
+  orderSubject(): NoParamSubject<ExOrderResp>;
 
   shutdown(): void;
 }

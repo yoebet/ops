@@ -1,20 +1,18 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as Rx from 'rxjs';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
-import {
-  ExchangePrivateDataWs,
-  SyncOrder,
-} from '@/exchange/exchange-service-types';
+import { ExchangePrivateDataWs } from '@/exchange/exchange-service-types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { NoParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
-import * as Rx from 'rxjs';
-import { ExOrder } from '@/db/models/ex-order';
+import { ExOrder, ExOrderResp, OrderIds } from '@/db/models/ex-order';
+import { wait } from '@/common/utils/utils';
 
 interface ExOrderWs {
   ws: ExchangePrivateDataWs;
-  exSubject?: NoParamSubject<SyncOrder>;
+  exSubject?: NoParamSubject<ExOrderResp>;
   obs: Rx.Observable<ExOrder>;
   clients: Set<number>;
 }
@@ -32,10 +30,9 @@ export class ExPrivateWsService implements OnApplicationShutdown {
     logger.setContext('ex-private-ws-service');
   }
 
-  private async saveOrder({
-    orderResp,
-    rawOrder,
-  }: SyncOrder): Promise<ExOrder | undefined> {
+  private async saveOrder(
+    orderResp: ExOrderResp,
+  ): Promise<ExOrder | undefined> {
     const { exOrderId, clientOrderId } = orderResp;
     let order: ExOrder;
     if (clientOrderId) {
@@ -55,7 +52,7 @@ export class ExPrivateWsService implements OnApplicationShutdown {
     order.execAmount = orderResp.execAmount;
     order.exCreatedAt = orderResp.exCreatedAt;
     order.exUpdatedAt = orderResp.exUpdatedAt;
-    order.rawOrder = rawOrder;
+    order.rawOrder = orderResp.rawOrder;
 
     await order.save();
     return order;
@@ -117,17 +114,17 @@ export class ExPrivateWsService implements OnApplicationShutdown {
     apiKey: ExApiKey,
     ex: ExchangeCode,
     tradeType: ExTradeType,
-    order: { exOrderId?: string; clientOrderId?: string },
+    ids: OrderIds,
   ): Rx.Observable<ExOrder> {
     const subject = new Rx.Subject<ExOrder>();
     this.subscribeExOrder(apiKey, ex, tradeType).then(({ obs, unsubs }) => {
       obs
         .pipe(
           Rx.filter((o) => {
-            if (order.clientOrderId) {
-              return o.clientOrderId === order.clientOrderId;
+            if (ids.clientOrderId) {
+              return o.clientOrderId === ids.clientOrderId;
             }
-            return o.exOrderId === order.exOrderId;
+            return o.exOrderId === ids.exOrderId;
           }),
         )
         .subscribe({
@@ -143,6 +140,24 @@ export class ExPrivateWsService implements OnApplicationShutdown {
         });
     });
     return subject.asObservable();
+  }
+
+  async waitForOrder(
+    apiKey: ExApiKey,
+    ex: ExchangeCode,
+    tradeType: ExTradeType,
+    ids: OrderIds,
+    timeoutSeconds?: number,
+  ): Promise<ExOrder | undefined> {
+    const obs = this.subscribeForOrder(apiKey, ex, tradeType, ids);
+    const $last = Rx.lastValueFrom(obs);
+    if (!timeoutSeconds) {
+      return $last;
+    }
+    return await Promise.race([
+      $last,
+      wait(timeoutSeconds * 1000).then(() => undefined),
+    ]);
   }
 
   onApplicationShutdown(_signal?: string): any {

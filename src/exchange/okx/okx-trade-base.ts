@@ -73,6 +73,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     if (exo.uTime) {
       exor.exUpdatedAt = new Date(+exo.uTime);
     }
+    exor.rawOrder = exo;
     return exor;
   }
 
@@ -122,7 +123,6 @@ export class OkxTradeBase implements ExchangeTradeService {
     this.logger.log(result);
     return {
       rawParams: op,
-      rawOrder: result,
       orderResp: OkxTradeBase.mapOrderResp(result as any, this.logger),
     };
   }
@@ -189,7 +189,6 @@ export class OkxTradeBase implements ExchangeTradeService {
     this.logger.log(result);
     return {
       rawParams: op,
-      rawOrder: result,
       orderResp: OkxTradeBase.mapOrderResp(result as any, this.logger),
     };
   }
@@ -227,10 +226,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     _params: { margin: boolean },
   ): Promise<SyncOrder[]> {
     const ros = await this.rest.getOpenOrders(apiKey, {});
-    return ros.map((o) => ({
-      rawOrder: o,
-      orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
-    }));
+    return ros.map((o) => OkxTradeBase.mapOrderResp(o, this.logger));
   }
 
   async getOpenOrdersBySymbol(
@@ -240,10 +236,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     const ros = await this.rest.getOpenOrders(apiKey, {
       instId: params.symbol,
     });
-    return ros.map((o) => ({
-      rawOrder: o,
-      orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
-    }));
+    return ros.map((o) => OkxTradeBase.mapOrderResp(o, this.logger));
   }
 
   async getOrder(
@@ -254,10 +247,7 @@ export class OkxTradeBase implements ExchangeTradeService {
       instId: params.symbol,
       ordId: params.orderId,
     });
-    return {
-      rawOrder: ro,
-      orderResp: OkxTradeBase.mapOrderResp(ro as any, this.logger),
-    };
+    return OkxTradeBase.mapOrderResp(ro as any, this.logger);
   }
 
   async getAllOrders(
@@ -280,10 +270,7 @@ export class OkxTradeBase implements ExchangeTradeService {
       end: params.endTime,
       limit: params.limit,
     });
-    return ros.map((o) => ({
-      rawOrder: o,
-      orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
-    }));
+    return ros.map((o) => OkxTradeBase.mapOrderResp(o, this.logger));
   }
 
   async getMaxAvailableSize(

@@ -61,10 +61,10 @@ export class BinanceTradeSpot extends BinanceTradeBase {
     this.logger.log(result);
     return {
       rawParams: sop,
-      rawOrder: result,
       orderResp: {
-        exOrderId: '',
+        exOrderId: '' + result.orderId,
         status: OrderStatus.pending,
+        rawOrder: result,
       },
     };
   }
@@ -127,10 +127,7 @@ export class BinanceTradeSpot extends BinanceTradeBase {
       symbol: params.symbol,
       orderId: params.orderId,
     });
-    return {
-      rawOrder: o,
-      orderResp: this.mapOrderResp(o),
-    };
+    return this.mapOrderResp(o);
   }
 
   async getAllOrders(

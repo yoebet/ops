@@ -38,3 +38,6 @@ export function round(num: number, digits, _type?: 'price' | 'size'): string {
   }
   return '' + num;
 }
+
+export const MINUTE_MS = 60 * 1000;
+export const HOUR_MS = 60 * MINUTE_MS;

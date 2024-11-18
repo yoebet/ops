@@ -4,11 +4,6 @@ import { ExTradeType } from '@/db/models/exchange-types';
 import { ExOrder } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';
 
-export type DealOrder = Pick<
-  ExOrder,
-  'id' | 'exOrderId' | 'clientOrderId' | 'side' | 'execPrice' | 'execAmount'
->;
-
 @Entity()
 export class StrategyDeal extends ExSymbolBase {
   @Column()
@@ -25,11 +20,11 @@ export class StrategyDeal extends ExSymbolBase {
   @Column()
   tradeType: ExTradeType;
 
-  @Column('jsonb', { nullable: true })
-  pendingOrder?: DealOrder;
+  @Column({ nullable: true })
+  pendingOrderId?: number;
 
-  @Column('jsonb', { nullable: true })
-  lastOrder?: DealOrder;
+  @Column({ nullable: true })
+  lastOrderId?: number;
 
   @Column('numeric', { nullable: true })
   pnlUsd?: number;
@@ -42,6 +37,12 @@ export class StrategyDeal extends ExSymbolBase {
 
   @Column('jsonb', { select: false, nullable: true })
   execInfo?: any;
+
+  @Column({ nullable: true })
+  paperTrade?: boolean;
+
+  pendingOrder?: ExOrder;
+  lastOrder?: ExOrder;
 
   static newStrategyDeal(strategy: Strategy): StrategyDeal {
     const deal = new StrategyDeal();

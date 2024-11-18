@@ -13,11 +13,12 @@ export enum OrderStatus {
   rejected = 'rejected',
 }
 
-export interface ExOrderResp {
+export interface OrderIds {
   exOrderId?: string;
-
   clientOrderId?: string;
+}
 
+export interface ExOrderResp extends OrderIds {
   status: OrderStatus;
 
   execPrice?: number;
@@ -29,6 +30,8 @@ export interface ExOrderResp {
   exCreatedAt?: Date;
 
   exUpdatedAt?: Date;
+
+  rawOrder?: any;
 }
 
 @Entity()
@@ -109,6 +112,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   moveActivePrice?: number;
 
   // ---
+
+  @Column({ nullable: true })
+  paperTrade?: boolean;
 
   @Index()
   @Column({ nullable: true })

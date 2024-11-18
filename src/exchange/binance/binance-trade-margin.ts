@@ -62,10 +62,10 @@ export class BinanceTradeMargin extends BinanceTradeBase {
     this.logger.log(result);
     return {
       rawParams: mop,
-      rawOrder: result,
       orderResp: {
         exOrderId: '',
         status: OrderStatus.pending,
+        rawOrder: result,
       },
     };
   }
@@ -133,10 +133,7 @@ export class BinanceTradeMargin extends BinanceTradeBase {
       symbol: params.symbol,
       orderId: params.orderId,
     });
-    return {
-      rawOrder: o,
-      orderResp: this.mapOrderResp(o),
-    };
+    return this.mapOrderResp(o);
   }
 
   async getAllOrders(

@@ -69,14 +69,12 @@ export abstract class BinanceTradeBase implements ExchangeTradeService {
     if (exo.updateTime) {
       exor.exUpdatedAt = new Date(+exo.updateTime);
     }
+    exor.rawOrder = exo;
     return exor;
   }
 
   mapSyncOrderReturns(os: Partial<OrderResponse>[]): SyncOrder[] {
-    return os.map((o) => ({
-      rawOrder: o,
-      orderResp: this.mapOrderResp(o),
-    }));
+    return os.map((o) => this.mapOrderResp(o));
   }
 
   abstract cancelBatchOrders(
