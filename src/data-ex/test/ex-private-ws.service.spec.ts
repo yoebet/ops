@@ -1,9 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { SystemConfigModule } from '@/common-services/system-config.module';
-import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
+import { ExDataModule } from '@/data-ex/ex-data.module';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { wait } from '@/common/utils/utils';
-import { ExPrivateWsService } from '@/data-ex-ws/ex-private-ws.service';
+import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { TestConfig } from '@/env.local.test';
 
 jest.setTimeout(500_000);
@@ -17,7 +17,7 @@ describe('ex-private-ws-service', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, ExWsModule],
+      imports: [SystemConfigModule, ExDataModule],
       providers: [],
     }).compile();
 

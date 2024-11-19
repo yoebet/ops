@@ -3,7 +3,7 @@ import { SystemConfigModule } from '@/common-services/system-config.module';
 import { StrategyService } from '@/trade-strategy/strategy.service';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { JobsModule } from '@/job/jobs.module';
-import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
+import { ExDataModule } from '@/data-ex/ex-data.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
 
 const services: Provider[] = [StrategyService];
@@ -14,7 +14,7 @@ const services: Provider[] = [StrategyService];
     MarketDataModule,
     JobsModule,
     ExchangeModule,
-    ExWsModule,
+    ExDataModule,
   ],
   providers: services,
   exports: services,

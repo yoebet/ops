@@ -6,18 +6,34 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
 import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
-import { MINUTE_MS, wait } from '@/common/utils/utils';
+import { HOUR_MS, MINUTE_MS, SECOND_MS, wait } from '@/common/utils/utils';
+import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
 
 interface StartupParams {
-  waitForPercent: number;
+  waitForPercent?: number;
+  activePercent?: number;
   drawbackPercent: number;
 }
 
 interface RuntimeParams {
-  basePointPrice?: number;
-  placeMovingOrderPrice?: number;
+  startingPrice?: number;
+  placeOrderPrice?: number;
+  orderPlaced?: boolean;
+
+  // basePointPrice?: number;
   activePrice?: number;
+  activePriceReached?: boolean;
+  fillingPrice?: number;
+  fillingPriceReached?: boolean;
 }
+
+declare type WatchLevel =
+  | 'hibernate' // 2h
+  | 'sleep' // 30m
+  | 'snap' // 5m
+  | 'loose' // 1m
+  | 'medium' // 5s
+  | 'intense'; // ws
 
 export class SimpleMoveTracing extends BaseStrategyRunner {
   constructor(
@@ -48,27 +64,33 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     while (true) {
       await this.loadOrCreateDeal();
 
-      await this.checkAndProcessPendingOrder();
+      await this.processPendingOrder();
 
       await this.prepareParams();
 
+      await strategy.save();
+
       while (true) {
         try {
-          // check commands
-
-          const op = await this.checkTradeOpportunity();
-          // break
-          if (op) {
-            // trade
-            //
+          const { placeOrder } = await this.checkAndWaitOpportunity();
+          if (placeOrder) {
+            await this.placeOrder();
           }
-          await wait(5 * MINUTE_MS);
+
+          await this.checkCommands();
         } catch (e) {
           this.logger.error(e);
           await wait(MINUTE_MS);
         }
+        if (!this.strategy.active) {
+          break;
+        }
       }
     }
+  }
+
+  protected async checkCommands() {
+    // reload strategy?
   }
 
   protected async createNewDeal() {
@@ -84,7 +106,6 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
   protected async loadOrCreateDeal() {
     const strategy = this.strategy;
     let currentDeal: StrategyDeal;
-    let strategyChanged = false;
     if (strategy.currentDealId) {
       currentDeal = await StrategyDeal.findOneBy({
         id: strategy.currentDealId,
@@ -94,7 +115,6 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
           currentDeal = undefined;
           strategy.currentDeal = undefined;
           strategy.currentDealId = undefined;
-          strategyChanged = true;
         }
       }
     }
@@ -112,14 +132,34 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       }
     } else {
       await this.createNewDeal();
-      strategyChanged = true;
-    }
-    if (strategyChanged) {
-      await Strategy.save(strategy);
     }
   }
 
-  protected async checkAndProcessPendingOrder() {
+  protected async closeDeal(deal: StrategyDeal) {
+    const orders = await ExOrder.find({
+      select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
+      where: { dealId: deal.id, status: OrderStatus.filled },
+    });
+    const cal = (side: TradeSide) => {
+      const sideOrders = orders.filter((o) => o.side === side);
+      if (sideOrders.length === 1) {
+        return [sideOrders[0].execSize, sideOrders[0].execSize];
+      }
+      const size = _.sumBy(sideOrders, 'execSize');
+      const amount = _.sumBy(sideOrders, 'execAmount');
+      const avgPrice = amount / size;
+      return [size, avgPrice];
+    };
+    const [buySize, buyAvgPrice] = cal(TradeSide.buy);
+    const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
+    const settleSize = Math.max(buySize, sellSize);
+    // .. USD
+    deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+    deal.status = 'closed';
+    await deal.save();
+  }
+
+  protected async processPendingOrder() {
     const strategy = this.strategy;
     const currentDeal = strategy.currentDeal;
     if (!currentDeal?.pendingOrder) {
@@ -127,7 +167,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     }
     if (ExOrder.OrderFinished(currentDeal.pendingOrder)) {
       currentDeal.lastOrder = currentDeal.pendingOrder;
-      await StrategyDeal.save(currentDeal);
+      await currentDeal.save();
     } else {
       const pendingOrder = currentDeal?.pendingOrder;
       // check is market price
@@ -156,27 +196,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       return;
     }
 
-    const orders = await ExOrder.find({
-      select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
-      where: { dealId: currentDeal.id, status: OrderStatus.filled },
-    });
-    const cal = (side: TradeSide) => {
-      const sideOrders = orders.filter((o) => o.side === side);
-      if (sideOrders.length === 1) {
-        return [sideOrders[0].execSize, sideOrders[0].execSize];
-      }
-      const size = _.sumBy(sideOrders, 'execSize');
-      const amount = _.sumBy(sideOrders, 'execAmount');
-      const avgPrice = amount / size;
-      return [size, avgPrice];
-    };
-    const [buySize, buyAvgPrice] = cal(TradeSide.buy);
-    const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
-    const settleSize = Math.max(buySize, sellSize);
-    // .. USD
-    currentDeal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
-    currentDeal.status = 'closed';
-    await currentDeal.save();
+    await this.closeDeal(currentDeal);
 
     await this.createNewDeal();
     await strategy.save();
@@ -192,40 +212,140 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       strategy.nextTradeSide =
         lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
       if (lastSide !== strategy.nextTradeSide) {
-        this.resetBp(lastOrder.execPrice);
+        this.resetStartingPrice(lastOrder.execPrice);
       }
     }
     const runtimeParams = strategy.runtimeParams as RuntimeParams;
-    if (!runtimeParams.basePointPrice) {
-      const basePointPrice = await this.helper.getLastPrice();
-      this.resetBp(basePointPrice);
+    if (!runtimeParams.startingPrice) {
+      const startingPrice = await this.helper.getLastPrice();
+      this.resetStartingPrice(startingPrice);
     }
   }
 
-  protected resetBp(basePointPrice: number) {
+  protected resetStartingPrice(startingPrice: number) {
     const strategy = this.strategy;
-    const runtimeParams = strategy.runtimeParams as RuntimeParams;
-    runtimeParams.basePointPrice = basePointPrice;
+    let runtimeParams = strategy.runtimeParams as RuntimeParams;
+    if (runtimeParams.orderPlaced) {
+      return;
+    }
+    runtimeParams = strategy.runtimeParams = {};
+    runtimeParams.startingPrice = startingPrice;
     const strategyParams: StartupParams = strategy.params;
     const wfp = strategyParams.waitForPercent;
+    if (!wfp) {
+      return;
+    }
     const ratio =
       strategy.nextTradeSide === TradeSide.buy ? 1 - wfp / 100 : 1 + wfp / 100;
-    runtimeParams.placeMovingOrderPrice = runtimeParams.basePointPrice * ratio;
+    runtimeParams.placeOrderPrice = runtimeParams.startingPrice * ratio;
   }
 
-  protected async checkTradeOpportunity(): Promise<boolean> {
-    const strategy = this.strategy;
-    const tradeSide = strategy.nextTradeSide;
-    const currentDeal = strategy.currentDeal!;
-    const strategyParams: StartupParams = strategy.params;
-    const runtimeParams: RuntimeParams = strategy.runtimeParams;
+  protected evalDiffPercent(base: number, target: number) {
+    return ((target - base) / base) * 100;
+  }
 
-    if (tradeSide === TradeSide.buy) {
-      //
-    } else {
-      //
+  protected async checkAndWaitOpportunity(): Promise<{
+    placeOrder?: boolean;
+    watchLevel?: WatchLevel;
+  }> {
+    while (true) {
+      const strategy = this.strategy;
+      const runtimeParams: RuntimeParams = strategy.runtimeParams;
+
+      const lastPrice = await this.helper.getLastPrice();
+
+      if (!runtimeParams.placeOrderPrice) {
+        runtimeParams.placeOrderPrice = lastPrice;
+        return { placeOrder: true };
+      }
+
+      const placeOrderPrice = runtimeParams.placeOrderPrice;
+
+      if (strategy.nextTradeSide === TradeSide.buy) {
+        if (lastPrice <= placeOrderPrice) {
+          return { placeOrder: true };
+        }
+      } else {
+        if (lastPrice >= placeOrderPrice) {
+          return { placeOrder: true };
+        }
+      }
+
+      const diffPercent = this.evalDiffPercent(lastPrice, placeOrderPrice);
+      const diffPercentAbs = Math.abs(diffPercent);
+
+      const intenseWatchThreshold = 0.3;
+      const intenseWatchExitThreshold = 0.1;
+
+      let watchLevel: WatchLevel;
+      if (diffPercentAbs <= intenseWatchThreshold) {
+        watchLevel = 'intense';
+      } else if (diffPercentAbs < 1) {
+        watchLevel = 'medium';
+      } else if (diffPercentAbs < 2) {
+        watchLevel = 'loose';
+      } else if (diffPercentAbs < 5) {
+        watchLevel = 'snap';
+      } else if (diffPercentAbs < 10) {
+        watchLevel = 'sleep';
+      } else {
+        watchLevel = 'hibernate';
+      }
+      this.logger.log(`watch level: ${watchLevel}`);
+
+      switch (watchLevel) {
+        case 'intense':
+          let watchRtPriceParams: WatchRtPriceParams;
+          if (strategy.nextTradeSide === TradeSide.buy) {
+            watchRtPriceParams = {
+              lowerBound: placeOrderPrice,
+              upperBound: lastPrice * (1 + intenseWatchExitThreshold / 100),
+            };
+          } else {
+            watchRtPriceParams = {
+              lowerBound: lastPrice * (1 - intenseWatchExitThreshold / 100),
+              upperBound: placeOrderPrice,
+            };
+          }
+          const result = await this.helper.watchRtPrice({
+            ...watchRtPriceParams,
+            timeoutSeconds: 10 * 60,
+          });
+          if (result.timeout) {
+            return {};
+          }
+          if (strategy.nextTradeSide === TradeSide.buy) {
+            if (result.reachLower) {
+              return { placeOrder: true };
+            }
+          } else {
+            if (result.reachLower) {
+              return { placeOrder: true };
+            }
+          }
+          break;
+        case 'medium':
+          await wait(5 * SECOND_MS);
+          break;
+        case 'loose':
+          await wait(MINUTE_MS);
+          break;
+        case 'snap':
+          await wait(5 * MINUTE_MS);
+          break;
+        case 'sleep':
+          await wait(30 * MINUTE_MS);
+          break;
+        case 'hibernate':
+          await wait(2 * HOUR_MS);
+          break;
+      }
+
+      await this.checkCommands();
     }
+  }
 
-    return true;
+  protected async placeOrder() {
+    //
   }
 }

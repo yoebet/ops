@@ -4,7 +4,7 @@ import { ExAssetService } from '@/ex-sync/ex-asset.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { JobsModule } from '@/job/jobs.module';
-import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
+import { ExDataModule } from '@/data-ex/ex-data.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
 
 const services: Provider[] = [ExAssetService, ExOrderService];
@@ -15,7 +15,7 @@ const services: Provider[] = [ExAssetService, ExOrderService];
     MarketDataModule,
     JobsModule,
     ExchangeModule,
-    ExWsModule,
+    ExDataModule,
   ],
   providers: services,
   exports: services,

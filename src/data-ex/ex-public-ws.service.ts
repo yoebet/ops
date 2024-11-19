@@ -4,10 +4,11 @@ import { SymbolService } from '@/common-services/symbol.service';
 import { ConfigService } from '@nestjs/config';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
-import { TickerHandler } from '@/data-ex-ws/ticker-handler';
-import { KlineHandler } from '@/data-ex-ws/kline-handler';
+import { TickerHandler } from '@/data-ex/ticker-handler';
+import { KlineHandler } from '@/data-ex/kline-handler';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { Observable, Subject } from 'rxjs';
+import * as Rx from 'rxjs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
 import {
   ExWsKline,
@@ -15,6 +16,7 @@ import {
   ExchangeMarketDataWs,
 } from '@/exchange/exchange-service-types';
 import { Exchanges } from '@/exchange/exchanges';
+import { wait } from '@/common/utils/utils';
 
 interface ExMarketWs {
   ex: ExchangeCode;
@@ -25,6 +27,19 @@ interface ExMarketWs {
   klineSubjects: {
     [interval: string]: SymbolParamSubject<ExWsKline>;
   };
+}
+
+export interface WatchRtPriceParams {
+  lowerBound: number;
+  upperBound: number;
+  timeoutSeconds?: number;
+}
+
+export interface WatchRtPriceResult {
+  price: number;
+  timeout?: boolean;
+  reachLower?: boolean;
+  reachUpper?: boolean;
 }
 
 @Injectable()
@@ -138,6 +153,43 @@ export class ExPublicWsService implements OnApplicationShutdown {
         }
       },
     };
+  }
+
+  async watchRtPrice(
+    ex: ExchangeCode,
+    symbol: string,
+    params: WatchRtPriceParams,
+  ): Promise<WatchRtPriceResult> {
+    const { lowerBound, upperBound, timeoutSeconds } = params;
+    const { obs, unsubs } = await this.subscribeRtPrice(ex, symbol);
+    let price: number;
+    const obs2 = obs.pipe(
+      Rx.filter((rtPrice) => {
+        price = rtPrice.price;
+        return price < lowerBound || price > upperBound;
+      }),
+    );
+    let $result = Rx.firstValueFrom(obs2, { defaultValue: unsubs });
+    if (timeoutSeconds) {
+      $result = Promise.race([
+        $result,
+        wait(timeoutSeconds * 1000).then(() => undefined),
+      ]);
+    }
+    const result = await $result;
+    unsubs();
+    if (!result) {
+      return {
+        price,
+        timeout: true,
+      };
+    }
+    if (price <= lowerBound) {
+      return { price, reachLower: true };
+    }
+    if (price >= upperBound) {
+      return { price, reachUpper: true };
+    }
   }
 
   private setupRtKlineReceiver(

@@ -1,18 +1,18 @@
 import { Test } from '@nestjs/testing';
 import { SystemConfigModule } from '@/common-services/system-config.module';
-import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
-import { ExPublicWsService } from '@/data-ex-ws/ex-public-ws.service';
+import { ExDataModule } from '@/data-ex/ex-data.module';
+import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExchangeCode } from '@/db/models/exchange-types';
-import { wait } from '@/common/utils/utils';
+import { HOUR_MS, wait } from '@/common/utils/utils';
 
 jest.setTimeout(500_000);
 
-describe('ex-private-ws-service', () => {
+describe('ex-public-ws-service', () => {
   let service: ExPublicWsService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, ExWsModule],
+      imports: [SystemConfigModule, ExDataModule],
       providers: [],
     }).compile();
 
@@ -54,7 +54,16 @@ describe('ex-private-ws-service', () => {
       );
     }
 
-    await wait(60 * 60 * 1000);
+    await wait(HOUR_MS);
+  });
+
+  it('watch price', async () => {
+    const result = await service.watchRtPrice(ExchangeCode.okx, 'BTC/USDT', {
+      lowerBound: 91600,
+      upperBound: 91700,
+      timeoutSeconds: 5 * 60,
+    });
+    console.log(result);
   });
 
   it('sub btc kline 1s', async () => {
@@ -93,6 +102,6 @@ describe('ex-private-ws-service', () => {
       );
     }
 
-    await wait(60 * 60 * 1000);
+    await wait(HOUR_MS);
   });
 });

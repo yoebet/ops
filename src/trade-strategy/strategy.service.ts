@@ -9,22 +9,29 @@ import {
   ExTradeType,
 } from '@/db/models/exchange-types';
 import { UserExAccount } from '@/db/models/user-ex-account';
-import { ExPublicWsService } from '@/data-ex-ws/ex-public-ws.service';
-import { ExPrivateWsService } from '@/data-ex-ws/ex-private-ws.service';
-import { ExKline } from '@/exchange/exchange-service-types';
+import {
+  ExPublicWsService,
+  WatchRtPriceParams,
+  WatchRtPriceResult,
+} from '@/data-ex/ex-public-ws.service';
+import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
+import {
+  ExchangeTradeService,
+  ExKline,
+} from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
 import { StrategyTemplate } from '@/db/models/strategy-template';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
+import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 
 @Injectable()
 export class StrategyService {
-  private latestPrices = new Map<string, { last: number; ts: number }>();
-
   constructor(
     private exchanges: Exchanges,
+    private exPublicDataService: ExPublicDataService,
     private publicWsService: ExPublicWsService,
     private privateWsService: ExPrivateWsService,
     private logger: AppLogger,
@@ -47,7 +54,7 @@ export class StrategyService {
         rawSymbol?: string;
         cacheTimeLimit?: number;
       }): Promise<number> {
-        return service.getLastPrice(
+        return service.exPublicDataService.getLastPrice(
           params?.ex || strategy.ex,
           params?.market || strategy.market,
           params?.rawSymbol || strategy.rawSymbol,
@@ -61,13 +68,23 @@ export class StrategyService {
         interval: string;
         limit?: number;
       }): Promise<ExKline[]> {
-        return service.getLatestKlines(
+        return service.exPublicDataService.getLatestKlines(
           params.ex || strategy.ex,
           params.market || strategy.market,
           params.rawSymbol || strategy.rawSymbol,
           params.interval,
         );
       },
+      async watchRtPrice(
+        params: WatchRtPriceParams & { ex?: ExchangeCode; symbol?: string },
+      ): Promise<WatchRtPriceResult> {
+        return service.publicWsService.watchRtPrice(
+          params.ex || strategy.ex,
+          params.symbol || strategy.symbol,
+          params,
+        );
+      },
+
       subscribeForOrder(ids: OrderIds): Observable<ExOrder> {
         const sub = () =>
           service.privateWsService.subscribeForOrder(
@@ -108,6 +125,12 @@ export class StrategyService {
           timeoutSeconds,
         );
       },
+      getExTradeService(): ExchangeTradeService {
+        return service.exchanges.getExTradeService(
+          strategy.ex,
+          strategy.tradeType,
+        );
+      },
     };
 
     // TODO: register
@@ -134,46 +157,5 @@ export class StrategyService {
       ex,
       tradeType,
     );
-  }
-
-  async getLastPrice(
-    ex: ExchangeCode,
-    market: ExMarket,
-    rawSymbol: string,
-    cacheTimeLimit = 5000,
-  ): Promise<number> {
-    const key = `${ex}:${market}:${rawSymbol}`;
-    let lastPrice = this.latestPrices.get(key);
-    if (lastPrice && Date.now() - lastPrice.ts <= cacheTimeLimit) {
-      return lastPrice.last;
-    }
-    const dataService = this.exchanges.getExMarketDataService(ex, market);
-    lastPrice = await dataService.getPrice(rawSymbol);
-    this.latestPrices.set(key, lastPrice);
-    return lastPrice.last;
-  }
-
-  // okx: 1m+
-  // binance: 1s+
-  // old to new
-  async getLatestKlines(
-    ex: ExchangeCode,
-    market: ExMarket,
-    rawSymbol: string,
-    interval: string,
-    limit = 60,
-  ): Promise<ExKline[]> {
-    const dataService = this.exchanges.getExMarketDataService(ex, market);
-    let klines = await dataService.getKlines({
-      symbol: rawSymbol,
-      interval,
-      limit,
-    });
-    if (klines.length > 0) {
-      if (klines[0].ts > klines[klines.length - 1].ts) {
-        klines = klines.reverse();
-      }
-    }
-    return klines;
   }
 }

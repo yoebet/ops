@@ -13,7 +13,7 @@ import { ExchangeController } from '@/controller/exchange.controller';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { AppServers } from '@/app-servers';
 import { AdminLoggerController } from '@/controller/admin-logger.controller';
-import { ExWsModule } from '@/data-ex-ws/ex-ws.module';
+import { ExDataModule } from '@/data-ex/ex-data.module';
 import { AuthModule } from '@/common-web/auth/auth.module';
 import { JobsModule } from '@/job/jobs.module';
 import { StrategyModule } from '@/trade-strategy/strategy.module';
@@ -27,7 +27,7 @@ import { ExSyncModule } from '@/ex-sync/ex-sync.module';
     AuthModule,
     SystemConfigModule,
     MarketDataModule,
-    ExWsModule,
+    ExDataModule,
     StrategyModule,
     ExSyncModule,
   ],
