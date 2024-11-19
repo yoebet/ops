@@ -3,15 +3,15 @@ import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { TradeSide } from '@/data-service/models/base';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
-import { StrategyTemplate } from '@/db/models/strategy-template';
 import { StrategyDeal } from '@/db/models/strategy-deal';
+import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 @Entity()
-@Unique(['templateId', 'userExAccountId', 'tradeType', 'symbol'])
+@Unique(['templateCode', 'userExAccountId', 'tradeType', 'symbol'])
 export class Strategy extends ExSymbolBase {
   @Column()
   @Index()
-  templateId: number;
+  templateCode: string;
 
   @Column()
   name: string;
@@ -44,10 +44,10 @@ export class Strategy extends ExSymbolBase {
   // @Column('numeric', { nullable: true })
   // accumulatedPnlUsd?: number;
 
-  @Column('jsonb', { select: false, nullable: true })
+  @Column('jsonb', { nullable: true })
   params?: any;
 
-  @Column('jsonb', { select: false, nullable: true })
+  @Column('jsonb', { nullable: true })
   runtimeParams?: any;
 
   @Column({ nullable: true })
@@ -56,7 +56,8 @@ export class Strategy extends ExSymbolBase {
   @Column({ nullable: true })
   jobSummited?: boolean;
 
-  template?: StrategyTemplate;
+  // template?: StrategyTemplate;
   apiKey?: ExApiKey;
   currentDeal?: StrategyDeal;
+  exchangeSymbol?: ExchangeSymbol;
 }

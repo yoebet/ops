@@ -42,9 +42,9 @@ export class StrategyService {
   async start() {}
 
   async runStrategy(strategy: Strategy) {
-    strategy.template = await StrategyTemplate.findOneBy({
-      id: strategy.templateId,
-    });
+    // strategy.template = await StrategyTemplate.findOneBy({
+    //   id: strategy.templateId,
+    // });
 
     const service = this;
     const helper: StrategyHelper = {
@@ -125,7 +125,7 @@ export class StrategyService {
           timeoutSeconds,
         );
       },
-      getExTradeService(): ExchangeTradeService {
+      getTradeService(): ExchangeTradeService {
         return service.exchanges.getExTradeService(
           strategy.ex,
           strategy.tradeType,
@@ -134,11 +134,11 @@ export class StrategyService {
     };
 
     // TODO: register
-    if (strategy.template.code === 'AA') {
+    if (strategy.templateCode === 'AA') {
       const runner = new SimpleMoveTracing(
         strategy,
         helper,
-        this.logger.subLogger(`${strategy.template.code}/${strategy.id}`),
+        this.logger.subLogger(`${strategy.templateCode}/${strategy.id}`),
       );
       // TODO: job
       runner.start().catch((err: Error) => {

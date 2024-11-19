@@ -15,6 +15,6 @@ export class StrategyTemplate extends BaseModel {
   @Column({ nullable: true })
   tradeType?: ExTradeType;
 
-  @Column('jsonb', { select: false, nullable: true })
+  @Column('jsonb', { nullable: true })
   params?: any;
 }

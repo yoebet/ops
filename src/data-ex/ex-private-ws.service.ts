@@ -30,10 +30,8 @@ export class ExPrivateWsService implements OnApplicationShutdown {
     logger.setContext('ex-private-ws-service');
   }
 
-  private async saveOrder(
-    orderResp: ExOrderResp,
-  ): Promise<ExOrder | undefined> {
-    const { exOrderId, clientOrderId } = orderResp;
+  private async saveOrder(res: ExOrderResp): Promise<ExOrder | undefined> {
+    const { exOrderId, clientOrderId } = res;
     let order: ExOrder;
     if (clientOrderId) {
       order = await ExOrder.findOneBy({ clientOrderId });
@@ -44,15 +42,15 @@ export class ExPrivateWsService implements OnApplicationShutdown {
       // UserExAccount
       return undefined;
     }
-    order.exOrderId = orderResp.exOrderId;
-    order.clientOrderId = orderResp.clientOrderId;
-    order.status = orderResp.status;
-    order.execPrice = orderResp.execPrice;
-    order.execSize = orderResp.execSize;
-    order.execAmount = orderResp.execAmount;
-    order.exCreatedAt = orderResp.exCreatedAt;
-    order.exUpdatedAt = orderResp.exUpdatedAt;
-    order.rawOrder = orderResp.rawOrder;
+    order.exOrderId = res.exOrderId;
+    order.clientOrderId = res.clientOrderId;
+    order.status = res.status;
+    order.execPrice = res.execPrice;
+    order.execSize = res.execSize;
+    order.execAmount = res.execAmount;
+    order.exCreatedAt = res.exCreatedAt;
+    order.exUpdatedAt = res.exUpdatedAt;
+    order.rawOrder = res.rawOrder;
 
     await order.save();
     return order;

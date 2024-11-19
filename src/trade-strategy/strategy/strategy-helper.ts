@@ -40,5 +40,5 @@ export interface StrategyHelper {
     timeoutSeconds?: number,
   ): Promise<ExOrder | undefined>;
 
-  getExTradeService(): ExchangeTradeService;
+  getTradeService(): ExchangeTradeService;
 }

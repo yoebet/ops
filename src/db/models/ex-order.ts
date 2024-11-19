@@ -5,6 +5,7 @@ import { ExTradeType } from '@/db/models/exchange-types';
 
 export enum OrderStatus {
   notSummited = 'notSummited',
+  summitFailed = 'summitFailed',
   pending = 'pending',
   partialFilled = 'partialFilled',
   filled = 'filled',
@@ -147,5 +148,11 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
       OrderStatus.pending,
       OrderStatus.partialFilled,
     ].includes(order.status);
+  }
+
+  static OrderToWait(order: ExOrder): boolean {
+    return [OrderStatus.pending, OrderStatus.partialFilled].includes(
+      order.status,
+    );
   }
 }
