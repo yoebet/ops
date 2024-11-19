@@ -22,7 +22,6 @@ import {
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
-import { StrategyTemplate } from '@/db/models/strategy-template';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
@@ -42,10 +41,6 @@ export class StrategyService {
   async start() {}
 
   async runStrategy(strategy: Strategy) {
-    // strategy.template = await StrategyTemplate.findOneBy({
-    //   id: strategy.templateId,
-    // });
-
     const service = this;
     const helper: StrategyHelper = {
       getLastPrice(params?: {

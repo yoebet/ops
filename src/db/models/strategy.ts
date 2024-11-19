@@ -10,7 +10,7 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 @Unique(['templateCode', 'userExAccountId', 'tradeType', 'symbol'])
 export class Strategy extends ExSymbolBase {
   @Column()
-  @Index()
+  // @Index()
   templateCode: string;
 
   @Column()
@@ -36,7 +36,10 @@ export class Strategy extends ExSymbolBase {
   nextTradeSide?: TradeSide;
 
   @Column('numeric', { nullable: true })
-  quotaAmount?: number;
+  baseSize?: number;
+
+  @Column('numeric', { nullable: true })
+  quoteAmount?: number;
 
   @Column()
   active: boolean;

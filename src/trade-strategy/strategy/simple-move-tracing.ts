@@ -19,8 +19,6 @@ interface StartupParams {
   waitForPercent?: number;
   activePercent?: number;
   drawbackPercent: number;
-  orderSize?: number;
-  orderAmount?: number;
 }
 
 interface RuntimeParams {
@@ -250,12 +248,11 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     const currentDeal = strategy.currentDeal;
 
     const strategyParams: StartupParams = strategy.params;
-    const { orderSize, orderAmount, activePercent, drawbackPercent } =
-      strategyParams;
+    const { activePercent, drawbackPercent } = strategyParams;
     const runtimeParams: RuntimeParams = strategy.runtimeParams;
 
     const tradeSide = strategy.nextTradeSide;
-    let size = orderSize;
+    let size = strategy.baseSize;
 
     const placeOrderPrice = runtimeParams.placeOrderPrice;
     let activePrice: number;
@@ -269,7 +266,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       }
     }
 
-    const quoteAmount = orderAmount || 200;
+    const quoteAmount = strategy.quoteAmount || 200;
     if (!size) {
       if (activePrice) {
         size = quoteAmount / activePrice;
