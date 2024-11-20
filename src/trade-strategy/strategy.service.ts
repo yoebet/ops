@@ -1,31 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import * as Rx from 'rxjs';
-import { Observable } from 'rxjs';
+import { Injectable, Type } from '@nestjs/common';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
-import {
-  ExchangeCode,
-  ExMarket,
-  ExTradeType,
-} from '@/db/models/exchange-types';
-import { UserExAccount } from '@/db/models/user-ex-account';
-import {
-  ExPublicWsService,
-  WatchRtPriceParams,
-  WatchRtPriceResult,
-} from '@/data-ex/ex-public-ws.service';
+import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
+import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
-import {
-  ExchangeTradeService,
-  ExKline,
-} from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
-import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
+import { StrategyEnv } from '@/trade-strategy/strategy-env';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
-import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
+import { StrategyEnvNormal } from '@/trade-strategy/strategy-env-normal';
+import { StrategyEnvMockTrade } from '@/trade-strategy/strategy-env-mock-trade';
 
 @Injectable()
 export class StrategyService {
@@ -43,90 +29,26 @@ export class StrategyService {
   async start() {}
 
   async runStrategy(strategy: Strategy) {
-    const service = this;
-    const helper: StrategyHelper = {
-      getLastPrice(params?: {
-        ex?: ExchangeCode;
-        market?: ExMarket;
-        rawSymbol?: string;
-        cacheTimeLimit?: number;
-      }): Promise<number> {
-        return service.exPublicDataService.getLastPrice(
-          params?.ex || strategy.ex,
-          params?.market || strategy.market,
-          params?.rawSymbol || strategy.rawSymbol,
-          params?.cacheTimeLimit,
-        );
-      },
-      getLatestKlines(params: {
-        ex?: ExchangeCode;
-        market?: ExMarket;
-        rawSymbol?: string;
-        interval: string;
-        limit?: number;
-      }): Promise<ExKline[]> {
-        return service.exPublicDataService.getLatestKlines(
-          params.ex || strategy.ex,
-          params.market || strategy.market,
-          params.rawSymbol || strategy.rawSymbol,
-          params.interval,
-        );
-      },
-      async watchRtPrice(
-        params: WatchRtPriceParams & { ex?: ExchangeCode; symbol?: string },
-      ): Promise<WatchRtPriceResult> {
-        return service.publicWsService.watchRtPrice(
-          params.ex || strategy.ex,
-          params.symbol || strategy.symbol,
-          params,
-        );
-      },
-      async ensureApiKey(): Promise<ExApiKey> {
-        const strategy = this.strategy;
-        if (!strategy.apiKey) {
-          const ua = await UserExAccount.findOneBy({
-            id: strategy.userExAccountId,
-          });
-          strategy.apiKey = UserExAccount.buildExApiKey(ua);
-        }
-        return strategy.apiKey;
-      },
-      subscribeForOrder(ids: OrderIds): Observable<ExOrder> {
-        return Rx.from(this.ensureApiKey()).pipe(
-          Rx.switchMap((_apiKey) => {
-            return service.privateWsService.subscribeForOrder(
-              strategy.apiKey,
-              strategy.ex,
-              strategy.tradeType,
-              ids,
-            );
-          }),
-        );
-      },
-      async waitForOrder(
-        ids: OrderIds,
-        timeoutSeconds?: number,
-      ): Promise<ExOrder> {
-        await this.ensureApiKey();
-        return service.privateWsService.waitForOrder(
-          strategy.apiKey,
-          strategy.ex,
-          strategy.tradeType,
-          ids,
-          timeoutSeconds,
-        );
-      },
-      getTradeService(): ExchangeTradeService {
-        return service.exchanges.getExTradeService(
-          strategy.ex,
-          strategy.tradeType,
-        );
-      },
-      async trySynchronizeOrder(order: ExOrder): Promise<boolean> {
-        await this.ensureApiKey();
-        return service.exOrderService.syncOrder(order, strategy.apiKey);
-      },
-    };
+    let helper: StrategyEnv;
+    if (strategy.paperTrade) {
+      helper = new StrategyEnvMockTrade(
+        strategy,
+        this.exchanges,
+        this.exPublicDataService,
+        this.publicWsService,
+        this.logger.newLogger(`${strategy.name}.mock-env`),
+      );
+    } else {
+      helper = new StrategyEnvNormal(
+        strategy,
+        this.exchanges,
+        this.exPublicDataService,
+        this.publicWsService,
+        this.privateWsService,
+        this.exOrderService,
+        this.logger.newLogger(`${strategy.name}.env`),
+      );
+    }
 
     // TODO: register
     if (strategy.templateCode === 'AA') {

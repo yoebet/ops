@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
-import * as _ from 'lodash';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
-import { ExTradeType } from '@/db/models/exchange-types';
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';

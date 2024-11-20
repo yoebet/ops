@@ -77,11 +77,6 @@ export abstract class BinanceTradeBase implements ExchangeTradeService {
     return os.map((o) => this.mapOrderResp(o));
   }
 
-  abstract cancelBatchOrders(
-    apiKey: ExApiKey,
-    params: { symbol: string; orderId: string }[],
-  ): Promise<any[]>;
-
   abstract cancelOrder(
     apiKey: ExApiKey,
     params: { symbol: string; orderId: string },

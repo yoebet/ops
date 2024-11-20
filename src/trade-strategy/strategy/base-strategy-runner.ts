@@ -1,18 +1,16 @@
 import { AppLogger } from '@/common/app-logger';
 import { Strategy } from '@/db/models/strategy';
-import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
+import { StrategyEnv } from '@/trade-strategy/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import * as _ from 'lodash';
-import { UserExAccount } from '@/db/models/user-ex-account';
-import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 export abstract class BaseStrategyRunner {
   protected constructor(
     protected readonly strategy: Strategy,
-    protected helper: StrategyHelper,
+    protected helper: StrategyEnv,
     protected logger: AppLogger,
   ) {}
 
@@ -92,7 +90,7 @@ export abstract class BaseStrategyRunner {
     if (!currentDeal?.pendingOrder) {
       return;
     }
-    if (ExOrder.OrderFinished(currentDeal.pendingOrder)) {
+    if (ExOrder.orderFinished(currentDeal.pendingOrder.status)) {
       currentDeal.lastOrder = currentDeal.pendingOrder;
       await currentDeal.save();
     } else {
@@ -117,7 +115,7 @@ export abstract class BaseStrategyRunner {
       } else {
         // timeout
         await this.helper.trySynchronizeOrder(pendingOrder);
-        if (ExOrder.OrderFinished(pendingOrder)) {
+        if (ExOrder.orderFinished(pendingOrder.status)) {
           currentDeal.lastOrder = pendingOrder;
           currentDeal.pendingOrder = undefined;
           currentDeal.pendingOrderId = undefined;

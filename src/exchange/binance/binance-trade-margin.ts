@@ -88,13 +88,6 @@ export class BinanceTradeMargin extends BinanceTradeBase {
     });
   }
 
-  async cancelBatchOrders(
-    apiKey: ExApiKey,
-    params: { symbol: string; orderId: string }[],
-  ): Promise<any[]> {
-    throw new Error(`not supported`);
-  }
-
   async cancelOrdersBySymbol(
     apiKey: ExApiKey,
     params: { symbol: string },

@@ -92,7 +92,10 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   algoOrder: boolean;
 
   @Column({ nullable: true })
-  algoType?: 'tp' | 'sl' | 'tpsl' | 'move';
+  tpslType?: 'tp' | 'sl' | 'tpsl' | 'move';
+
+  @Column({ nullable: true })
+  tpslClientOrderId?: string;
 
   @Column('numeric', { nullable: true })
   tpTriggerPrice?: number;
@@ -142,18 +145,16 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column('jsonb', { select: false, nullable: true })
   rawOrder?: any;
 
-  static OrderFinished(order: ExOrder): boolean {
+  static orderFinished(status: OrderStatus): boolean {
     return ![
       OrderStatus.notSummited,
       OrderStatus.pending,
       OrderStatus.partialFilled,
-    ].includes(order.status);
+    ].includes(status);
   }
 
-  static OrderToWait(order: ExOrder): boolean {
-    return [OrderStatus.pending, OrderStatus.partialFilled].includes(
-      order.status,
-    );
+  static orderToWait(status: OrderStatus): boolean {
+    return [OrderStatus.pending, OrderStatus.partialFilled].includes(status);
   }
 
   static setProps(order: ExOrder, res: ExOrderResp): void {

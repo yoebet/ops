@@ -3,7 +3,7 @@ import { AppLogger } from '@/common/app-logger';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
-import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
+import { StrategyEnv } from '@/trade-strategy/strategy-env';
 import {
   evalDiffPercent,
   HOUR_MS,
@@ -43,7 +43,7 @@ declare type WatchLevel =
 export class SimpleMoveTracing extends BaseStrategyRunner {
   constructor(
     protected strategy: Strategy,
-    protected strategyHelper: StrategyHelper,
+    protected strategyHelper: StrategyEnv,
     protected logger: AppLogger,
   ) {
     super(strategy, strategyHelper, logger);
@@ -290,7 +290,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    params.algoType = 'move';
+    params.tpslType = 'move';
     params.baseSize = round(size, exSymbol.baseSizeDigits);
     params.moveDrawbackRatio = (drawbackPercent / 100).toFixed(4);
     if (activePrice) {
@@ -305,7 +305,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     order.baseSize = size;
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = true;
-    order.algoType = params.algoType;
+    order.tpslType = params.tpslType;
     order.moveDrawbackRatio = drawbackPercent / 100;
     order.moveActivePrice = activePrice;
     await order.save();
@@ -325,7 +325,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
         currentDeal.lastOrderId = order.id;
         await order.save();
         await this.onOrderFilled();
-      } else if (ExOrder.OrderToWait(order)) {
+      } else if (ExOrder.orderToWait(order.status)) {
         currentDeal.pendingOrder = order;
         currentDeal.pendingOrderId = order.id;
       } else {

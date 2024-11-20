@@ -11,7 +11,7 @@ import {
 } from '@/data-ex/ex-public-ws.service';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
-export interface StrategyHelper {
+export interface StrategyEnv {
   getLastPrice(params?: {
     ex?: ExchangeCode;
     market?: ExMarket;

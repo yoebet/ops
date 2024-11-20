@@ -55,7 +55,8 @@ export interface PlaceOrderParams {
   reduceOnly?: boolean; // 是否只减仓
 
   algoOrder?: boolean;
-  algoType?: 'tp' | 'sl' | 'tpsl' | 'move';
+  tpslType?: 'tp' | 'sl' | 'tpsl' | 'move';
+  tpslClientOrderId?: string;
   tpTriggerPrice?: string;
   tpOrderPrice?: string; // 委托价格为-1时，执行市价止盈
   slTriggerPrice?: string;
@@ -125,27 +126,27 @@ export interface ExchangeTradeService {
     },
   ): Promise<any>;
 
-  cancelOrdersBySymbol(
-    apiKey: ExApiKey,
-    params: { symbol: string },
-  ): Promise<any>;
+  // cancelOrdersBySymbol(
+  //   apiKey: ExApiKey,
+  //   params: { symbol: string },
+  // ): Promise<any>;
 
-  cancelBatchOrders(
-    apiKey: ExApiKey,
-    params: { symbol: string; orderId: string }[],
-  ): Promise<any[]>;
+  // cancelBatchOrders(
+  //   apiKey: ExApiKey,
+  //   params: { symbol: string; orderId: string }[],
+  // ): Promise<any[]>;
 
   getOrder(
     apiKey: ExApiKey,
     params: { symbol: string; orderId: string },
   ): Promise<ExOrderResp | undefined>;
 
-  getOpenOrdersBySymbol(
-    apiKey: ExApiKey,
-    params: {
-      symbol: string;
-    },
-  ): Promise<ExOrderResp[]>;
+  // getOpenOrdersBySymbol(
+  //   apiKey: ExApiKey,
+  //   params: {
+  //     symbol: string;
+  //   },
+  // ): Promise<ExOrderResp[]>;
 
   getAllOpenOrders(
     apiKey: ExApiKey,

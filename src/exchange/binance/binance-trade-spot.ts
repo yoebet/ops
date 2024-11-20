@@ -87,13 +87,6 @@ export class BinanceTradeSpot extends BinanceTradeBase {
     });
   }
 
-  async cancelBatchOrders(
-    apiKey: ExApiKey,
-    params: { margin: boolean; symbol: string; orderId: string }[],
-  ): Promise<any[]> {
-    throw new Error(`not supported`);
-  }
-
   async cancelOrdersBySymbol(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string },

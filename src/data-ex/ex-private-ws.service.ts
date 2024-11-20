@@ -120,7 +120,7 @@ export class ExPrivateWsService implements OnApplicationShutdown {
         .subscribe({
           next: (order) => {
             subject.next(order);
-            if (ExOrder.OrderFinished(order)) {
+            if (ExOrder.orderFinished(order.status)) {
               subject.complete();
               unsubs();
             }

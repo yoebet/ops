@@ -93,24 +93,24 @@ export class OkxTradeBase implements ExchangeTradeService {
     };
 
     if (
-      params.algoType === 'tp' ||
-      params.algoType === 'sl' ||
-      params.algoType === 'tpsl'
+      params.tpslType === 'tp' ||
+      params.tpslType === 'sl' ||
+      params.tpslType === 'tpsl'
     ) {
-      const biDirection = params.algoType === 'tpsl';
+      const biDirection = params.tpslType === 'tpsl';
       if (biDirection) {
         op.ordType = 'oco';
       }
-      if (params.algoType === 'tp' || params.algoType === 'tpsl') {
+      if (params.tpslType === 'tp' || params.tpslType === 'tpsl') {
         op.tpTriggerPx = params.tpTriggerPrice;
         op.tpOrdPx = params.tpOrderPrice;
         // tpOrdKind
       }
-      if (params.algoType === 'sl' || params.algoType === 'tpsl') {
+      if (params.tpslType === 'sl' || params.tpslType === 'tpsl') {
         op.slTriggerPx = params.slTriggerPrice;
         op.slOrdPx = params.slOrderPrice;
       }
-    } else if (params.algoType === 'move') {
+    } else if (params.tpslType === 'move') {
       op.ordType = 'move_order_stop';
       op.callbackRatio = params.moveDrawbackRatio;
       op.activePx = params.moveActivePrice;
@@ -170,13 +170,15 @@ export class OkxTradeBase implements ExchangeTradeService {
       throw new Error(`missing size`);
     }
 
-    if (params.algoType) {
-      const alp: OrderAlgoParams = {};
-      if (params.algoType === 'tp' || params.algoType === 'tpsl') {
+    if (params.tpslType) {
+      const alp: OrderAlgoParams = {
+        attachAlgoClOrdId: params.tpslClientOrderId,
+      };
+      if (params.tpslType === 'tp' || params.tpslType === 'tpsl') {
         alp.tpTriggerPx = params.tpTriggerPrice;
         alp.tpOrdPx = params.tpOrderPrice;
       }
-      if (params.algoType === 'sl' || params.algoType === 'tpsl') {
+      if (params.tpslType === 'sl' || params.tpslType === 'tpsl') {
         alp.slTriggerPx = params.slTriggerPrice;
         alp.slOrdPx = params.slOrderPrice;
       }

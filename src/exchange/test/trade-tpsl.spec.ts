@@ -87,7 +87,7 @@ describe('Exchange Trade Tpsl', () => {
       params.baseSize = round(size, exSymbol.baseSizeDigits);
     }
 
-    params.algoType = 'tpsl';
+    params.tpslType = 'tpsl';
 
     const tpPrice = price * 1.1;
     const tpTriggerPrice = price * 1.05;
@@ -168,11 +168,11 @@ describe('Exchange Trade Tpsl', () => {
 
     const moving = true;
     if (moving) {
-      params.algoType = 'move';
+      params.tpslType = 'move';
       params.moveDrawbackRatio = '0.05';
       params.moveActivePrice = round(curPrice * 0.9, priceDigits);
     } else {
-      params.algoType = 'tpsl';
+      params.tpslType = 'tpsl';
       const tpPrice = price * 1.1;
       const tpTriggerPrice = price * 1.05;
       const slPrice = price * 0.9;
