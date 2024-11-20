@@ -115,7 +115,7 @@ export abstract class BinanceTradeBase implements ExchangeTradeService {
   abstract getOrder(
     apiKey: ExApiKey,
     params: { symbol: string; orderId: string },
-  ): Promise<SyncOrder>;
+  ): Promise<SyncOrder | undefined>;
 
   abstract getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset>;
 

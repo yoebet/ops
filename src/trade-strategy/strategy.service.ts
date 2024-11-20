@@ -25,6 +25,7 @@ import { StrategyHelper } from '@/trade-strategy/strategy/strategy-helper';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
+import { ExOrderService } from '@/ex-sync/ex-order.service';
 
 @Injectable()
 export class StrategyService {
@@ -33,6 +34,7 @@ export class StrategyService {
     private exPublicDataService: ExPublicDataService,
     private publicWsService: ExPublicWsService,
     private privateWsService: ExPrivateWsService,
+    private exOrderService: ExOrderService,
     private logger: AppLogger,
   ) {
     logger.setContext('Strategy');
@@ -79,26 +81,25 @@ export class StrategyService {
           params,
         );
       },
-
-      subscribeForOrder(ids: OrderIds): Observable<ExOrder> {
-        const sub = () =>
-          service.privateWsService.subscribeForOrder(
-            strategy.apiKey,
-            strategy.ex,
-            strategy.tradeType,
-            ids,
-          );
-        if (strategy.apiKey) {
-          return sub();
-        }
-        return Rx.from(
-          UserExAccount.findOneBy({
+      async ensureApiKey(): Promise<ExApiKey> {
+        const strategy = this.strategy;
+        if (!strategy.apiKey) {
+          const ua = await UserExAccount.findOneBy({
             id: strategy.userExAccountId,
-          }),
-        ).pipe(
-          Rx.switchMap((ua) => {
-            strategy.apiKey = UserExAccount.buildExApiKey(ua);
-            return sub();
+          });
+          strategy.apiKey = UserExAccount.buildExApiKey(ua);
+        }
+        return strategy.apiKey;
+      },
+      subscribeForOrder(ids: OrderIds): Observable<ExOrder> {
+        return Rx.from(this.ensureApiKey()).pipe(
+          Rx.switchMap((_apiKey) => {
+            return service.privateWsService.subscribeForOrder(
+              strategy.apiKey,
+              strategy.ex,
+              strategy.tradeType,
+              ids,
+            );
           }),
         );
       },
@@ -106,12 +107,7 @@ export class StrategyService {
         ids: OrderIds,
         timeoutSeconds?: number,
       ): Promise<ExOrder> {
-        if (!strategy.apiKey) {
-          const ua = await UserExAccount.findOneBy({
-            id: strategy.userExAccountId,
-          });
-          strategy.apiKey = UserExAccount.buildExApiKey(ua);
-        }
+        await this.ensureApiKey();
         return service.privateWsService.waitForOrder(
           strategy.apiKey,
           strategy.ex,
@@ -125,6 +121,10 @@ export class StrategyService {
           strategy.ex,
           strategy.tradeType,
         );
+      },
+      async trySynchronizeOrder(order: ExOrder): Promise<boolean> {
+        await this.ensureApiKey();
+        return service.exOrderService.syncOrder(order, strategy.apiKey);
       },
     };
 

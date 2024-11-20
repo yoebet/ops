@@ -128,11 +128,14 @@ export class BinanceTradeMargin extends BinanceTradeBase {
   async getOrder(
     apiKey: ExApiKey,
     params: { symbol: string; orderId: string },
-  ): Promise<SyncOrder> {
+  ): Promise<SyncOrder | undefined> {
     const o = await this.restMargin.getOrder(apiKey, {
       symbol: params.symbol,
       orderId: params.orderId,
     });
+    if (!o) {
+      return undefined;
+    }
     return this.mapOrderResp(o);
   }
 

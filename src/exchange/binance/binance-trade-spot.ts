@@ -122,11 +122,14 @@ export class BinanceTradeSpot extends BinanceTradeBase {
   async getOrder(
     apiKey: ExApiKey,
     params: { margin: boolean; symbol: string; orderId: string },
-  ): Promise<SyncOrder> {
+  ): Promise<SyncOrder | undefined> {
     const o = await this.restSpot.getOrder(apiKey, {
       symbol: params.symbol,
       orderId: params.orderId,
     });
+    if (!o) {
+      return undefined;
+    }
     return this.mapOrderResp(o);
   }
 

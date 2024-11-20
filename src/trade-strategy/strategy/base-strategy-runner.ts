@@ -11,7 +11,7 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 export abstract class BaseStrategyRunner {
   protected constructor(
-    protected strategy: Strategy,
+    protected readonly strategy: Strategy,
     protected helper: StrategyHelper,
     protected logger: AppLogger,
   ) {}
@@ -101,10 +101,11 @@ export abstract class BaseStrategyRunner {
         // discard
         currentDeal.pendingOrder = undefined;
         currentDeal.pendingOrderId = undefined;
+        await currentDeal.save();
         return;
       }
       // check is market price
-      const waitSeconds = pendingOrder.priceType === 'market' ? 8 : undefined;
+      const waitSeconds = pendingOrder.priceType === 'market' ? 8 : 10 * 60;
       const order = await this.helper.waitForOrder(pendingOrder, waitSeconds);
       if (order) {
         // finished
@@ -115,6 +116,16 @@ export abstract class BaseStrategyRunner {
         await currentDeal.save();
       } else {
         // timeout
+        await this.helper.trySynchronizeOrder(pendingOrder);
+        if (ExOrder.OrderFinished(pendingOrder)) {
+          currentDeal.lastOrder = pendingOrder;
+          currentDeal.pendingOrder = undefined;
+          currentDeal.pendingOrderId = undefined;
+          await currentDeal.save();
+        } else {
+          // TODO:
+          return;
+        }
       }
     }
     currentDeal.pendingOrder = undefined;
@@ -139,17 +150,6 @@ export abstract class BaseStrategyRunner {
     await this.closeDeal(currentDeal);
 
     await this.createNewDeal();
-  }
-
-  protected async ensureApiKey(): Promise<ExApiKey> {
-    const strategy = this.strategy;
-    if (!strategy.apiKey) {
-      const ua = await UserExAccount.findOneBy({
-        id: strategy.userExAccountId,
-      });
-      strategy.apiKey = UserExAccount.buildExApiKey(ua);
-    }
-    return strategy.apiKey;
   }
 
   protected async ensureExchangeSymbol() {

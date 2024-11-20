@@ -5,6 +5,7 @@ import { MarketDataModule } from '@/data-service/market-data.module';
 import { JobsModule } from '@/job/jobs.module';
 import { ExDataModule } from '@/data-ex/ex-data.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
+import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 
 const services: Provider[] = [StrategyService];
 
@@ -15,6 +16,7 @@ const services: Provider[] = [StrategyService];
     JobsModule,
     ExchangeModule,
     ExDataModule,
+    ExSyncModule,
   ],
   providers: services,
   exports: services,

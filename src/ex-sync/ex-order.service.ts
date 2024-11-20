@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
+import * as _ from 'lodash';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { UserExAccount } from '@/db/models/user-ex-account';
+import { ExOrder, OrderStatus } from '@/db/models/ex-order';
+import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
 @Injectable()
 export class ExOrderService {
@@ -14,18 +18,51 @@ export class ExOrderService {
   }
 
   async syncPendingOrders() {
-    const ue = await UserExAccount.findOneBy({ id: 1 });
+    const orders = await ExOrder.findBy({
+      status: In([OrderStatus.pending, OrderStatus.partialFilled]),
+    });
+    if (orders.length === 0) {
+      return;
+    }
+    const apiKeys = {};
+    for (const order of orders) {
+      let apiKey = apiKeys[order.userExAccountId];
+      if (!apiKey) {
+        const uea = await UserExAccount.findOneBy({
+          id: order.userExAccountId,
+        });
+        apiKey = UserExAccount.buildExApiKey(uea);
+        apiKeys[order.userExAccountId] = apiKey;
+      }
+
+      await this.syncOrder(apiKey, apiKey);
+    }
+  }
+
+  async syncOrder(order: ExOrder, apiKey: ExApiKey): Promise<boolean> {
     const tradeService = this.exchanges.getExTradeService(
-      ue.ex,
-      ExTradeType.spot,
+      order.ex,
+      order.tradeType,
     );
-    const os = await tradeService.getAllOpenOrders(
-      UserExAccount.buildExApiKey(ue),
-      { margin: false },
-    );
-    // for (const { rawOrder, orderResp } of os) {
-    //   // const oid = orderResp.exOrderId;
-    // }
-    return os;
+    const res = await tradeService.getOrder(apiKey, {
+      symbol: order.rawSymbol,
+      orderId: order.exOrderId,
+    });
+    if (!res) {
+      return false;
+    }
+    if (order.exUpdatedAt && res.exUpdatedAt <= order.exUpdatedAt) {
+      return false;
+    }
+    const lastStatus = order.status;
+    ExOrder.setProps(order, res);
+    const newStatus = order.status;
+    await order.save();
+    if (newStatus !== lastStatus) {
+      this.logger.log(`sync order ${order.id}, ${lastStatus} -> ${newStatus}`);
+    } else {
+      this.logger.log(`sync order ${order.id}`);
+    }
+    return true;
   }
 }

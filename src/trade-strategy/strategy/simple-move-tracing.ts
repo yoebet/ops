@@ -51,7 +51,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
   async start() {
     while (true) {
-      let strategy = this.strategy;
+      const strategy = this.strategy;
       if (!strategy.active) {
         this.logger.log(`strategy ${strategy.id} is not active`);
         return;
@@ -71,6 +71,11 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
       await this.processPendingOrder();
 
+      if (strategy.currentDeal.pendingOrder) {
+        await wait(MINUTE_MS);
+        continue;
+      }
+
       await this.resetRuntimeParams();
 
       await strategy.save();
@@ -78,24 +83,19 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       while (true) {
         try {
           const { placeOrder } = await this.checkAndWaitOpportunity();
+          await this.checkCommands();
           if (placeOrder) {
             await this.placeOrder();
-
-            await this.resetRuntimeParams();
+            break;
           }
 
-          await this.checkCommands();
-          strategy = this.strategy;
+          if (!strategy.active) {
+            break;
+          }
         } catch (e) {
           this.logger.error(e);
           await wait(MINUTE_MS);
         }
-        if (!strategy.active) {
-          break;
-        }
-      }
-      if (!strategy.active) {
-        break;
       }
     }
   }
@@ -241,7 +241,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
   protected async placeOrder() {
     const exSymbol = await this.ensureExchangeSymbol();
-    const apiKey = await this.ensureApiKey();
+    const apiKey = await this.helper.ensureApiKey();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
     const strategy = this.strategy;
@@ -315,17 +315,11 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     try {
       const result = await exService.placeTpslOrder(apiKey, params);
 
-      const orderResp = result.orderResp;
-
-      order.status = orderResp.status || OrderStatus.pending;
-      order.exOrderId = orderResp.exOrderId;
-      order.execPrice = orderResp.execPrice;
-      order.execSize = orderResp.execSize;
-      order.execAmount = orderResp.execAmount;
-      order.exCreatedAt = orderResp.exCreatedAt;
-      order.exUpdatedAt = orderResp.exUpdatedAt;
+      ExOrder.setProps(order, result.orderResp);
       order.rawOrderParams = result.rawParams;
 
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       if (order.status === OrderStatus.filled) {
         currentDeal.lastOrder = order;
         currentDeal.lastOrderId = order.id;

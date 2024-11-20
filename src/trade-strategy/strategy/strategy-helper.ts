@@ -9,6 +9,7 @@ import {
   WatchRtPriceParams,
   WatchRtPriceResult,
 } from '@/data-ex/ex-public-ws.service';
+import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
 export interface StrategyHelper {
   getLastPrice(params?: {
@@ -41,4 +42,8 @@ export interface StrategyHelper {
   ): Promise<ExOrder | undefined>;
 
   getTradeService(): ExchangeTradeService;
+
+  trySynchronizeOrder(order: ExOrder): Promise<boolean>;
+
+  ensureApiKey(): Promise<ExApiKey>;
 }

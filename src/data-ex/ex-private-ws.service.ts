@@ -42,15 +42,7 @@ export class ExPrivateWsService implements OnApplicationShutdown {
       // UserExAccount
       return undefined;
     }
-    order.exOrderId = res.exOrderId;
-    order.clientOrderId = res.clientOrderId;
-    order.status = res.status;
-    order.execPrice = res.execPrice;
-    order.execSize = res.execSize;
-    order.execAmount = res.execAmount;
-    order.exCreatedAt = res.exCreatedAt;
-    order.exUpdatedAt = res.exUpdatedAt;
-    order.rawOrder = res.rawOrder;
+    ExOrder.setProps(order, res);
 
     await order.save();
     return order;
