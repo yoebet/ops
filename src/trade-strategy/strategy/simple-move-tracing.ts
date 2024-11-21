@@ -43,65 +43,53 @@ declare type WatchLevel =
 export class SimpleMoveTracing extends BaseStrategyRunner {
   constructor(
     protected strategy: Strategy,
-    protected strategyHelper: StrategyEnv,
+    protected env: StrategyEnv,
     protected logger: AppLogger,
   ) {
-    super(strategy, strategyHelper, logger);
+    super(strategy, env, logger);
   }
 
   async start() {
+    const strategy = this.strategy;
+    if (!strategy.active) {
+      this.logger.log(`strategy ${strategy.id} is not active`);
+      return;
+    }
+
+    if (!strategy.params) {
+      strategy.params = {
+        waitForPercent: 2,
+        drawbackPercent: 2,
+      } as StartupParams;
+    }
+    strategy.runtimeParams = {};
+
     while (true) {
-      const strategy = this.strategy;
-      if (!strategy.active) {
-        this.logger.log(`strategy ${strategy.id} is not active`);
-        return;
-      }
-
-      if (!strategy.params) {
-        strategy.params = {
-          waitForPercent: 2,
-          drawbackPercent: 2,
-        } as StartupParams;
-      }
-      if (!strategy.runtimeParams) {
-        strategy.runtimeParams = {};
-      }
-
-      await this.loadOrCreateDeal();
-
-      await this.processPendingOrder();
-
-      if (strategy.currentDeal.pendingOrder) {
-        await wait(MINUTE_MS);
-        continue;
-      }
-
-      await this.resetRuntimeParams();
-
-      await strategy.save();
-
-      while (true) {
-        try {
-          const { placeOrder } = await this.checkAndWaitOpportunity();
-          await this.checkCommands();
-          if (placeOrder) {
-            await this.placeOrder();
-            break;
-          }
-
-          if (!strategy.active) {
-            break;
-          }
-        } catch (e) {
-          this.logger.error(e);
-          await wait(MINUTE_MS);
+      try {
+        if (!strategy.active) {
+          this.logger.log(`strategy ${strategy.id} is not active, exit ...`);
+          break;
         }
+
+        await this.checkCommands();
+
+        await this.loadOrCreateDeal();
+
+        await this.repeatToComplete(this.checkAndWaitPendingOrder.bind(this));
+
+        await this.resetRuntimeParams();
+
+        const opp = await this.repeatToComplete(
+          this.checkAndWaitOpportunity.bind(this),
+        );
+        if (opp.placeOrder) {
+          await this.placeOrder();
+        }
+      } catch (e) {
+        this.logger.error(e);
+        await wait(MINUTE_MS);
       }
     }
-  }
-
-  protected async checkCommands() {
-    // reload strategy?
   }
 
   protected async resetRuntimeParams() {
@@ -119,9 +107,10 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     }
     const runtimeParams = strategy.runtimeParams as RuntimeParams;
     if (!runtimeParams.startingPrice) {
-      const startingPrice = await this.helper.getLastPrice();
+      const startingPrice = await this.env.getLastPrice();
       this.resetStartingPrice(startingPrice);
     }
+    await strategy.save();
   }
 
   protected resetStartingPrice(startingPrice: number) {
@@ -142,11 +131,11 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     placeOrder?: boolean;
     watchLevel?: WatchLevel;
   }> {
-    while (true) {
-      const strategy = this.strategy;
-      const runtimeParams: RuntimeParams = strategy.runtimeParams;
+    const strategy = this.strategy;
+    const runtimeParams: RuntimeParams = strategy.runtimeParams;
 
-      const lastPrice = await this.helper.getLastPrice();
+    while (true) {
+      const lastPrice = await this.env.getLastPrice();
 
       if (!runtimeParams.placeOrderPrice) {
         runtimeParams.placeOrderPrice = lastPrice;
@@ -201,7 +190,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
               upperBound: placeOrderPrice,
             };
           }
-          const result = await this.helper.watchRtPrice({
+          const result = await this.env.watchRtPrice({
             ...watchRtPriceParams,
             timeoutSeconds: 10 * 60,
           });
@@ -241,7 +230,8 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
   protected async placeOrder() {
     const exSymbol = await this.ensureExchangeSymbol();
-    const apiKey = await this.helper.ensureApiKey();
+    const apiKey = await this.env.ensureApiKey();
+    const exService = this.env.getTradeService();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
     const strategy = this.strategy;
@@ -310,31 +300,31 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     order.moveActivePrice = activePrice;
     await order.save();
 
-    const exService = this.helper.getTradeService();
-
     try {
       const result = await exService.placeTpslOrder(apiKey, params);
 
       ExOrder.setProps(order, result.orderResp);
       order.rawOrderParams = result.rawParams;
+      await order.save();
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       if (order.status === OrderStatus.filled) {
         currentDeal.lastOrder = order;
         currentDeal.lastOrderId = order.id;
-        await order.save();
+        await currentDeal.save();
         await this.onOrderFilled();
       } else if (ExOrder.orderToWait(order.status)) {
         currentDeal.pendingOrder = order;
         currentDeal.pendingOrderId = order.id;
+        await currentDeal.save();
       } else {
         this.logger.error(`place order failed: ${order.status}`);
       }
     } catch (e) {
       this.logger.error(e);
       order.status = OrderStatus.summitFailed;
-      return;
+      await order.save();
     }
   }
 }

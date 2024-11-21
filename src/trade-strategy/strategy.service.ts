@@ -12,6 +12,7 @@ import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvTrade } from '@/trade-strategy/env/strategy-env-trade';
 import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-trade';
+import { JobsService } from '@/job/jobs.service';
 
 @Injectable()
 export class StrategyService {
@@ -21,6 +22,7 @@ export class StrategyService {
     private publicWsService: ExPublicWsService,
     private privateWsService: ExPrivateWsService,
     private exOrderService: ExOrderService,
+    private jobsService: JobsService,
     private logger: AppLogger,
   ) {
     logger.setContext('Strategy');
@@ -29,16 +31,16 @@ export class StrategyService {
   async start() {}
 
   async runStrategy(strategy: Strategy) {
-    let helper: StrategyEnv;
+    let env: StrategyEnv;
     if (strategy.paperTrade) {
-      helper = new StrategyEnvMockTrade(
+      env = new StrategyEnvMockTrade(
         strategy,
         this.publicDataService,
         this.publicWsService,
         this.logger.newLogger(`${strategy.name}.mock-env`),
       );
     } else {
-      helper = new StrategyEnvTrade(
+      env = new StrategyEnvTrade(
         strategy,
         this.exchanges,
         this.publicDataService,
@@ -50,10 +52,10 @@ export class StrategyService {
     }
 
     // TODO: register
-    if (strategy.templateCode === 'AA') {
+    if (strategy.templateCode === 'MV') {
       const runner = new SimpleMoveTracing(
         strategy,
-        helper,
+        env,
         this.logger.subLogger(`${strategy.templateCode}/${strategy.id}`),
       );
       // TODO: job

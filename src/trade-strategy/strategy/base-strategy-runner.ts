@@ -6,11 +6,12 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import * as _ from 'lodash';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { MINUTE_MS, wait } from '@/common/utils/utils';
 
 export abstract class BaseStrategyRunner {
   protected constructor(
     protected readonly strategy: Strategy,
-    protected helper: StrategyEnv,
+    protected env: StrategyEnv,
     protected logger: AppLogger,
   ) {}
 
@@ -18,13 +19,52 @@ export abstract class BaseStrategyRunner {
 
   async stop() {}
 
+  protected async checkCommands() {
+    // reload strategy?
+  }
+
+  protected async repeatToComplete<T = any>(
+    action: () => Promise<T | undefined>,
+    options: { maxTry?: number; maxWait?: number; waitOnFailed?: number } = {},
+  ): Promise<T | undefined> {
+    const strategy = this.strategy;
+    let tried = 0;
+    let waited = 0;
+    while (true) {
+      tried++;
+      try {
+        const result = await action();
+        if (result) {
+          return result;
+        }
+        await this.checkCommands();
+      } catch (e) {
+        this.logger.error(e);
+        if (options.maxTry && tried >= options.maxTry) {
+          return undefined;
+        }
+        const toWait = options.waitOnFailed || MINUTE_MS;
+        if (options.maxWait && waited + toWait >= options.maxWait) {
+          return undefined;
+        }
+        await wait(toWait);
+        waited += toWait;
+        if (!strategy.active) {
+          this.logger.log(`strategy ${strategy.id} is not active, exit ...`);
+          return undefined;
+        }
+      }
+    }
+  }
+
   protected async createNewDeal() {
     const strategy = this.strategy;
     const currentDeal = StrategyDeal.newStrategyDeal(strategy);
-    await StrategyDeal.save(currentDeal);
     strategy.currentDealId = currentDeal.id;
     strategy.currentDeal = currentDeal;
     strategy.nextTradeSide = TradeSide.buy;
+    await StrategyDeal.save(currentDeal);
+    await strategy.save();
     return currentDeal;
   }
 
@@ -35,15 +75,14 @@ export abstract class BaseStrategyRunner {
       currentDeal = await StrategyDeal.findOneBy({
         id: strategy.currentDealId,
       });
-      if (currentDeal) {
-        if (currentDeal.status !== 'open') {
-          currentDeal = undefined;
-          strategy.currentDeal = undefined;
-          strategy.currentDealId = undefined;
-        }
-      }
+      strategy.currentDeal = currentDeal;
     }
     if (currentDeal) {
+      if (currentDeal.status !== 'open') {
+        currentDeal = undefined;
+        strategy.currentDeal = undefined;
+        strategy.currentDealId = undefined;
+      }
       const { lastOrderId, pendingOrderId } = currentDeal;
       if (lastOrderId) {
         currentDeal.lastOrder = await ExOrder.findOneBy({
@@ -84,11 +123,11 @@ export abstract class BaseStrategyRunner {
     await deal.save();
   }
 
-  protected async processPendingOrder() {
+  protected async checkAndWaitPendingOrder(): Promise<boolean> {
     const strategy = this.strategy;
     const currentDeal = strategy.currentDeal;
     if (!currentDeal?.pendingOrder) {
-      return;
+      return true;
     }
     if (ExOrder.orderFinished(currentDeal.pendingOrder.status)) {
       currentDeal.lastOrder = currentDeal.pendingOrder;
@@ -100,11 +139,11 @@ export abstract class BaseStrategyRunner {
         currentDeal.pendingOrder = undefined;
         currentDeal.pendingOrderId = undefined;
         await currentDeal.save();
-        return;
+        return true;
       }
       // check is market price
       const waitSeconds = pendingOrder.priceType === 'market' ? 8 : 10 * 60;
-      const order = await this.helper.waitForOrder(pendingOrder, waitSeconds);
+      const order = await this.env.waitForOrder(pendingOrder, waitSeconds);
       if (order) {
         // finished
         if (order.status === OrderStatus.filled) {
@@ -114,7 +153,7 @@ export abstract class BaseStrategyRunner {
         await currentDeal.save();
       } else {
         // timeout
-        await this.helper.trySynchronizeOrder(pendingOrder);
+        await this.env.trySynchronizeOrder(pendingOrder);
         if (ExOrder.orderFinished(pendingOrder.status)) {
           currentDeal.lastOrder = pendingOrder;
           currentDeal.pendingOrder = undefined;
@@ -122,7 +161,7 @@ export abstract class BaseStrategyRunner {
           await currentDeal.save();
         } else {
           // TODO:
-          return;
+          return false;
         }
       }
     }
@@ -132,6 +171,8 @@ export abstract class BaseStrategyRunner {
     await this.onOrderFilled();
 
     await strategy.save();
+
+    return true;
   }
 
   protected async onOrderFilled() {
@@ -172,6 +213,11 @@ export abstract class BaseStrategyRunner {
   protected newOrderByStrategy(): ExOrder {
     const strategy = this.strategy;
     const exOrder = new ExOrder();
+    exOrder.ex = strategy.ex;
+    exOrder.market = strategy.market;
+    exOrder.baseCoin = strategy.baseCoin;
+    exOrder.symbol = strategy.symbol;
+    exOrder.rawSymbol = strategy.rawSymbol;
     exOrder.userExAccountId = strategy.userExAccountId;
     exOrder.strategyId = strategy.id;
     exOrder.dealId = strategy.currentDealId;

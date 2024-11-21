@@ -372,6 +372,7 @@ export class ExTradeServiceMock implements ExchangeTradeService {
     _apiKey: ExApiKey,
     params: PlaceOrderParams,
   ): Promise<PlaceOrderReturns> {
+    this.logger.log(JSON.stringify(params, null, 2));
     await wait(500);
     const exOrderId = this.newOrderId();
     if (params.priceType === 'market') {
