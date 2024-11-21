@@ -13,6 +13,9 @@ import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-data';
 import { JobsService } from '@/job/jobs.service';
+import { Job } from 'bullmq';
+
+import { StrategyJobData } from '@/trade-strategy/strategy.types';
 
 export class StrategyEnvTrade
   extends StrategyEnvMarketData
@@ -20,6 +23,7 @@ export class StrategyEnvTrade
 {
   constructor(
     protected readonly strategy: Strategy,
+    protected job: Job<StrategyJobData> | undefined,
     protected exchanges: Exchanges,
     protected publicDataService: ExPublicDataService,
     protected publicWsService: ExPublicWsService,
@@ -80,5 +84,9 @@ export class StrategyEnvTrade
     const strategy = this.strategy;
     await this.ensureApiKey();
     return this.exOrderService.syncOrder(order, strategy.apiKey);
+  }
+
+  getThisJob(): Job<StrategyJobData> | undefined {
+    return this.job;
   }
 }

@@ -14,12 +14,7 @@ import {
 import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
-
-interface StartupParams {
-  waitForPercent?: number;
-  activePercent?: number;
-  drawbackPercent: number;
-}
+import { MVStartupParams } from '@/trade-strategy/strategy.types';
 
 interface RuntimeParams {
   startingPrice?: number;
@@ -49,18 +44,20 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     super(strategy, env, logger);
   }
 
-  async start() {
+  async run() {
     const strategy = this.strategy;
     if (!strategy.active) {
       this.logger.log(`strategy ${strategy.id} is not active`);
       return;
     }
 
+    await this.logJob(`start ...`);
+
     if (!strategy.params) {
       strategy.params = {
         waitForPercent: 2,
         drawbackPercent: 2,
-      } as StartupParams;
+      } as MVStartupParams;
     }
     strategy.runtimeParams = {};
 
@@ -117,7 +114,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     const strategy = this.strategy;
     const runtimeParams: RuntimeParams = (strategy.runtimeParams = {});
     runtimeParams.startingPrice = startingPrice;
-    const strategyParams: StartupParams = strategy.params;
+    const strategyParams: MVStartupParams = strategy.params;
     const wfp = strategyParams.waitForPercent;
     if (!wfp) {
       return;
@@ -237,7 +234,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     const strategy = this.strategy;
     const currentDeal = strategy.currentDeal;
 
-    const strategyParams: StartupParams = strategy.params;
+    const strategyParams: MVStartupParams = strategy.params;
     const { activePercent, drawbackPercent } = strategyParams;
     const runtimeParams: RuntimeParams = strategy.runtimeParams;
 

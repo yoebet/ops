@@ -10,6 +10,9 @@ import {
   WatchRtPriceResult,
 } from '@/data-ex/ex-public-ws.service';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
+import { Job } from 'bullmq';
+
+import { StrategyJobData } from '@/trade-strategy/strategy.types';
 
 export interface MarketDataSupport {
   getLastPrice(params?: {
@@ -48,4 +51,6 @@ export interface StrategyEnv extends MarketDataSupport {
   trySynchronizeOrder(order: ExOrder): Promise<boolean>;
 
   ensureApiKey(): Promise<ExApiKey>;
+
+  getThisJob(): Job<StrategyJobData> | undefined;
 }

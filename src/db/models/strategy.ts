@@ -5,13 +5,14 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { StrategyAlgo } from '@/trade-strategy/strategy.types';
 
 @Entity()
-@Unique(['templateCode', 'userExAccountId', 'tradeType', 'symbol'])
+@Unique(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
 export class Strategy extends ExSymbolBase {
   @Column()
   // @Index()
-  templateCode: string;
+  algoCode: StrategyAlgo;
 
   @Column()
   name: string;

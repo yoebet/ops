@@ -3,6 +3,7 @@ import { SystemConfigModule } from '@/common-services/system-config.module';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyModule } from '@/trade-strategy/strategy.module';
 import { StrategyService } from '@/trade-strategy/strategy.service';
+import { MINUTE_MS, wait } from '@/common/utils/utils';
 
 jest.setTimeout(60_000);
 
@@ -14,6 +15,11 @@ describe('strategy runner', () => {
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(StrategyService);
+  });
+
+  it('summit all pending strategies', async () => {
+    await service.summitAllJobs();
+    await wait(60 * MINUTE_MS);
   });
 
   it('run 1', async () => {

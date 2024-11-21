@@ -9,6 +9,7 @@ import { StrategyTemplate } from '@/db/models/strategy-template';
 import { Strategy } from '@/db/models/strategy';
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { MVStartupParams, StrategyAlgo } from '@/trade-strategy/strategy.types';
 
 jest.setTimeout(60_000);
 
@@ -21,7 +22,7 @@ describe('strategy creating', () => {
 
   it('create template', async () => {
     const st = new StrategyTemplate();
-    st.code = 'MV';
+    st.code = StrategyAlgo.MV;
     st.name = 'mv1';
     st.tradeType = ExTradeType.spot;
     st.quoteAmount = 200;
@@ -29,18 +30,12 @@ describe('strategy creating', () => {
       waitForPercent: 1,
       activePercent: 1,
       drawbackPercent: 2,
-    } as {
-      waitForPercent?: number;
-      activePercent?: number;
-      drawbackPercent: number;
-      orderSize?: number;
-      orderAmount?: number;
-    };
+    } as MVStartupParams;
     await st.save();
   });
 
   it('create strategy - MV', async () => {
-    const code = 'MV';
+    const code = StrategyAlgo.MV;
     const userId = 1;
     const symbol = 'ETH/USDT';
     const ex = ExchangeCode.okx;
@@ -61,7 +56,7 @@ describe('strategy creating', () => {
 
     const st = await StrategyTemplate.findOneBy({ code });
     const strategy = new Strategy();
-    strategy.templateCode = code;
+    strategy.algoCode = code;
     strategy.name = `${st.name}-${baseCoin}`;
     strategy.params = st.params;
     strategy.quoteAmount = st.quoteAmount;

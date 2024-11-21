@@ -15,9 +15,32 @@ export abstract class BaseStrategyRunner {
     protected logger: AppLogger,
   ) {}
 
-  abstract start(): Promise<void>;
+  abstract run(): Promise<void>;
 
-  async stop() {}
+  protected async logJob(message: string): Promise<void> {
+    const job = this.env.getThisJob();
+    if (job) {
+      await job.log(message).catch((err: Error) => {
+        this.logger.error(err);
+      });
+    } else {
+      this.logger.log(message);
+    }
+  }
+
+  protected async reportJobStatus(
+    context: string,
+    status: string,
+  ): Promise<void> {
+    const job = this.env.getThisJob();
+    if (job) {
+      await job.updateProgress({ [context]: status }).catch((err: Error) => {
+        this.logger.error(err);
+      });
+    } else {
+      this.logger.log(`[${context}] ${status}`);
+    }
+  }
 
   protected async checkCommands() {
     // reload strategy?
@@ -206,7 +229,7 @@ export abstract class BaseStrategyRunner {
   }
 
   protected newClientOrderId(): string {
-    const code = this.strategy.templateCode.toLowerCase();
+    const code = this.strategy.algoCode.toLowerCase();
     return `${code}${Math.round(Date.now() / 1000) - 1e9}`;
   }
 

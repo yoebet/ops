@@ -1,6 +1,7 @@
 import { BaseModel } from '@/db/models/base-model';
 import { Column, Entity, Index } from 'typeorm';
 import { ExTradeType } from '@/db/models/exchange-types';
+import { StrategyAlgo } from '@/trade-strategy/strategy.types';
 
 @Entity()
 export class StrategyTemplate extends BaseModel {
@@ -10,7 +11,7 @@ export class StrategyTemplate extends BaseModel {
 
   @Column()
   @Index({ unique: true })
-  code: string;
+  code: StrategyAlgo;
 
   @Column({ nullable: true })
   tradeType?: ExTradeType;

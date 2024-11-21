@@ -12,6 +12,9 @@ import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
 import { JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
+import { Job } from 'bullmq';
+
+import { StrategyJobData } from '@/trade-strategy/strategy.types';
 
 export class StrategyEnvMockTrade
   extends StrategyEnvMarketData
@@ -21,6 +24,7 @@ export class StrategyEnvMockTrade
 
   constructor(
     protected readonly strategy: Strategy,
+    protected job: Job<StrategyJobData> | undefined,
     protected publicDataService: ExPublicDataService,
     protected publicWsService: ExPublicWsService,
     protected jobsService: JobsService,
@@ -72,5 +76,9 @@ export class StrategyEnvMockTrade
     }
     ExOrder.setProps(order, order1);
     return true;
+  }
+
+  getThisJob(): Job<StrategyJobData> | undefined {
+    return this.job;
   }
 }
