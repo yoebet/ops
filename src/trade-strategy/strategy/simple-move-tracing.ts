@@ -3,7 +3,7 @@ import { AppLogger } from '@/common/app-logger';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
-import { StrategyEnv } from '@/trade-strategy/strategy-env';
+import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
 import {
   evalDiffPercent,
   HOUR_MS,

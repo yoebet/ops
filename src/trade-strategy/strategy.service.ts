@@ -1,4 +1,4 @@
-import { Injectable, Type } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
@@ -6,18 +6,18 @@ import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
-import { StrategyEnv } from '@/trade-strategy/strategy-env';
+import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
 import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
-import { StrategyEnvNormal } from '@/trade-strategy/strategy-env-normal';
-import { StrategyEnvMockTrade } from '@/trade-strategy/strategy-env-mock-trade';
+import { StrategyEnvTrade } from '@/trade-strategy/env/strategy-env-trade';
+import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-trade';
 
 @Injectable()
 export class StrategyService {
   constructor(
     private exchanges: Exchanges,
-    private exPublicDataService: ExPublicDataService,
+    private publicDataService: ExPublicDataService,
     private publicWsService: ExPublicWsService,
     private privateWsService: ExPrivateWsService,
     private exOrderService: ExOrderService,
@@ -33,16 +33,15 @@ export class StrategyService {
     if (strategy.paperTrade) {
       helper = new StrategyEnvMockTrade(
         strategy,
-        this.exchanges,
-        this.exPublicDataService,
+        this.publicDataService,
         this.publicWsService,
         this.logger.newLogger(`${strategy.name}.mock-env`),
       );
     } else {
-      helper = new StrategyEnvNormal(
+      helper = new StrategyEnvTrade(
         strategy,
         this.exchanges,
-        this.exPublicDataService,
+        this.publicDataService,
         this.publicWsService,
         this.privateWsService,
         this.exOrderService,

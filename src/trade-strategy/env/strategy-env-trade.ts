@@ -16,12 +16,16 @@ import {
 } from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
-import { StrategyEnv } from '@/trade-strategy/strategy-env';
+import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
+import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-data';
 
-export class StrategyEnvNormal implements StrategyEnv {
+export class StrategyEnvTrade
+  extends StrategyEnvMarketData
+  implements StrategyEnv
+{
   constructor(
     protected readonly strategy: Strategy,
     protected exchanges: Exchanges,
@@ -30,7 +34,9 @@ export class StrategyEnvNormal implements StrategyEnv {
     protected privateWsService: ExPrivateWsService,
     protected exOrderService: ExOrderService,
     protected logger: AppLogger,
-  ) {}
+  ) {
+    super(strategy, publicDataService, publicWsService, logger);
+  }
 
   getLastPrice(params?: {
     ex?: ExchangeCode;

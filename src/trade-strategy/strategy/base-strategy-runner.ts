@@ -1,6 +1,6 @@
 import { AppLogger } from '@/common/app-logger';
 import { Strategy } from '@/db/models/strategy';
-import { StrategyEnv } from '@/trade-strategy/strategy-env';
+import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
