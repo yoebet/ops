@@ -11,7 +11,7 @@ import {
 } from '@/data-ex/ex-public-ws.service';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 
-export interface StrategyEnvMarketData {
+export interface MarketDataSupport {
   getLastPrice(params?: {
     ex?: ExchangeCode;
     market?: ExMarket;
@@ -35,7 +35,7 @@ export interface StrategyEnvMarketData {
   ): Promise<WatchRtPriceResult>;
 }
 
-export interface StrategyEnv extends StrategyEnvMarketData {
+export interface StrategyEnv extends MarketDataSupport {
   subscribeForOrder(order: OrderIds): Observable<ExOrder>;
 
   waitForOrder(

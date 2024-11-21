@@ -13,6 +13,7 @@ import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvTrade } from '@/trade-strategy/env/strategy-env-trade';
 import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-trade';
 import { JobsService } from '@/job/jobs.service';
+import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 
 @Injectable()
 export class StrategyService {
@@ -23,6 +24,7 @@ export class StrategyService {
     private privateWsService: ExPrivateWsService,
     private exOrderService: ExOrderService,
     private jobsService: JobsService,
+    private mockOrderTracingService: MockOrderTracingService,
     private logger: AppLogger,
   ) {
     logger.setContext('Strategy');
@@ -37,6 +39,8 @@ export class StrategyService {
         strategy,
         this.publicDataService,
         this.publicWsService,
+        this.jobsService,
+        this.mockOrderTracingService,
         this.logger.newLogger(`${strategy.name}.mock-env`),
       );
     } else {
@@ -47,6 +51,7 @@ export class StrategyService {
         this.publicWsService,
         this.privateWsService,
         this.exOrderService,
+        this.jobsService,
         this.logger.newLogger(`${strategy.name}.env`),
       );
     }

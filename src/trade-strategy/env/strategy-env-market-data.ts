@@ -8,8 +8,9 @@ import {
 import { ExKline } from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
+import { MarketDataSupport } from '@/trade-strategy/env/strategy-env';
 
-export class StrategyEnvMarketData implements StrategyEnvMarketData {
+export class StrategyEnvMarketData implements MarketDataSupport {
   constructor(
     protected readonly strategy: Strategy,
     protected publicDataService: ExPublicDataService,

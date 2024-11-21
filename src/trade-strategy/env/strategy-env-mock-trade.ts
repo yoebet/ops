@@ -7,20 +7,24 @@ import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
-import { ExTradeServiceMock } from '@/trade-strategy/env/ex-trade-service.mock';
+import { MockExTradeService } from '@/trade-strategy/env/mock-ex-trade-service';
 import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-data';
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
+import { JobsService } from '@/job/jobs.service';
+import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 
 export class StrategyEnvMockTrade
   extends StrategyEnvMarketData
   implements StrategyEnv
 {
-  tradeService: ExTradeServiceMock;
+  tradeService: MockExTradeService;
 
   constructor(
     protected readonly strategy: Strategy,
     protected publicDataService: ExPublicDataService,
     protected publicWsService: ExPublicWsService,
+    protected jobsService: JobsService,
+    protected mockOrderTracingService: MockOrderTracingService,
     protected logger: AppLogger,
   ) {
     super(strategy, publicDataService, publicWsService, logger);
@@ -48,10 +52,10 @@ export class StrategyEnvMockTrade
 
   getTradeService(): ExchangeTradeService {
     if (!this.tradeService) {
-      this.tradeService = new ExTradeServiceMock(
+      this.tradeService = new MockExTradeService(
         this.strategy,
         this.publicDataService,
-        this.publicWsService,
+        this.mockOrderTracingService,
         this.logger.newLogger(`ExTradeService.Mock`),
       );
     }

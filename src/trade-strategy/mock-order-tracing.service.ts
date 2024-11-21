@@ -1,13 +1,10 @@
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Job } from 'bullmq';
 import * as Rx from 'rxjs';
 import {
-  AccountAsset,
-  AssetItem,
-  ExchangeTradeService,
   PlaceOrderParams,
-  PlaceOrderReturns,
   PlaceTpslOrderParams,
 } from '@/exchange/exchange-service-types';
-import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrder, ExOrderResp, OrderStatus } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';
 import {
@@ -23,21 +20,54 @@ import {
 } from '@/data-ex/ex-public-ws.service';
 import { TradeSide } from '@/data-service/models/base';
 import { AppLogger } from '@/common/app-logger';
+import { JobFacade, JobsService } from '@/job/jobs.service';
 
-export class ExTradeServiceMock implements ExchangeTradeService {
+declare type StatusReporter = (
+  status: string,
+  subContext?: string,
+) => Promise<void>;
+
+export interface TraceOrderJobData {
+  strategyId: number;
+  params: PlaceOrderParams;
+}
+
+@Injectable()
+export class MockOrderTracingService implements OnModuleInit {
+  protected traceOrderJobFacade: JobFacade<TraceOrderJobData, ExOrder>;
+
   constructor(
-    protected readonly strategy: Strategy,
     protected publicDataService: ExPublicDataService,
     protected publicWsService: ExPublicWsService,
+    protected jobsService: JobsService,
     protected logger: AppLogger,
   ) {}
 
-  async waitForPrice(
+  onModuleInit(): any {
+    this.traceOrderJobFacade = this.jobsService.defineJob({
+      queueName: 'Trace Order',
+      processJob: this.traceAndFillOrder.bind(this),
+    });
+  }
+
+  async addOrderTracingJob(
+    strategyId: number,
+    params: PlaceOrderParams,
+  ): Promise<void> {
+    await this.traceOrderJobFacade.addTask({
+      strategyId,
+      params,
+    });
+  }
+
+  protected async waitForPrice(
+    strategy: Strategy,
     targetPrice: number,
     direction: 'up' | 'down',
+    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const { ex, market, symbol, rawSymbol } = this.strategy;
+    const { ex, market, symbol, rawSymbol } = strategy;
 
     while (true) {
       const lastPrice = await this.publicDataService.getLastPrice(
@@ -62,6 +92,8 @@ export class ExTradeServiceMock implements ExchangeTradeService {
       const intenseWatchThreshold = 0.3;
       const intenseWatchExitThreshold = 0.1;
 
+      const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent}%)`;
+
       if (diffPercentAbs <= intenseWatchThreshold) {
         let watchRtPriceParams: WatchRtPriceParams;
         if (direction === 'down') {
@@ -75,6 +107,7 @@ export class ExTradeServiceMock implements ExchangeTradeService {
             upperBound: targetPrice,
           };
         }
+        await reportStatus('watch', `wait-${direction}`);
         watchRtPriceParams.timeoutSeconds = 10 * 60;
         const watchResult = await this.publicWsService.watchRtPrice(
           ex,
@@ -94,35 +127,45 @@ export class ExTradeServiceMock implements ExchangeTradeService {
           }
         }
       } else if (diffPercentAbs < 1) {
+        await reportStatus(`${diffInfo}, wait 10s`, `wait-${direction}`);
         await wait(10 * 1000);
       } else if (diffPercentAbs < 2) {
+        await reportStatus(`${diffInfo}, wait 1m`, `wait-${direction}`);
         await wait(MINUTE_MS);
       } else if (diffPercentAbs < 5) {
+        await reportStatus(`${diffInfo}, wait 5m`, `wait-${direction}`);
         await wait(5 * MINUTE_MS);
       } else if (diffPercentAbs < 10) {
+        await reportStatus(`${diffInfo}, wait 30m`, `wait-${direction}`);
         await wait(30 * MINUTE_MS);
       } else {
+        await reportStatus(`${diffInfo}, wait 2h`, `wait-${direction}`);
         await wait(2 * HOUR_MS);
       }
 
-      if (await cancelCallback()) {
+      const cancel = await cancelCallback();
+      if (cancel) {
         return undefined;
       }
     }
   }
 
   async traceMovingTpsl(
+    strategy: Strategy,
     side: TradeSide,
     drawbackRatio: number,
     activePrice: number | undefined,
+    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const { ex, market, symbol, rawSymbol } = this.strategy;
+    const { ex, market, symbol, rawSymbol } = strategy;
     const direction = side === 'buy' ? 'down' : 'up';
     if (activePrice) {
       activePrice = await this.waitForPrice(
+        strategy,
         activePrice,
         direction,
+        reportStatus,
         cancelCallback,
       );
     } else {
@@ -168,9 +211,14 @@ export class ExTradeServiceMock implements ExchangeTradeService {
     return placeOrderPrice;
   }
 
-  async traceOrderFilling(params: PlaceOrderParams) {
-    const strategy = this.strategy;
+  async traceAndFillOrder(
+    job: Job<TraceOrderJobData>,
+  ): Promise<ExOrder | undefined> {
+    const { params, strategyId } = job.data;
+    const strategy = await Strategy.findOneBy({ id: strategyId });
     const tradeSide = params.side as TradeSide;
+    await job.log(`strategy: ${strategy.name} #${strategy.id}`);
+
     const cancelCallback = async () => {
       const order = await ExOrder.findOne({
         select: ['id', 'status'],
@@ -180,16 +228,30 @@ export class ExTradeServiceMock implements ExchangeTradeService {
           paperTrade: true,
         },
       });
+      if (!order) {
+        return true;
+      }
       return !ExOrder.orderToWait(order.status);
+    };
+
+    const reportStatus: (context: string) => StatusReporter = (
+      context: string,
+    ) => {
+      return async (status: string, subContext?: string) => {
+        const c = subContext ? `${context}/${subContext}` : context;
+        await job.updateProgress({ [c]: status });
+      };
     };
     if (!params.tpslType) {
       const price = +params.price;
       if (!price) {
-        return;
+        return undefined;
       }
       const hitPrice = await this.waitForPrice(
+        strategy,
         price,
         tradeSide === 'buy' ? 'down' : 'up',
+        reportStatus(`trace ${params.clientOrderId}`),
         cancelCallback,
       );
       if (hitPrice) {
@@ -202,20 +264,41 @@ export class ExTradeServiceMock implements ExchangeTradeService {
         this.fillSize(order, params);
         order.status = OrderStatus.filled;
         await order.save();
+        return order;
       }
-      return;
+      return undefined;
     }
     if (params.algoOrder) {
       let hitPrice: number;
       let trigger: string;
       if (params.tpslType === 'tp') {
-        hitPrice = await this.waitTp(params, cancelCallback);
+        hitPrice = await this.waitTp(
+          strategy,
+          params,
+          reportStatus(`tp`),
+          cancelCallback,
+        );
       } else if (params.tpslType === 'sl') {
-        hitPrice = await this.waitTp(params, cancelCallback);
+        hitPrice = await this.waitSl(
+          strategy,
+          params,
+          reportStatus(`sl`),
+          cancelCallback,
+        );
       } else if (params.tpslType === 'tpsl') {
         [hitPrice, trigger] = (await Promise.race([
-          this.waitTp(params, cancelCallback).then((p) => [p, 'tp']),
-          this.waitSl(params, cancelCallback).then((p) => [p, 'sl']),
+          this.waitTp(
+            strategy,
+            params,
+            reportStatus(`tp`),
+            cancelCallback,
+          ).then((p) => [p, 'tp']),
+          this.waitSl(
+            strategy,
+            params,
+            reportStatus(`sl`),
+            cancelCallback,
+          ).then((p) => [p, 'sl']),
         ])) as [number, string];
         // TODO:
       } else if (params.tpslType === 'move') {
@@ -223,9 +306,12 @@ export class ExTradeServiceMock implements ExchangeTradeService {
           params as PlaceTpslOrderParams;
         const activePrice = moveActivePrice ? +moveActivePrice : undefined;
         hitPrice = await this.traceMovingTpsl(
+          strategy,
           tradeSide,
           +moveDrawbackRatio,
           activePrice,
+          reportStatus('move'),
+          cancelCallback,
         );
       }
       if (hitPrice) {
@@ -238,8 +324,9 @@ export class ExTradeServiceMock implements ExchangeTradeService {
         this.fillSize(order, params, hitPrice);
         order.status = OrderStatus.filled;
         await order.save();
+        return order;
       }
-      return;
+      return undefined;
     }
     // attach order TODO:
     // let hitPrice: number;
@@ -255,36 +342,57 @@ export class ExTradeServiceMock implements ExchangeTradeService {
     //   ])) as [number, string];
     // }
     // tpslClientOrderId
+    return undefined;
   }
 
   protected async waitTp(
+    strategy: Strategy,
     params: PlaceOrderParams,
+    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const direction = params.side === 'buy' ? 'up' : 'down';
     if (params.tpTriggerPrice) {
       await this.waitForPrice(
+        strategy,
         +params.tpTriggerPrice,
         direction,
+        reportStatus,
         cancelCallback,
       );
     }
-    return this.waitForPrice(+params.tpOrderPrice, direction, cancelCallback);
+    return this.waitForPrice(
+      strategy,
+      +params.tpOrderPrice,
+      direction,
+      reportStatus,
+      cancelCallback,
+    );
   }
 
   protected async waitSl(
+    strategy: Strategy,
     params: PlaceOrderParams,
+    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const direction = params.side === 'buy' ? 'down' : 'up';
     if (params.slTriggerPrice) {
       await this.waitForPrice(
+        strategy,
         +params.slTriggerPrice,
         direction,
+        reportStatus,
         cancelCallback,
       );
     }
-    return this.waitForPrice(+params.slOrderPrice, direction, cancelCallback);
+    return this.waitForPrice(
+      strategy,
+      +params.slOrderPrice,
+      direction,
+      reportStatus,
+      cancelCallback,
+    );
   }
 
   protected fillSize(
@@ -302,114 +410,5 @@ export class ExTradeServiceMock implements ExchangeTradeService {
     order.execPrice = price;
     order.execSize = execSize;
     order.execAmount = execAmount;
-  }
-
-  async cancelOrder(
-    apiKey: ExApiKey,
-    params: { symbol: string; orderId: string },
-  ): Promise<any> {
-    await ExOrder.update(
-      { status: OrderStatus.canceled },
-      {
-        exOrderId: params.orderId,
-        strategyId: this.strategy.id,
-        paperTrade: true,
-      },
-    );
-    return params;
-  }
-
-  getAccountBalance(apiKey: ExApiKey): Promise<AccountAsset> {
-    return Promise.resolve(undefined);
-  }
-
-  getAccountCoinBalance(
-    apiKey: ExApiKey,
-    params: { coin: string },
-  ): Promise<AssetItem> {
-    return Promise.resolve(undefined);
-  }
-
-  getAllOpenOrders(
-    apiKey: ExApiKey,
-    params: { margin: boolean },
-  ): Promise<ExOrderResp[]> {
-    return Promise.resolve([]);
-  }
-
-  async getAllOrders(
-    apiKey: ExApiKey,
-    params: {
-      symbol: string;
-      startTime?: number;
-      endTime?: number;
-      limit?: number;
-    },
-  ): Promise<ExOrderResp[]> {
-    return [];
-  }
-
-  async getOrder(
-    _apiKey: ExApiKey,
-    params: { symbol: string; orderId: string },
-  ): Promise<ExOrderResp | undefined> {
-    return await ExOrder.findOneBy({
-      exOrderId: params.orderId,
-      strategyId: this.strategy.id,
-      paperTrade: true,
-    });
-  }
-
-  getPositions(apiKey: ExApiKey): Promise<any[]> {
-    return Promise.resolve([]);
-  }
-
-  protected newOrderId() {
-    return `${this.strategy.ex.toLowerCase()}${Math.round(Date.now() / 1000) - 1e9}`;
-  }
-
-  async placeOrder(
-    _apiKey: ExApiKey,
-    params: PlaceOrderParams,
-  ): Promise<PlaceOrderReturns> {
-    this.logger.log(JSON.stringify(params, null, 2));
-    await wait(500);
-    const exOrderId = this.newOrderId();
-    if (params.priceType === 'market') {
-      const { ex, market, rawSymbol } = this.strategy;
-      const price = await this.publicDataService.getLastPrice(
-        ex,
-        market,
-        rawSymbol,
-      );
-      const orderResp: ExOrderResp = {
-        exOrderId,
-        status: OrderStatus.filled,
-        rawOrder: {},
-      };
-      this.fillSize(orderResp, params, price);
-      return {
-        rawParams: {},
-        orderResp,
-      };
-    }
-
-    this.traceOrderFilling(params).catch((e) => this.logger.error(e));
-
-    return {
-      rawParams: {},
-      orderResp: {
-        exOrderId,
-        status: OrderStatus.pending,
-        rawOrder: {},
-      },
-    };
-  }
-
-  async placeTpslOrder(
-    apiKey: ExApiKey,
-    params: PlaceTpslOrderParams,
-  ): Promise<PlaceOrderReturns> {
-    return this.placeOrder(apiKey, params);
   }
 }

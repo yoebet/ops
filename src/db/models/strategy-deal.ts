@@ -54,6 +54,7 @@ export class StrategyDeal extends ExSymbolBase {
     deal.strategyId = strategy.id;
     deal.userExAccountId = strategy.userExAccountId;
     deal.tradeType = strategy.tradeType;
+    deal.paperTrade = strategy.paperTrade;
     deal.status = 'open';
     return deal;
   }

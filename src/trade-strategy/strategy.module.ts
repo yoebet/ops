@@ -6,8 +6,9 @@ import { JobsModule } from '@/job/jobs.module';
 import { ExDataModule } from '@/data-ex/ex-data.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { ExSyncModule } from '@/ex-sync/ex-sync.module';
+import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 
-const services: Provider[] = [StrategyService];
+const services: Provider[] = [StrategyService, MockOrderTracingService];
 
 @Module({
   imports: [
