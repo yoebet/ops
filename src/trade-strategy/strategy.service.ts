@@ -122,7 +122,12 @@ export class StrategyService implements OnModuleInit {
     if (!jobFacade) {
       throw new Error(`jobFacade ${strategy.algoCode} not found`);
     }
-    await jobFacade.addTask({ strategyId });
+    await jobFacade.addTask(
+      { strategyId },
+      {
+        jobId: '' + strategyId,
+      },
+    );
     strategy.jobSummited = true;
     await strategy.save();
   }
@@ -137,7 +142,12 @@ export class StrategyService implements OnModuleInit {
       if (!jobFacade) {
         throw new Error(`jobFacade ${strategy.algoCode} not found`);
       }
-      await jobFacade.addTask({ strategyId: strategy.id });
+      await jobFacade.addTask(
+        { strategyId: strategy.id },
+        {
+          jobId: '' + strategy.id,
+        },
+      );
       await Strategy.update(strategy.id, { jobSummited: true });
     }
   }

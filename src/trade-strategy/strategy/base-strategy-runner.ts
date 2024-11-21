@@ -18,13 +18,12 @@ export abstract class BaseStrategyRunner {
   abstract run(): Promise<void>;
 
   protected async logJob(message: string): Promise<void> {
+    this.logger.log(message);
     const job = this.env.getThisJob();
     if (job) {
       await job.log(message).catch((err: Error) => {
         this.logger.error(err);
       });
-    } else {
-      this.logger.log(message);
     }
   }
 
@@ -32,13 +31,12 @@ export abstract class BaseStrategyRunner {
     context: string,
     status: string,
   ): Promise<void> {
+    this.logger.log(`[${context}] ${status}`);
     const job = this.env.getThisJob();
     if (job) {
       await job.updateProgress({ [context]: status }).catch((err: Error) => {
         this.logger.error(err);
       });
-    } else {
-      this.logger.log(`[${context}] ${status}`);
     }
   }
 
@@ -48,7 +46,12 @@ export abstract class BaseStrategyRunner {
 
   protected async repeatToComplete<T = any>(
     action: () => Promise<T | undefined>,
-    options: { maxTry?: number; maxWait?: number; waitOnFailed?: number } = {},
+    options: {
+      context: string;
+      maxTry?: number;
+      maxWait?: number;
+      waitOnFailed?: number;
+    },
   ): Promise<T | undefined> {
     const strategy = this.strategy;
     let tried = 0;
@@ -63,6 +66,7 @@ export abstract class BaseStrategyRunner {
         await this.checkCommands();
       } catch (e) {
         this.logger.error(e);
+        await this.logJob(`${options.context}: ${e.message}`);
         if (options.maxTry && tried >= options.maxTry) {
           return undefined;
         }
@@ -70,10 +74,13 @@ export abstract class BaseStrategyRunner {
         if (options.maxWait && waited + toWait >= options.maxWait) {
           return undefined;
         }
+        await this.logJob(`${options.context}: wait ${toWait / 1000}s.`);
         await wait(toWait);
         waited += toWait;
         if (!strategy.active) {
-          this.logger.log(`strategy ${strategy.id} is not active, exit ...`);
+          await this.logJob(
+            `${options.context}: strategy is not active, exit ...`,
+          );
           return undefined;
         }
       }
@@ -172,18 +179,22 @@ export abstract class BaseStrategyRunner {
         if (order.status === OrderStatus.filled) {
           currentDeal.lastOrder = order;
           currentDeal.lastOrderId = order.id;
+          await this.logJob(`order filled`);
         }
         await currentDeal.save();
       } else {
         // timeout
+        await this.logJob(`waitForOrder - timeout`);
         await this.env.trySynchronizeOrder(pendingOrder);
         if (ExOrder.orderFinished(pendingOrder.status)) {
           currentDeal.lastOrder = pendingOrder;
           currentDeal.pendingOrder = undefined;
           currentDeal.pendingOrderId = undefined;
           await currentDeal.save();
+          await this.logJob(`synchronize-order - filled`);
         } else {
           // TODO:
+          await this.logJob(`synchronize-order - not filled`);
           return false;
         }
       }
@@ -209,7 +220,11 @@ export abstract class BaseStrategyRunner {
       return;
     }
 
+    await this.logJob(`close deal ...`);
+
     await this.closeDeal(currentDeal);
+
+    await this.logJob(`deal closed. create new ...`);
 
     await this.createNewDeal();
   }

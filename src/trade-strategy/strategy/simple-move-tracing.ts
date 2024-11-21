@@ -46,12 +46,13 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
   async run() {
     const strategy = this.strategy;
+
+    await this.logJob(`run strategy #${strategy.id} ...`);
+
     if (!strategy.active) {
-      this.logger.log(`strategy ${strategy.id} is not active`);
+      await this.logJob(`strategy ${strategy.id} is not active`);
       return;
     }
-
-    await this.logJob(`start ...`);
 
     if (!strategy.params) {
       strategy.params = {
@@ -72,18 +73,22 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
         await this.loadOrCreateDeal();
 
-        await this.repeatToComplete(this.checkAndWaitPendingOrder.bind(this));
+        await this.repeatToComplete(this.checkAndWaitPendingOrder.bind(this), {
+          context: 'checkAndWaitPendingOrder',
+        });
 
         await this.resetRuntimeParams();
 
         const opp = await this.repeatToComplete(
           this.checkAndWaitOpportunity.bind(this),
+          { context: 'checkAndWaitOpportunity' },
         );
         if (opp.placeOrder) {
           await this.placeOrder();
         }
       } catch (e) {
         this.logger.error(e);
+        await this.logJob(e.message);
         await wait(MINUTE_MS);
       }
     }
@@ -99,18 +104,18 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       strategy.nextTradeSide =
         lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
       if (lastSide !== strategy.nextTradeSide) {
-        this.resetStartingPrice(lastOrder.execPrice);
+        await this.resetStartingPrice(lastOrder.execPrice);
       }
     }
     const runtimeParams = strategy.runtimeParams as RuntimeParams;
     if (!runtimeParams.startingPrice) {
       const startingPrice = await this.env.getLastPrice();
-      this.resetStartingPrice(startingPrice);
+      await this.resetStartingPrice(startingPrice);
     }
     await strategy.save();
   }
 
-  protected resetStartingPrice(startingPrice: number) {
+  protected async resetStartingPrice(startingPrice: number) {
     const strategy = this.strategy;
     const runtimeParams: RuntimeParams = (strategy.runtimeParams = {});
     runtimeParams.startingPrice = startingPrice;
@@ -122,6 +127,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     const ratio =
       strategy.nextTradeSide === TradeSide.buy ? 1 - wfp / 100 : 1 + wfp / 100;
     runtimeParams.placeOrderPrice = runtimeParams.startingPrice * ratio;
+    await this.logJob(`placeOrderPrice: ${runtimeParams.placeOrderPrice}`);
   }
 
   protected async checkAndWaitOpportunity(): Promise<{
@@ -136,6 +142,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
       if (!runtimeParams.placeOrderPrice) {
         runtimeParams.placeOrderPrice = lastPrice;
+        await this.logJob('no `placeOrderPrice`, place order now');
         return { placeOrder: true };
       }
 
@@ -143,10 +150,12 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
       if (strategy.nextTradeSide === TradeSide.buy) {
         if (lastPrice <= placeOrderPrice) {
+          await this.logJob(`reach, to buy`);
           return { placeOrder: true };
         }
       } else {
         if (lastPrice >= placeOrderPrice) {
+          await this.logJob(`reach, to sell`);
           return { placeOrder: true };
         }
       }
@@ -171,7 +180,9 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       } else {
         watchLevel = 'hibernate';
       }
-      this.logger.log(`watch level: ${watchLevel}`);
+      await this.logJob(
+        `watch level: ${watchLevel}, ${lastPrice}(last) -> ${placeOrderPrice}(place-order), ${diffPercent}%`,
+      );
 
       switch (watchLevel) {
         case 'intense':
@@ -191,32 +202,41 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
             ...watchRtPriceParams,
             timeoutSeconds: 10 * 60,
           });
+
           if (result.timeout) {
+            await this.logJob(`timeout, ${result.price}(last)`);
             return {};
           }
           if (strategy.nextTradeSide === TradeSide.buy) {
             if (result.reachLower) {
+              await this.logJob(`reachLower, ${result.price}(last)`);
               return { placeOrder: true };
             }
           } else {
-            if (result.reachLower) {
+            if (result.reachUpper) {
+              await this.logJob(`reachUpper, ${result.price}(last)`);
               return { placeOrder: true };
             }
           }
           break;
         case 'medium':
+          await this.logJob(`wait 5s`);
           await wait(5 * 1000);
           break;
         case 'loose':
+          await this.logJob(`wait 1m`);
           await wait(MINUTE_MS);
           break;
         case 'snap':
+          await this.logJob(`wait 5m`);
           await wait(5 * MINUTE_MS);
           break;
         case 'sleep':
+          await this.logJob(`wait 30m`);
           await wait(30 * MINUTE_MS);
           break;
         case 'hibernate':
+          await this.logJob(`wait 2h`);
           await wait(2 * HOUR_MS);
           break;
       }
@@ -298,6 +318,8 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     await order.save();
 
     try {
+      await this.logJob(`place order(${clientOrderId}) ...`);
+
       const result = await exService.placeTpslOrder(apiKey, params);
 
       ExOrder.setProps(order, result.orderResp);
@@ -310,18 +332,20 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
         currentDeal.lastOrder = order;
         currentDeal.lastOrderId = order.id;
         await currentDeal.save();
+        await this.logJob(`order filled`);
         await this.onOrderFilled();
       } else if (ExOrder.orderToWait(order.status)) {
         currentDeal.pendingOrder = order;
         currentDeal.pendingOrderId = order.id;
         await currentDeal.save();
       } else {
-        this.logger.error(`place order failed: ${order.status}`);
+        await this.logJob(`place order failed: ${order.status}`);
       }
     } catch (e) {
       this.logger.error(e);
       order.status = OrderStatus.summitFailed;
       await order.save();
+      await this.logJob(`summit order failed`);
     }
   }
 }

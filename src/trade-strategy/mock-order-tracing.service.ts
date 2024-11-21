@@ -32,6 +32,9 @@ export interface TraceOrderJobData {
   params: PlaceOrderParams;
 }
 
+const intenseWatchThreshold = 0.3;
+const intenseWatchExitThreshold = 0.1;
+
 @Injectable()
 export class MockOrderTracingService implements OnModuleInit {
   protected traceOrderJobFacade: JobFacade<TraceOrderJobData, ExOrder>;
@@ -89,9 +92,6 @@ export class MockOrderTracingService implements OnModuleInit {
       const diffPercent = evalDiffPercent(lastPrice, targetPrice);
       const diffPercentAbs = Math.abs(diffPercent);
 
-      const intenseWatchThreshold = 0.3;
-      const intenseWatchExitThreshold = 0.1;
-
       const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent}%)`;
 
       if (diffPercentAbs <= intenseWatchThreshold) {
@@ -107,7 +107,7 @@ export class MockOrderTracingService implements OnModuleInit {
             upperBound: targetPrice,
           };
         }
-        await reportStatus('watch', `wait-${direction}`);
+        await reportStatus(`${diffInfo}, watch`, `wait-${direction}`);
         watchRtPriceParams.timeoutSeconds = 10 * 60;
         const watchResult = await this.publicWsService.watchRtPrice(
           ex,
@@ -145,6 +145,7 @@ export class MockOrderTracingService implements OnModuleInit {
 
       const cancel = await cancelCallback();
       if (cancel) {
+        await reportStatus(`exit due to cancel callback`, `wait-${direction}`);
         return undefined;
       }
     }
@@ -181,11 +182,20 @@ export class MockOrderTracingService implements OnModuleInit {
     );
     const spr = 1 + drawbackRatio;
     const bpr = 1 - drawbackRatio;
+    let price;
     let sentinel = activePrice;
     let placeOrderPrice: number | undefined = undefined;
+
+    const reportStatusHandler = setInterval(async () => {
+      await reportStatus(
+        `${sentinel}(sentinel) ~ ${price} ~ ${placeOrderPrice}(place-order)`,
+        'subscribeRtPrice',
+      ).catch((e) => this.logger.error(e));
+    }, 30 * 1000);
+
     const obs1 = obs.pipe(
       Rx.filter((rtPrice) => {
-        const price = rtPrice.price;
+        price = rtPrice.price;
         if (side === TradeSide.buy) {
           if (price < sentinel) {
             sentinel = price;
@@ -207,6 +217,10 @@ export class MockOrderTracingService implements OnModuleInit {
 
     await Rx.firstValueFrom(obs1);
     unsubs();
+
+    clearInterval(reportStatusHandler);
+
+    await reportStatus(`reach: ${placeOrderPrice}`, 'subscribeRtPrice');
 
     return placeOrderPrice;
   }
@@ -234,7 +248,7 @@ export class MockOrderTracingService implements OnModuleInit {
       return !ExOrder.orderToWait(order.status);
     };
 
-    const reportStatus: (context: string) => StatusReporter = (
+    const reportStatusFn: (context: string) => StatusReporter = (
       context: string,
     ) => {
       return async (status: string, subContext?: string) => {
@@ -242,6 +256,7 @@ export class MockOrderTracingService implements OnModuleInit {
         await job.updateProgress({ [c]: status });
       };
     };
+
     if (!params.tpslType) {
       const price = +params.price;
       if (!price) {
@@ -251,7 +266,7 @@ export class MockOrderTracingService implements OnModuleInit {
         strategy,
         price,
         tradeSide === 'buy' ? 'down' : 'up',
-        reportStatus(`trace ${params.clientOrderId}`),
+        reportStatusFn(`trace ${params.clientOrderId}`),
         cancelCallback,
       );
       if (hitPrice) {
@@ -275,14 +290,14 @@ export class MockOrderTracingService implements OnModuleInit {
         hitPrice = await this.waitTp(
           strategy,
           params,
-          reportStatus(`tp`),
+          reportStatusFn(`tp`),
           cancelCallback,
         );
       } else if (params.tpslType === 'sl') {
         hitPrice = await this.waitSl(
           strategy,
           params,
-          reportStatus(`sl`),
+          reportStatusFn(`sl`),
           cancelCallback,
         );
       } else if (params.tpslType === 'tpsl') {
@@ -290,13 +305,13 @@ export class MockOrderTracingService implements OnModuleInit {
           this.waitTp(
             strategy,
             params,
-            reportStatus(`tp`),
+            reportStatusFn(`tp`),
             cancelCallback,
           ).then((p) => [p, 'tp']),
           this.waitSl(
             strategy,
             params,
-            reportStatus(`sl`),
+            reportStatusFn(`sl`),
             cancelCallback,
           ).then((p) => [p, 'sl']),
         ])) as [number, string];
@@ -310,7 +325,7 @@ export class MockOrderTracingService implements OnModuleInit {
           tradeSide,
           +moveDrawbackRatio,
           activePrice,
-          reportStatus('move'),
+          reportStatusFn('move'),
           cancelCallback,
         );
       }
