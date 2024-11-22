@@ -19,8 +19,9 @@ import { StrategyAlgo, StrategyJobData } from '@/trade-strategy/strategy.types';
 import { BurstMonitor } from '@/trade-strategy/strategy/burst-monitor';
 import { createNewDealIfNone } from '@/trade-strategy/strategy.utils';
 import {
-  StrategyConstants,
-  StrategyWorkerStalledInterval,
+  WorkerMaxStalledCount,
+  WorkerConcurrency,
+  WorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
 import { MINUTE_MS } from '@/common/utils/utils';
 
@@ -47,21 +48,16 @@ export class StrategyService implements OnModuleInit {
   onModuleInit(): any {
     for (const code of Object.values(StrategyAlgo)) {
       const facade = this.jobsService.defineJob<StrategyJobData, any>({
-        queueName: this.genStrategyQueueName(code),
+        queueName: `strategy/${code}`,
         processJob: this.runStrategyJob.bind(this),
         workerOptions: {
-          maxStalledCount: StrategyConstants,
-          stalledInterval: StrategyWorkerStalledInterval,
-          // skipStalledCheck: true,
-          concurrency: 10,
+          maxStalledCount: WorkerMaxStalledCount,
+          stalledInterval: WorkerStalledInterval,
+          concurrency: WorkerConcurrency,
         },
       });
       this.strategyJobFacades.set(code, facade);
     }
-  }
-
-  private genStrategyQueueName(code: StrategyAlgo): string {
-    return `strategy/${code}`;
   }
 
   private prepareEnv(

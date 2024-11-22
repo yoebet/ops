@@ -21,12 +21,18 @@ import {
 import { TradeSide } from '@/data-service/models/base';
 import { AppLogger } from '@/common/app-logger';
 import { JobFacade, JobsService } from '@/job/jobs.service';
-import { TraceOrderJobData } from '@/trade-strategy/strategy.types';
+import {
+  StrategyAlgo,
+  TraceOrderJobData,
+} from '@/trade-strategy/strategy.types';
 import { fillOrderSize } from '@/trade-strategy/strategy.utils';
 import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
   ReportStatusInterval,
+  WorkerMaxStalledCount,
+  WorkerConcurrency,
+  WorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
 
 declare type StatusReporter = (
@@ -36,7 +42,10 @@ declare type StatusReporter = (
 
 @Injectable()
 export class MockOrderTracingService implements OnModuleInit {
-  protected traceOrderJobFacade: JobFacade<TraceOrderJobData, ExOrder>;
+  protected traceOrderJobFacades = new Map<
+    StrategyAlgo,
+    JobFacade<TraceOrderJobData, ExOrder>
+  >();
 
   constructor(
     protected publicDataService: ExPublicDataService,
@@ -46,109 +55,33 @@ export class MockOrderTracingService implements OnModuleInit {
   ) {}
 
   onModuleInit(): any {
-    this.traceOrderJobFacade = this.jobsService.defineJob({
-      queueName: 'Trace Order',
-      processJob: this.traceAndFillOrder.bind(this),
-    });
+    for (const code of Object.values(StrategyAlgo)) {
+      const facade = this.jobsService.defineJob<TraceOrderJobData, any>({
+        queueName: `trace-order/${code}`,
+        processJob: this.traceAndFillOrder.bind(this),
+        workerOptions: {
+          maxStalledCount: WorkerMaxStalledCount,
+          stalledInterval: WorkerStalledInterval,
+          concurrency: WorkerConcurrency,
+        },
+      });
+      this.traceOrderJobFacades.set(code, facade);
+    }
   }
 
   async addOrderTracingJob(
-    strategyId: number,
+    strategy: Strategy,
     params: PlaceOrderParams,
   ): Promise<void> {
-    await this.traceOrderJobFacade.addTask({
+    const strategyId = strategy.id;
+    const jobFacade = this.traceOrderJobFacades.get(strategy.algoCode);
+    if (!jobFacade) {
+      throw new Error(`jobFacade ${strategy.algoCode} not found`);
+    }
+    await jobFacade.addTask({
       strategyId,
       params,
     });
-  }
-
-  protected async waitForPrice(
-    strategy: Strategy,
-    targetPrice: number,
-    direction: 'up' | 'down',
-    reportStatus: StatusReporter,
-    cancelCallback?: () => Promise<boolean>,
-  ): Promise<number | undefined> {
-    const { ex, market, symbol, rawSymbol } = strategy;
-
-    while (true) {
-      const lastPrice = await this.publicDataService.getLastPrice(
-        ex,
-        market,
-        rawSymbol,
-      );
-      if (direction === 'up') {
-        if (lastPrice >= targetPrice) {
-          return lastPrice;
-        }
-      }
-      if (direction === 'down') {
-        if (lastPrice <= targetPrice) {
-          return lastPrice;
-        }
-      }
-
-      const diffPercent = evalDiffPercent(lastPrice, targetPrice);
-      const diffPercentAbs = Math.abs(diffPercent);
-
-      const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent.toFixed(4)}%)`;
-      const logContext = `wait-${direction}`;
-
-      if (diffPercentAbs <= IntenseWatchThreshold) {
-        let watchRtPriceParams: WatchRtPriceParams;
-        if (direction === 'down') {
-          watchRtPriceParams = {
-            lowerBound: targetPrice,
-            upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
-          };
-        } else {
-          watchRtPriceParams = {
-            lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
-            upperBound: targetPrice,
-          };
-        }
-        await reportStatus(`${diffInfo}, watch`, logContext);
-        watchRtPriceParams.timeoutSeconds = 10 * 60;
-        const watchResult = await this.publicWsService.watchRtPrice(
-          ex,
-          symbol,
-          watchRtPriceParams,
-        );
-        if (watchResult.timeout) {
-          continue;
-        }
-        if (direction === 'down') {
-          if (watchResult.reachLower) {
-            return watchResult.price;
-          }
-        } else {
-          if (watchResult.reachLower) {
-            return watchResult.price;
-          }
-        }
-      } else if (diffPercentAbs < 1) {
-        // await reportStatus(`${diffInfo}, wait 10s`, logContext);
-        await wait(10 * 1000);
-      } else if (diffPercentAbs < 2) {
-        await reportStatus(`${diffInfo}, wait 1m`, logContext);
-        await wait(MINUTE_MS);
-      } else if (diffPercentAbs < 5) {
-        await reportStatus(`${diffInfo}, wait 5m`, logContext);
-        await wait(5 * MINUTE_MS);
-      } else if (diffPercentAbs < 10) {
-        await reportStatus(`${diffInfo}, wait 30m`, logContext);
-        await wait(30 * MINUTE_MS);
-      } else {
-        await reportStatus(`${diffInfo}, wait 2h`, logContext);
-        await wait(2 * HOUR_MS);
-      }
-
-      const cancel = await cancelCallback();
-      if (cancel) {
-        await reportStatus(`exit due to cancel callback`, logContext);
-        return undefined;
-      }
-    }
   }
 
   async traceMovingTpsl(
@@ -362,6 +295,95 @@ export class MockOrderTracingService implements OnModuleInit {
     // }
     // tpslClientOrderId
     return undefined;
+  }
+
+  protected async waitForPrice(
+    strategy: Strategy,
+    targetPrice: number,
+    direction: 'up' | 'down',
+    reportStatus: StatusReporter,
+    cancelCallback?: () => Promise<boolean>,
+  ): Promise<number | undefined> {
+    const { ex, market, symbol, rawSymbol } = strategy;
+
+    while (true) {
+      const lastPrice = await this.publicDataService.getLastPrice(
+        ex,
+        market,
+        rawSymbol,
+      );
+      if (direction === 'up') {
+        if (lastPrice >= targetPrice) {
+          return lastPrice;
+        }
+      }
+      if (direction === 'down') {
+        if (lastPrice <= targetPrice) {
+          return lastPrice;
+        }
+      }
+
+      const diffPercent = evalDiffPercent(lastPrice, targetPrice);
+      const diffPercentAbs = Math.abs(diffPercent);
+
+      const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent.toFixed(4)}%)`;
+      const logContext = `wait-${direction}`;
+
+      if (diffPercentAbs <= IntenseWatchThreshold) {
+        let watchRtPriceParams: WatchRtPriceParams;
+        if (direction === 'down') {
+          watchRtPriceParams = {
+            lowerBound: targetPrice,
+            upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
+          };
+        } else {
+          watchRtPriceParams = {
+            lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
+            upperBound: targetPrice,
+          };
+        }
+        await reportStatus(`${diffInfo}, watch`, logContext);
+        watchRtPriceParams.timeoutSeconds = 10 * 60;
+        const watchResult = await this.publicWsService.watchRtPrice(
+          ex,
+          symbol,
+          watchRtPriceParams,
+        );
+        if (watchResult.timeout) {
+          continue;
+        }
+        if (direction === 'down') {
+          if (watchResult.reachLower) {
+            return watchResult.price;
+          }
+        } else {
+          if (watchResult.reachLower) {
+            return watchResult.price;
+          }
+        }
+      } else if (diffPercentAbs < 1) {
+        // await reportStatus(`${diffInfo}, wait 10s`, logContext);
+        await wait(10 * 1000);
+      } else if (diffPercentAbs < 2) {
+        await reportStatus(`${diffInfo}, wait 1m`, logContext);
+        await wait(MINUTE_MS);
+      } else if (diffPercentAbs < 5) {
+        await reportStatus(`${diffInfo}, wait 5m`, logContext);
+        await wait(5 * MINUTE_MS);
+      } else if (diffPercentAbs < 10) {
+        await reportStatus(`${diffInfo}, wait 30m`, logContext);
+        await wait(30 * MINUTE_MS);
+      } else {
+        await reportStatus(`${diffInfo}, wait 2h`, logContext);
+        await wait(2 * HOUR_MS);
+      }
+
+      const cancel = await cancelCallback();
+      if (cancel) {
+        await reportStatus(`exit due to cancel callback`, logContext);
+        return undefined;
+      }
+    }
   }
 
   protected async waitTp(

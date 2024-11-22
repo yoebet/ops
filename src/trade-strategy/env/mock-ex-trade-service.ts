@@ -116,7 +116,7 @@ export class MockExTradeService implements ExchangeTradeService {
     }
 
     this.orderTracingService
-      .addOrderTracingJob(this.strategy.id, params)
+      .addOrderTracingJob(this.strategy, params)
       .catch((e) => this.logger.error(e));
 
     return {
