@@ -22,6 +22,8 @@ class ExitSignal extends Error {}
 export abstract class BaseRunner {
   protected durationHumanizer = humanizeDuration.humanizer({
     language: 'shortEn',
+    delimiter: ' ',
+    spacer: '',
     languages: {
       shortEn: {
         y: () => 'y',
@@ -172,17 +174,20 @@ export abstract class BaseRunner {
         });
 
         if (result.timeout) {
-          await this.logJob(`timeout, ${result.price}(last)`, logContext);
+          const ps = result.price.toPrecision(6);
+          await this.logJob(`timeout, ${ps}(last)`, logContext);
           return false;
         }
         if (toBuy) {
           if (result.reachLower) {
-            await this.logJob(`reachLower, ${result.price}(last)`, logContext);
+            const ps = result.price.toPrecision(6);
+            await this.logJob(`reachLower, ${ps}(last)`, logContext);
             return true;
           }
         } else {
           if (result.reachUpper) {
-            await this.logJob(`reachUpper, ${result.price}(last)`, logContext);
+            const ps = result.price.toPrecision(6);
+            await this.logJob(`reachUpper, ${ps}(last)`, logContext);
             return true;
           }
         }

@@ -326,7 +326,9 @@ export class MockOrderTracingService implements OnModuleInit {
       const diffPercent = evalDiffPercent(lastPrice, targetPrice);
       const diffPercentAbs = Math.abs(diffPercent);
 
-      const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent.toFixed(4)}%)`;
+      const lps = lastPrice.toPrecision(6);
+      const tps = targetPrice.toPrecision(6);
+      const diffInfo = `(${lps} -> ${tps}, ${diffPercent.toFixed(4)}%)`;
       const logContext = `wait-${direction}`;
 
       if (diffPercentAbs <= IntenseWatchThreshold) {

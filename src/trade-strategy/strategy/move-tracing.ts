@@ -116,8 +116,10 @@ export class MoveTracing extends BaseRunner {
       const diffPercentAbs = Math.abs(diffPercent);
 
       const watchLevel = this.evalWatchLevel(diffPercentAbs);
+      const lps = lastPrice.toPrecision(6);
+      const tps = placeOrderPrice.toPrecision(6);
       await this.logJob(
-        `watch level: ${watchLevel}, ${lastPrice}(last) -> ${placeOrderPrice}, ${diffPercent.toFixed(4)}%`,
+        `watch level: ${watchLevel}, ${lps}(last) -> ${tps}, ${diffPercent.toFixed(4)}%`,
         logContext,
       );
 
