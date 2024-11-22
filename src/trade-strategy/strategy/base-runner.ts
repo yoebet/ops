@@ -6,16 +6,161 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import * as _ from 'lodash';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { MINUTE_MS, wait } from '@/common/utils/utils';
+import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
+import {
+  IntenseWatchExitThreshold,
+  IntenseWatchThreshold,
+  ReportStatusInterval,
+  WatchLevel,
+} from '@/trade-strategy/strategy.types';
+import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
 
-export abstract class BaseStrategyRunner {
+export abstract class BaseRunner {
   protected constructor(
     protected readonly strategy: Strategy,
     protected env: StrategyEnv,
     protected logger: AppLogger,
   ) {}
 
-  abstract run(): Promise<void>;
+  async run() {
+    const strategy = this.strategy;
+
+    await this.logJob(`run strategy #${strategy.id} ...`);
+    // await this.reportJobStatus('top', `run strategy #${strategy.id} ...`);
+
+    if (!strategy.active) {
+      await this.logJob(`strategy ${strategy.id} is not active`);
+      return;
+    }
+
+    this.setDefaultStrategyParams();
+    strategy.runtimeParams = {};
+
+    while (true) {
+      try {
+        if (!strategy.active) {
+          this.logger.log(`strategy ${strategy.id} is not active, exit ...`);
+          break;
+        }
+
+        await this.checkCommands();
+
+        await this.loadOrCreateDeal();
+
+        await this.repeatToComplete(this.checkAndWaitPendingOrder.bind(this), {
+          context: 'wait-pending-order',
+        });
+
+        await this.resetRuntimeParams();
+
+        const opp = await this.repeatToComplete(
+          this.checkAndWaitOpportunity.bind(this),
+          { context: 'wait-opportunity' },
+        );
+        if (opp.placeOrder) {
+          await this.placeOrder();
+        }
+      } catch (e) {
+        this.logger.error(e);
+        await this.logJob(e.message, 'run()');
+        await wait(MINUTE_MS);
+      }
+    }
+  }
+
+  protected setDefaultStrategyParams() {}
+
+  protected abstract resetRuntimeParams(): Promise<void>;
+
+  protected abstract checkAndWaitOpportunity(): Promise<{
+    placeOrder?: boolean;
+  }>;
+
+  protected abstract placeOrder(): Promise<void>;
+
+  protected evalWatchLevel(diffPercentAbs: number): WatchLevel {
+    let watchLevel: WatchLevel;
+    if (diffPercentAbs <= IntenseWatchThreshold) {
+      watchLevel = 'intense';
+    } else if (diffPercentAbs < 1) {
+      watchLevel = 'medium';
+    } else if (diffPercentAbs < 2) {
+      watchLevel = 'loose';
+    } else if (diffPercentAbs < 5) {
+      watchLevel = 'snap';
+    } else if (diffPercentAbs < 10) {
+      watchLevel = 'sleep';
+    } else {
+      watchLevel = 'hibernate';
+    }
+    return watchLevel;
+  }
+
+  protected async waitForWatchLevel(
+    watchLevel: WatchLevel,
+    lastPrice: number,
+    targetPrice: number,
+    logContext: string,
+  ): Promise<boolean> {
+    const strategy = this.strategy;
+    switch (watchLevel) {
+      case 'intense':
+        let watchRtPriceParams: WatchRtPriceParams;
+        if (strategy.nextTradeSide === TradeSide.buy) {
+          watchRtPriceParams = {
+            lowerBound: targetPrice,
+            upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
+          };
+        } else {
+          watchRtPriceParams = {
+            lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
+            upperBound: targetPrice,
+          };
+        }
+        const result = await this.env.watchRtPrice({
+          ...watchRtPriceParams,
+          timeoutSeconds: 10 * 60,
+        });
+
+        if (result.timeout) {
+          await this.logJob(`timeout, ${result.price}(last)`, logContext);
+          return false;
+        }
+        if (strategy.nextTradeSide === TradeSide.buy) {
+          if (result.reachLower) {
+            await this.logJob(`reachLower, ${result.price}(last)`, logContext);
+            return true;
+          }
+        } else {
+          if (result.reachUpper) {
+            await this.logJob(`reachUpper, ${result.price}(last)`, logContext);
+            return true;
+          }
+        }
+        break;
+      case 'medium':
+        await this.logJob(`wait 5s`, logContext);
+        await wait(5 * 1000);
+        break;
+      case 'loose':
+        await this.logJob(`wait 1m`, logContext);
+        await wait(MINUTE_MS);
+        break;
+      case 'snap':
+        await this.logJob(`wait 5m`, logContext);
+        await wait(5 * MINUTE_MS);
+        break;
+      case 'sleep':
+        await this.logJob(`wait 30m`, logContext);
+        await wait(30 * MINUTE_MS);
+        break;
+      case 'hibernate':
+        await this.logJob(`wait 2h`, logContext);
+        await wait(2 * HOUR_MS);
+        break;
+    }
+    return false;
+  }
 
   protected async logJob(message: string, context?: string): Promise<void> {
     if (context) {
@@ -68,7 +213,7 @@ export abstract class BaseStrategyRunner {
         const s = Math.round((Date.now() - start) / 1000);
         const msg = tried > 1 ? `try ${tried}, waited ${s}s.` : `waited ${s}s.`;
         this.logJob(msg, options.context);
-      }, MINUTE_MS);
+      }, ReportStatusInterval);
       try {
         const result = await action();
         if (result) {
@@ -101,12 +246,16 @@ export abstract class BaseStrategyRunner {
     }
   }
 
+  protected newDealSide(): TradeSide {
+    return TradeSide.buy;
+  }
+
   protected async createNewDeal() {
     const strategy = this.strategy;
     const currentDeal = StrategyDeal.newStrategyDeal(strategy);
     strategy.currentDealId = currentDeal.id;
     strategy.currentDeal = currentDeal;
-    strategy.nextTradeSide = TradeSide.buy;
+    strategy.nextTradeSide = this.newDealSide();
     await StrategyDeal.save(currentDeal);
     await strategy.save();
     return currentDeal;
@@ -229,7 +378,7 @@ export abstract class BaseStrategyRunner {
     if (
       !lastOrder ||
       lastOrder.status !== OrderStatus.filled ||
-      lastOrder.side === TradeSide.buy
+      lastOrder.side === this.newDealSide()
     ) {
       return;
     }

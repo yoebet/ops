@@ -1,4 +1,4 @@
-import { Column, Entity, Index, Unique } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { TradeSide } from '@/data-service/models/base';
@@ -8,7 +8,7 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { StrategyAlgo } from '@/trade-strategy/strategy.types';
 
 @Entity()
-@Unique(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
+// @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
 export class Strategy extends ExSymbolBase {
   @Column()
   // @Index()

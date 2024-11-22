@@ -7,20 +7,21 @@ import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
-import { SimpleMoveTracing } from '@/trade-strategy/strategy/simple-move-tracing';
+import { MoveTracing } from '@/trade-strategy/strategy/move-tracing';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvTrade } from '@/trade-strategy/env/strategy-env-trade';
 import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-trade';
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
-import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
+import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import {
   StrategyAlgo,
   StrategyJobData,
   StrategyWorkerMaxStalledCount,
   StrategyWorkerStalledInterval,
 } from '@/trade-strategy/strategy.types';
+import { BurstMonitor } from '@/trade-strategy/strategy/burst-monitor';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -51,6 +52,7 @@ export class StrategyService implements OnModuleInit {
           maxStalledCount: StrategyWorkerMaxStalledCount,
           stalledInterval: StrategyWorkerStalledInterval,
           // skipStalledCheck: true,
+          concurrency: 10,
         },
       });
       this.strategyJobFacades.set(code, facade);
@@ -98,13 +100,12 @@ export class StrategyService implements OnModuleInit {
 
   async runStrategy(strategy: Strategy, job?: Job<StrategyJobData>) {
     const env = this.prepareEnv(strategy, job);
-    let runner: BaseStrategyRunner;
+    let runner: BaseRunner;
+    const logger = this.logger.subLogger(`${strategy.algoCode}/${strategy.id}`);
     if (strategy.algoCode === StrategyAlgo.MV) {
-      runner = new SimpleMoveTracing(
-        strategy,
-        env,
-        this.logger.subLogger(`${strategy.algoCode}/${strategy.id}`),
-      );
+      runner = new MoveTracing(strategy, env, logger);
+    } else if (strategy.algoCode === StrategyAlgo.BR) {
+      runner = new BurstMonitor(strategy, env, logger);
     } else {
       throw new Error(`unknown strategy ${strategy.algoCode}`);
     }
@@ -133,7 +134,7 @@ export class StrategyService implements OnModuleInit {
     await jobFacade.addTask(
       { strategyId },
       {
-        jobId: '' + strategyId,
+        jobId: 's' + strategyId,
         attempts: 100,
       },
     );
@@ -154,7 +155,7 @@ export class StrategyService implements OnModuleInit {
       await jobFacade.addTask(
         { strategyId: strategy.id },
         {
-          jobId: '' + strategy.id,
+          jobId: 's' + strategy.id,
           attempts: 100,
         },
       );

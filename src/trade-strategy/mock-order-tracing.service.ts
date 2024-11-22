@@ -24,6 +24,7 @@ import { JobFacade, JobsService } from '@/job/jobs.service';
 import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
+  ReportStatusInterval,
   TraceOrderJobData,
 } from '@/trade-strategy/strategy.types';
 
@@ -90,6 +91,7 @@ export class MockOrderTracingService implements OnModuleInit {
       const diffPercentAbs = Math.abs(diffPercent);
 
       const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent.toFixed(4)}%)`;
+      const logContext = `wait-${direction}`;
 
       if (diffPercentAbs <= IntenseWatchThreshold) {
         let watchRtPriceParams: WatchRtPriceParams;
@@ -104,7 +106,7 @@ export class MockOrderTracingService implements OnModuleInit {
             upperBound: targetPrice,
           };
         }
-        await reportStatus(`${diffInfo}, watch`, `wait-${direction}`);
+        await reportStatus(`${diffInfo}, watch`, logContext);
         watchRtPriceParams.timeoutSeconds = 10 * 60;
         const watchResult = await this.publicWsService.watchRtPrice(
           ex,
@@ -124,25 +126,25 @@ export class MockOrderTracingService implements OnModuleInit {
           }
         }
       } else if (diffPercentAbs < 1) {
-        await reportStatus(`${diffInfo}, wait 10s`, `wait-${direction}`);
+        // await reportStatus(`${diffInfo}, wait 10s`, logContext);
         await wait(10 * 1000);
       } else if (diffPercentAbs < 2) {
-        await reportStatus(`${diffInfo}, wait 1m`, `wait-${direction}`);
+        await reportStatus(`${diffInfo}, wait 1m`, logContext);
         await wait(MINUTE_MS);
       } else if (diffPercentAbs < 5) {
-        await reportStatus(`${diffInfo}, wait 5m`, `wait-${direction}`);
+        await reportStatus(`${diffInfo}, wait 5m`, logContext);
         await wait(5 * MINUTE_MS);
       } else if (diffPercentAbs < 10) {
-        await reportStatus(`${diffInfo}, wait 30m`, `wait-${direction}`);
+        await reportStatus(`${diffInfo}, wait 30m`, logContext);
         await wait(30 * MINUTE_MS);
       } else {
-        await reportStatus(`${diffInfo}, wait 2h`, `wait-${direction}`);
+        await reportStatus(`${diffInfo}, wait 2h`, logContext);
         await wait(2 * HOUR_MS);
       }
 
       const cancel = await cancelCallback();
       if (cancel) {
-        await reportStatus(`exit due to cancel callback`, `wait-${direction}`);
+        await reportStatus(`exit due to cancel callback`, logContext);
         return undefined;
       }
     }
@@ -184,11 +186,12 @@ export class MockOrderTracingService implements OnModuleInit {
     let placeOrderPrice: number | undefined = undefined;
 
     const reportStatusHandler = setInterval(async () => {
+      const diffPercent = evalDiffPercent(price, placeOrderPrice);
       await reportStatus(
-        `${sentinel}(sentinel) ~ ${price} ~ ${placeOrderPrice}(place-order)`,
+        `${sentinel}(sentinel) ~ ${price} ~ ${placeOrderPrice}, ${diffPercent.toFixed(4)}%`,
         'subscribeRtPrice',
       ).catch((e) => this.logger.error(e));
-    }, 20 * 1000);
+    }, ReportStatusInterval);
 
     const obs1 = obs.pipe(
       Rx.filter((rtPrice) => {

@@ -2,24 +2,12 @@ import { Strategy } from '@/db/models/strategy';
 import { AppLogger } from '@/common/app-logger';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
-import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
+import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
-import {
-  evalDiffPercent,
-  HOUR_MS,
-  MINUTE_MS,
-  round,
-  wait,
-} from '@/common/utils/utils';
-import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
+import { evalDiffPercent, round } from '@/common/utils/utils';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
-import {
-  IntenseWatchExitThreshold,
-  IntenseWatchThreshold,
-  MVStartupParams,
-  WatchLevel,
-} from '@/trade-strategy/strategy.types';
+import { MVStartupParams } from '@/trade-strategy/strategy.types';
 
 interface RuntimeParams {
   startingPrice?: number;
@@ -27,7 +15,7 @@ interface RuntimeParams {
   activePrice?: number;
 }
 
-export class SimpleMoveTracing extends BaseStrategyRunner {
+export class MoveTracing extends BaseRunner {
   constructor(
     protected strategy: Strategy,
     protected env: StrategyEnv,
@@ -36,55 +24,22 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     super(strategy, env, logger);
   }
 
-  async run() {
+  protected setDefaultStrategyParams() {
     const strategy = this.strategy;
-
-    await this.logJob(`run strategy #${strategy.id} ...`);
-    // await this.reportJobStatus('top', `run strategy #${strategy.id} ...`);
-
-    if (!strategy.active) {
-      await this.logJob(`strategy ${strategy.id} is not active`);
-      return;
-    }
-
     if (!strategy.params) {
       strategy.params = {
         waitForPercent: 2,
         drawbackPercent: 2,
       } as MVStartupParams;
     }
-    strategy.runtimeParams = {};
+  }
 
-    while (true) {
-      try {
-        if (!strategy.active) {
-          this.logger.log(`strategy ${strategy.id} is not active, exit ...`);
-          break;
-        }
-
-        await this.checkCommands();
-
-        await this.loadOrCreateDeal();
-
-        await this.repeatToComplete(this.checkAndWaitPendingOrder.bind(this), {
-          context: 'checkAndWaitPendingOrder',
-        });
-
-        await this.resetRuntimeParams();
-
-        const opp = await this.repeatToComplete(
-          this.checkAndWaitOpportunity.bind(this),
-          { context: 'checkAndWaitOpportunity' },
-        );
-        if (opp.placeOrder) {
-          await this.placeOrder();
-        }
-      } catch (e) {
-        this.logger.error(e);
-        await this.logJob(e.message, 'run()');
-        await wait(MINUTE_MS);
-      }
+  protected newDealSide(): TradeSide {
+    const params = this.strategy.params as MVStartupParams;
+    if (params.newDealTradeSide) {
+      return params.newDealTradeSide;
     }
+    return super.newDealSide();
   }
 
   protected async resetRuntimeParams() {
@@ -125,7 +80,6 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
 
   protected async checkAndWaitOpportunity(): Promise<{
     placeOrder?: boolean;
-    watchLevel?: WatchLevel;
   }> {
     const strategy = this.strategy;
     const runtimeParams: RuntimeParams = strategy.runtimeParams;
@@ -152,83 +106,26 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
           return { placeOrder: true };
         }
       }
+      const logContext =
+        strategy.nextTradeSide === TradeSide.buy ? 'wait-up' : 'wait-down';
 
       const diffPercent = evalDiffPercent(lastPrice, placeOrderPrice);
       const diffPercentAbs = Math.abs(diffPercent);
 
-      let watchLevel: WatchLevel;
-      if (diffPercentAbs <= IntenseWatchThreshold) {
-        watchLevel = 'intense';
-      } else if (diffPercentAbs < 1) {
-        watchLevel = 'medium';
-      } else if (diffPercentAbs < 2) {
-        watchLevel = 'loose';
-      } else if (diffPercentAbs < 5) {
-        watchLevel = 'snap';
-      } else if (diffPercentAbs < 10) {
-        watchLevel = 'sleep';
-      } else {
-        watchLevel = 'hibernate';
-      }
+      const watchLevel = this.evalWatchLevel(diffPercentAbs);
       await this.logJob(
-        `watch level: ${watchLevel}, ${lastPrice}(last) -> ${placeOrderPrice}(place-order), ${diffPercent.toFixed(4)}%`,
+        `watch level: ${watchLevel}, ${lastPrice}(last) -> ${placeOrderPrice}, ${diffPercent.toFixed(4)}%`,
+        logContext,
       );
 
-      switch (watchLevel) {
-        case 'intense':
-          let watchRtPriceParams: WatchRtPriceParams;
-          if (strategy.nextTradeSide === TradeSide.buy) {
-            watchRtPriceParams = {
-              lowerBound: placeOrderPrice,
-              upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
-            };
-          } else {
-            watchRtPriceParams = {
-              lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
-              upperBound: placeOrderPrice,
-            };
-          }
-          const result = await this.env.watchRtPrice({
-            ...watchRtPriceParams,
-            timeoutSeconds: 10 * 60,
-          });
-
-          if (result.timeout) {
-            await this.logJob(`timeout, ${result.price}(last)`);
-            return {};
-          }
-          if (strategy.nextTradeSide === TradeSide.buy) {
-            if (result.reachLower) {
-              await this.logJob(`reachLower, ${result.price}(last)`);
-              return { placeOrder: true };
-            }
-          } else {
-            if (result.reachUpper) {
-              await this.logJob(`reachUpper, ${result.price}(last)`);
-              return { placeOrder: true };
-            }
-          }
-          break;
-        case 'medium':
-          await this.logJob(`wait 5s`);
-          await wait(5 * 1000);
-          break;
-        case 'loose':
-          await this.logJob(`wait 1m`);
-          await wait(MINUTE_MS);
-          break;
-        case 'snap':
-          await this.logJob(`wait 5m`);
-          await wait(5 * MINUTE_MS);
-          break;
-        case 'sleep':
-          await this.logJob(`wait 30m`);
-          await wait(30 * MINUTE_MS);
-          break;
-        case 'hibernate':
-          await this.logJob(`wait 2h`);
-          await wait(2 * HOUR_MS);
-          break;
+      const reachPrice = await this.waitForWatchLevel(
+        watchLevel,
+        lastPrice,
+        placeOrderPrice,
+        logContext,
+      );
+      if (reachPrice) {
+        return { placeOrder: true };
       }
 
       await this.checkCommands();

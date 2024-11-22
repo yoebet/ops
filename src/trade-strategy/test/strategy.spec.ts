@@ -10,6 +10,7 @@ import { Strategy } from '@/db/models/strategy';
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { MVStartupParams, StrategyAlgo } from '@/trade-strategy/strategy.types';
+import { TradeSide } from '@/data-service/models/base';
 
 jest.setTimeout(60_000);
 
@@ -58,7 +59,11 @@ describe('strategy creating', () => {
     const strategy = new Strategy();
     strategy.algoCode = code;
     strategy.name = `${st.name}-${baseCoin}`;
-    strategy.params = st.params;
+    const params: MVStartupParams = {
+      ...st.params,
+      newDealTradeSide: TradeSide.sell,
+    };
+    strategy.params = params;
     strategy.quoteAmount = st.quoteAmount;
     strategy.ex = ex;
     strategy.market = market;
@@ -70,5 +75,6 @@ describe('strategy creating', () => {
     strategy.paperTrade = true;
     strategy.active = true;
     await strategy.save();
+    console.log(strategy);
   });
 });

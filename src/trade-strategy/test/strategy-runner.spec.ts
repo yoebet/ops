@@ -22,6 +22,10 @@ describe('strategy runner', () => {
     await wait(60 * MINUTE_MS);
   });
 
+  it('summit', async () => {
+    await service.summitJob(3);
+  });
+
   it('run 1', async () => {
     const strategy = await Strategy.findOneBy({ id: 1 });
     await service.runStrategy(strategy);
