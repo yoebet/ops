@@ -22,6 +22,7 @@ import {
   StrategyConstants,
   StrategyWorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
+import { MINUTE_MS } from '@/common/utils/utils';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -141,7 +142,8 @@ export class StrategyService implements OnModuleInit {
       { strategyId, dealId, runOneDeal: true },
       {
         jobId: `s${strategyId}/${dealId}`,
-        attempts: 100,
+        attempts: 10,
+        backoff: MINUTE_MS,
       },
     );
   }

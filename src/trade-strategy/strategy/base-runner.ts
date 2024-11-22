@@ -1,10 +1,11 @@
+import * as _ from 'lodash';
+import * as humanizeDuration from 'humanize-duration';
 import { AppLogger } from '@/common/app-logger';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
-import * as _ from 'lodash';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
 import { WatchLevel } from '@/trade-strategy/strategy.types';
@@ -16,9 +17,25 @@ import {
   ReportStatusInterval,
 } from '@/trade-strategy/strategy.constants';
 
-class ExitError extends Error {}
+class ExitSignal extends Error {}
 
 export abstract class BaseRunner {
+  protected durationHumanizer = humanizeDuration.humanizer({
+    language: 'shortEn',
+    languages: {
+      shortEn: {
+        y: () => 'y',
+        mo: () => 'mo',
+        w: () => 'w',
+        d: () => 'd',
+        h: () => 'h',
+        m: () => 'm',
+        s: () => 's',
+        ms: () => 'ms',
+      },
+    },
+  });
+
   protected constructor(
     protected readonly strategy: Strategy,
     protected env: StrategyEnv,
@@ -88,7 +105,7 @@ export abstract class BaseRunner {
           }
         }
       } catch (e) {
-        if (e instanceof ExitError) {
+        if (e instanceof ExitSignal) {
           throw e;
         }
         this.logger.error(e);
@@ -229,7 +246,7 @@ export abstract class BaseRunner {
   protected async checkCommands() {
     const paused = await this.jobEnv.queuePaused();
     if (paused) {
-      throw new ExitError('queue paused');
+      throw new ExitSignal('queue paused');
     }
 
     const st = await Strategy.findOne({
@@ -237,7 +254,7 @@ export abstract class BaseRunner {
       where: { id: this.strategy.id },
     });
     if (!st || !st.active) {
-      throw new ExitError('not active');
+      throw new ExitSignal('not active');
     }
   }
 
@@ -257,8 +274,9 @@ export abstract class BaseRunner {
       tried++;
       const start = Date.now();
       const hd = setInterval(() => {
-        const s = Math.round((Date.now() - start) / 1000);
-        const msg = tried > 1 ? `try ${tried}, waited ${s}s.` : `waited ${s}s.`;
+        const ms = Date.now() - start;
+        const duration = this.durationHumanizer(ms, { round: true });
+        const msg = `try #${tried}, been waited ${duration}.`;
         this.logJob(msg, options.context);
       }, ReportStatusInterval);
       try {
@@ -268,7 +286,7 @@ export abstract class BaseRunner {
         }
         await this.checkCommands();
       } catch (e) {
-        if (e instanceof ExitError) {
+        if (e instanceof ExitSignal) {
           throw e;
         }
         this.logger.error(e);
@@ -280,7 +298,8 @@ export abstract class BaseRunner {
         if (options.maxWait && waited + toWait >= options.maxWait) {
           return undefined;
         }
-        await this.logJob(`wait ${toWait / 1000}s.`, options.context);
+        const duration = this.durationHumanizer(toWait, { round: true });
+        await this.logJob(`to wait ${duration}.`, options.context);
         await wait(toWait);
         waited += toWait;
         if (!strategy.active) {
