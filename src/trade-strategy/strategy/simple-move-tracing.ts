@@ -14,26 +14,18 @@ import {
 import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
-import { MVStartupParams } from '@/trade-strategy/strategy.types';
+import {
+  IntenseWatchExitThreshold,
+  IntenseWatchThreshold,
+  MVStartupParams,
+  WatchLevel,
+} from '@/trade-strategy/strategy.types';
 
 interface RuntimeParams {
   startingPrice?: number;
   placeOrderPrice?: number;
-
-  // basePointPrice?: number;
   activePrice?: number;
-  // activePriceReached?: boolean;
-  // fillingPrice?: number;
-  // fillingPriceReached?: boolean;
 }
-
-declare type WatchLevel =
-  | 'hibernate' // 2h
-  | 'sleep' // 30m
-  | 'snap' // 5m
-  | 'loose' // 1m
-  | 'medium' // 5s
-  | 'intense'; // ws
 
 export class SimpleMoveTracing extends BaseStrategyRunner {
   constructor(
@@ -48,7 +40,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     const strategy = this.strategy;
 
     await this.logJob(`run strategy #${strategy.id} ...`);
-    await this.reportJobStatus('top', `run strategy #${strategy.id} ...`);
+    // await this.reportJobStatus('top', `run strategy #${strategy.id} ...`);
 
     if (!strategy.active) {
       await this.logJob(`strategy ${strategy.id} is not active`);
@@ -89,7 +81,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
         }
       } catch (e) {
         this.logger.error(e);
-        await this.logJob(e.message);
+        await this.logJob(e.message, 'run()');
         await wait(MINUTE_MS);
       }
     }
@@ -164,11 +156,8 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
       const diffPercent = evalDiffPercent(lastPrice, placeOrderPrice);
       const diffPercentAbs = Math.abs(diffPercent);
 
-      const intenseWatchThreshold = 0.3;
-      const intenseWatchExitThreshold = 0.1;
-
       let watchLevel: WatchLevel;
-      if (diffPercentAbs <= intenseWatchThreshold) {
+      if (diffPercentAbs <= IntenseWatchThreshold) {
         watchLevel = 'intense';
       } else if (diffPercentAbs < 1) {
         watchLevel = 'medium';
@@ -182,7 +171,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
         watchLevel = 'hibernate';
       }
       await this.logJob(
-        `watch level: ${watchLevel}, ${lastPrice}(last) -> ${placeOrderPrice}(place-order), ${diffPercent}%`,
+        `watch level: ${watchLevel}, ${lastPrice}(last) -> ${placeOrderPrice}(place-order), ${diffPercent.toFixed(4)}%`,
       );
 
       switch (watchLevel) {
@@ -191,11 +180,11 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
           if (strategy.nextTradeSide === TradeSide.buy) {
             watchRtPriceParams = {
               lowerBound: placeOrderPrice,
-              upperBound: lastPrice * (1 + intenseWatchExitThreshold / 100),
+              upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
             };
           } else {
             watchRtPriceParams = {
-              lowerBound: lastPrice * (1 - intenseWatchExitThreshold / 100),
+              lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
               upperBound: placeOrderPrice,
             };
           }

@@ -21,19 +21,16 @@ import {
 import { TradeSide } from '@/data-service/models/base';
 import { AppLogger } from '@/common/app-logger';
 import { JobFacade, JobsService } from '@/job/jobs.service';
+import {
+  IntenseWatchExitThreshold,
+  IntenseWatchThreshold,
+  TraceOrderJobData,
+} from '@/trade-strategy/strategy.types';
 
 declare type StatusReporter = (
   status: string,
   subContext?: string,
 ) => Promise<void>;
-
-export interface TraceOrderJobData {
-  strategyId: number;
-  params: PlaceOrderParams;
-}
-
-const intenseWatchThreshold = 0.3;
-const intenseWatchExitThreshold = 0.1;
 
 @Injectable()
 export class MockOrderTracingService implements OnModuleInit {
@@ -92,18 +89,18 @@ export class MockOrderTracingService implements OnModuleInit {
       const diffPercent = evalDiffPercent(lastPrice, targetPrice);
       const diffPercentAbs = Math.abs(diffPercent);
 
-      const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent}%)`;
+      const diffInfo = `(${lastPrice} -> ${targetPrice}, ${diffPercent.toFixed(4)}%)`;
 
-      if (diffPercentAbs <= intenseWatchThreshold) {
+      if (diffPercentAbs <= IntenseWatchThreshold) {
         let watchRtPriceParams: WatchRtPriceParams;
         if (direction === 'down') {
           watchRtPriceParams = {
             lowerBound: targetPrice,
-            upperBound: lastPrice * (1 + intenseWatchExitThreshold / 100),
+            upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
           };
         } else {
           watchRtPriceParams = {
-            lowerBound: lastPrice * (1 - intenseWatchExitThreshold / 100),
+            lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
             upperBound: targetPrice,
           };
         }
@@ -191,7 +188,7 @@ export class MockOrderTracingService implements OnModuleInit {
         `${sentinel}(sentinel) ~ ${price} ~ ${placeOrderPrice}(place-order)`,
         'subscribeRtPrice',
       ).catch((e) => this.logger.error(e));
-    }, 30 * 1000);
+    }, 20 * 1000);
 
     const obs1 = obs.pipe(
       Rx.filter((rtPrice) => {
@@ -253,7 +250,10 @@ export class MockOrderTracingService implements OnModuleInit {
     ) => {
       return async (status: string, subContext?: string) => {
         const c = subContext ? `${context}/${subContext}` : context;
-        await job.updateProgress({ [c]: status });
+        // await job.updateProgress({ [c]: status });
+        const msg = `[${c}] ${status}`;
+        this.logger.log(msg);
+        await job.log(`${new Date().toISOString()} ${msg}`);
       };
     };
 

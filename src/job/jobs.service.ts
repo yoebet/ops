@@ -31,7 +31,7 @@ export interface JobSpec<D = any, R = any> {
   queueEventsListener?: Partial<QueueEventsListener>;
 
   processJob: (job: Job<D, R>) => Promise<R>;
-  workerOptions?: WorkerOptions;
+  workerOptions?: Partial<WorkerOptions>;
   workerListener?: Partial<WorkerListener<D, R>>;
 
   defaultJobOptions?: JobsOptions;

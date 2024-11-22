@@ -15,7 +15,12 @@ import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-tra
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 import { BaseStrategyRunner } from '@/trade-strategy/strategy/base-strategy-runner';
-import { StrategyAlgo, StrategyJobData } from '@/trade-strategy/strategy.types';
+import {
+  StrategyAlgo,
+  StrategyJobData,
+  StrategyWorkerMaxStalledCount,
+  StrategyWorkerStalledInterval,
+} from '@/trade-strategy/strategy.types';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -42,6 +47,11 @@ export class StrategyService implements OnModuleInit {
       const facade = this.jobsService.defineJob<StrategyJobData, any>({
         queueName: this.genStrategyQueueName(code),
         processJob: this.runStrategyJob.bind(this),
+        workerOptions: {
+          maxStalledCount: StrategyWorkerMaxStalledCount,
+          stalledInterval: StrategyWorkerStalledInterval,
+          // skipStalledCheck: true,
+        },
       });
       this.strategyJobFacades.set(code, facade);
     }
@@ -124,6 +134,7 @@ export class StrategyService implements OnModuleInit {
       { strategyId },
       {
         jobId: '' + strategyId,
+        attempts: 100,
       },
     );
     strategy.jobSummited = true;
@@ -144,6 +155,7 @@ export class StrategyService implements OnModuleInit {
         { strategyId: strategy.id },
         {
           jobId: '' + strategy.id,
+          attempts: 100,
         },
       );
       await Strategy.update(strategy.id, { jobSummited: true });

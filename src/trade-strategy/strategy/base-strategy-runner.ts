@@ -17,13 +17,18 @@ export abstract class BaseStrategyRunner {
 
   abstract run(): Promise<void>;
 
-  protected async logJob(message: string): Promise<void> {
+  protected async logJob(message: string, context?: string): Promise<void> {
+    if (context) {
+      message = `[${context}] ${message}`;
+    }
     this.logger.log(message);
     const job = this.env.getThisJob();
     if (job) {
-      await job.log(message).catch((err: Error) => {
-        this.logger.error(err);
-      });
+      await job
+        .log(`${new Date().toISOString()} ${message}`)
+        .catch((err: Error) => {
+          this.logger.error(err);
+        });
     }
   }
 
@@ -58,6 +63,12 @@ export abstract class BaseStrategyRunner {
     let waited = 0;
     while (true) {
       tried++;
+      const start = Date.now();
+      const hd = setInterval(() => {
+        const s = Math.round((Date.now() - start) / 1000);
+        const msg = tried > 1 ? `try ${tried}, waited ${s}s.` : `waited ${s}s.`;
+        this.logJob(msg, options.context);
+      }, MINUTE_MS);
       try {
         const result = await action();
         if (result) {
@@ -66,7 +77,7 @@ export abstract class BaseStrategyRunner {
         await this.checkCommands();
       } catch (e) {
         this.logger.error(e);
-        await this.logJob(`${options.context}: ${e.message}`);
+        await this.logJob(e.message, options.context);
         if (options.maxTry && tried >= options.maxTry) {
           return undefined;
         }
@@ -74,15 +85,18 @@ export abstract class BaseStrategyRunner {
         if (options.maxWait && waited + toWait >= options.maxWait) {
           return undefined;
         }
-        await this.logJob(`${options.context}: wait ${toWait / 1000}s.`);
+        await this.logJob(`wait ${toWait / 1000}s.`, options.context);
         await wait(toWait);
         waited += toWait;
         if (!strategy.active) {
           await this.logJob(
-            `${options.context}: strategy is not active, exit ...`,
+            `strategy is not active, exit ...`,
+            options.context,
           );
           return undefined;
         }
+      } finally {
+        clearInterval(hd);
       }
     }
   }
