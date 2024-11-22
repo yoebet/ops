@@ -55,3 +55,19 @@ it('bullmq get active', async () => {
     console.log(job.asJSON());
   }
 });
+
+it('clear logs - strategy', async () => {
+  const testQueue1 = new Queue('strategy/MV', { connection });
+  const jobs = await testQueue1.getJobs(['active', 'waiting']);
+  for (const job of jobs) {
+    await job.clearLogs();
+  }
+});
+
+it('remove - strategy', async () => {
+  const testQueue1 = new Queue('strategy/MV', { connection });
+  const jobs = await testQueue1.getJobs(['active', 'waiting']);
+  for (const job of jobs) {
+    await job.remove();
+  }
+});

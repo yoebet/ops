@@ -1,28 +1,38 @@
 import { AppLogger } from '@/common/app-logger';
 import { Strategy } from '@/db/models/strategy';
-import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
+import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import * as _ from 'lodash';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
+import { WatchLevel } from '@/trade-strategy/strategy.types';
+import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
+import { createNewDealIfNone } from '@/trade-strategy/strategy.utils';
 import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
   ReportStatusInterval,
-  WatchLevel,
-} from '@/trade-strategy/strategy.types';
-import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
+} from '@/trade-strategy/strategy.constants';
+
+class ExitError extends Error {}
 
 export abstract class BaseRunner {
   protected constructor(
     protected readonly strategy: Strategy,
     protected env: StrategyEnv,
+    protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,
   ) {}
 
   async run() {
+    let runOneDeal = false;
+
+    const job = this.jobEnv.getThisJob();
+    if (job && job.data.runOneDeal) {
+      runOneDeal = true;
+    }
     const strategy = this.strategy;
 
     await this.logJob(`run strategy #${strategy.id} ...`);
@@ -51,6 +61,15 @@ export abstract class BaseRunner {
           context: 'wait-pending-order',
         });
 
+        if (!strategy.currentDealId) {
+          // deal closed due to order being filled
+          await this.createNewDeal();
+          if (runOneDeal) {
+            await this.jobEnv.summitNewDealJob();
+            break;
+          }
+        }
+
         await this.resetRuntimeParams();
 
         const opp = await this.repeatToComplete(
@@ -59,8 +78,19 @@ export abstract class BaseRunner {
         );
         if (opp.placeOrder) {
           await this.placeOrder();
+          if (!strategy.currentDealId) {
+            // deal closed due to order being filled
+            await this.createNewDeal();
+            if (runOneDeal) {
+              await this.jobEnv.summitNewDealJob();
+              break;
+            }
+          }
         }
       } catch (e) {
+        if (e instanceof ExitError) {
+          throw e;
+        }
         this.logger.error(e);
         await this.logJob(e.message, 'run()');
         await wait(MINUTE_MS);
@@ -82,6 +112,8 @@ export abstract class BaseRunner {
     let watchLevel: WatchLevel;
     if (diffPercentAbs <= IntenseWatchThreshold) {
       watchLevel = 'intense';
+    } else if (diffPercentAbs <= 0.5) {
+      watchLevel = 'high';
     } else if (diffPercentAbs < 1) {
       watchLevel = 'medium';
     } else if (diffPercentAbs < 2) {
@@ -102,11 +134,11 @@ export abstract class BaseRunner {
     targetPrice: number,
     logContext: string,
   ): Promise<boolean> {
-    const strategy = this.strategy;
     switch (watchLevel) {
       case 'intense':
         let watchRtPriceParams: WatchRtPriceParams;
-        if (strategy.nextTradeSide === TradeSide.buy) {
+        const toBuy = this.strategy.nextTradeSide === TradeSide.buy;
+        if (toBuy) {
           watchRtPriceParams = {
             lowerBound: targetPrice,
             upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
@@ -126,7 +158,7 @@ export abstract class BaseRunner {
           await this.logJob(`timeout, ${result.price}(last)`, logContext);
           return false;
         }
-        if (strategy.nextTradeSide === TradeSide.buy) {
+        if (toBuy) {
           if (result.reachLower) {
             await this.logJob(`reachLower, ${result.price}(last)`, logContext);
             return true;
@@ -138,9 +170,13 @@ export abstract class BaseRunner {
           }
         }
         break;
-      case 'medium':
-        await this.logJob(`wait 5s`, logContext);
+      case 'high':
+        // await this.logJob(`wait 5s`, logContext);
         await wait(5 * 1000);
+        break;
+      case 'medium':
+        // await this.logJob(`wait 20s`, logContext);
+        await wait(20 * 1000);
         break;
       case 'loose':
         await this.logJob(`wait 1m`, logContext);
@@ -167,7 +203,7 @@ export abstract class BaseRunner {
       message = `[${context}] ${message}`;
     }
     this.logger.log(message);
-    const job = this.env.getThisJob();
+    const job = this.jobEnv.getThisJob();
     if (job) {
       await job
         .log(`${new Date().toISOString()} ${message}`)
@@ -182,7 +218,7 @@ export abstract class BaseRunner {
     status: string,
   ): Promise<void> {
     this.logger.log(`[${context}] ${status}`);
-    const job = this.env.getThisJob();
+    const job = this.jobEnv.getThisJob();
     if (job) {
       await job.updateProgress({ [context]: status }).catch((err: Error) => {
         this.logger.error(err);
@@ -191,7 +227,18 @@ export abstract class BaseRunner {
   }
 
   protected async checkCommands() {
-    // reload strategy?
+    const paused = await this.jobEnv.queuePaused();
+    if (paused) {
+      throw new ExitError('queue paused');
+    }
+
+    const st = await Strategy.findOne({
+      select: ['id', 'active'],
+      where: { id: this.strategy.id },
+    });
+    if (!st || !st.active) {
+      throw new ExitError('not active');
+    }
   }
 
   protected async repeatToComplete<T = any>(
@@ -221,6 +268,9 @@ export abstract class BaseRunner {
         }
         await this.checkCommands();
       } catch (e) {
+        if (e instanceof ExitError) {
+          throw e;
+        }
         this.logger.error(e);
         await this.logJob(e.message, options.context);
         if (options.maxTry && tried >= options.maxTry) {
@@ -251,14 +301,7 @@ export abstract class BaseRunner {
   }
 
   protected async createNewDeal() {
-    const strategy = this.strategy;
-    const currentDeal = StrategyDeal.newStrategyDeal(strategy);
-    strategy.currentDealId = currentDeal.id;
-    strategy.currentDeal = currentDeal;
-    strategy.nextTradeSide = this.newDealSide();
-    await StrategyDeal.save(currentDeal);
-    await strategy.save();
-    return currentDeal;
+    await createNewDealIfNone(this.strategy);
   }
 
   protected async loadOrCreateDeal() {
@@ -314,11 +357,14 @@ export abstract class BaseRunner {
     deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
     deal.status = 'closed';
     await deal.save();
+
+    this.strategy.currentDealId = undefined;
+    this.strategy.currentDeal = undefined;
+    await this.strategy.save();
   }
 
   protected async checkAndWaitPendingOrder(): Promise<boolean> {
-    const strategy = this.strategy;
-    const currentDeal = strategy.currentDeal;
+    const currentDeal = this.strategy.currentDeal;
     if (!currentDeal?.pendingOrder) {
       return true;
     }
@@ -367,8 +413,6 @@ export abstract class BaseRunner {
 
     await this.onOrderFilled();
 
-    await strategy.save();
-
     return true;
   }
 
@@ -387,7 +431,7 @@ export abstract class BaseRunner {
 
     await this.closeDeal(currentDeal);
 
-    await this.logJob(`deal closed. create new ...`);
+    await this.logJob(`deal closed.`);
 
     await this.createNewDeal();
   }

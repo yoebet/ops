@@ -6,7 +6,7 @@ import { AppLogger } from '@/common/app-logger';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { Strategy } from '@/db/models/strategy';
-import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
+import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { MoveTracing } from '@/trade-strategy/strategy/move-tracing';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
@@ -15,13 +15,13 @@ import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-tra
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
-import {
-  StrategyAlgo,
-  StrategyJobData,
-  StrategyWorkerMaxStalledCount,
-  StrategyWorkerStalledInterval,
-} from '@/trade-strategy/strategy.types';
+import { StrategyAlgo, StrategyJobData } from '@/trade-strategy/strategy.types';
 import { BurstMonitor } from '@/trade-strategy/strategy/burst-monitor';
+import { createNewDealIfNone } from '@/trade-strategy/strategy.utils';
+import {
+  StrategyConstants,
+  StrategyWorkerStalledInterval,
+} from '@/trade-strategy/strategy.constants';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -49,7 +49,7 @@ export class StrategyService implements OnModuleInit {
         queueName: this.genStrategyQueueName(code),
         processJob: this.runStrategyJob.bind(this),
         workerOptions: {
-          maxStalledCount: StrategyWorkerMaxStalledCount,
+          maxStalledCount: StrategyConstants,
           stalledInterval: StrategyWorkerStalledInterval,
           // skipStalledCheck: true,
           concurrency: 10,
@@ -100,18 +100,50 @@ export class StrategyService implements OnModuleInit {
 
   async runStrategy(strategy: Strategy, job?: Job<StrategyJobData>) {
     const env = this.prepareEnv(strategy, job);
+    const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
+    if (!jobFacade) {
+      throw new Error(`jobFacade ${strategy.algoCode} not found`);
+    }
+    const queue = jobFacade.getQueue();
+    const service = this;
+    const jobEnv: StrategyJobEnv = {
+      getThisJob(): Job<StrategyJobData> | undefined {
+        return job;
+      },
+      queuePaused(): Promise<boolean> {
+        return queue.isPaused();
+      },
+      summitNewDealJob(): Promise<void> {
+        return service.doSummitJob(strategy);
+      },
+    };
     let runner: BaseRunner;
     const logger = this.logger.subLogger(`${strategy.algoCode}/${strategy.id}`);
     if (strategy.algoCode === StrategyAlgo.MV) {
-      runner = new MoveTracing(strategy, env, logger);
+      runner = new MoveTracing(strategy, env, jobEnv, logger);
     } else if (strategy.algoCode === StrategyAlgo.BR) {
-      runner = new BurstMonitor(strategy, env, logger);
+      runner = new BurstMonitor(strategy, env, jobEnv, logger);
     } else {
       throw new Error(`unknown strategy ${strategy.algoCode}`);
     }
-    await runner.run().catch((err: Error) => {
-      this.logger.error(err);
-    });
+    await runner.run();
+  }
+
+  protected async doSummitJob(strategy: Strategy) {
+    const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
+    if (!jobFacade) {
+      throw new Error(`jobFacade ${strategy.algoCode} not found`);
+    }
+    await createNewDealIfNone(strategy);
+    const strategyId = strategy.id;
+    const dealId = strategy.currentDealId;
+    await jobFacade.addTask(
+      { strategyId, dealId, runOneDeal: true },
+      {
+        jobId: `s${strategyId}/${dealId}`,
+        attempts: 100,
+      },
+    );
   }
 
   async summitJob(strategyId: number) {
@@ -127,38 +159,18 @@ export class StrategyService implements OnModuleInit {
       this.logger.log(`strategy job not active`);
       return;
     }
-    const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
-    if (!jobFacade) {
-      throw new Error(`jobFacade ${strategy.algoCode} not found`);
-    }
-    await jobFacade.addTask(
-      { strategyId },
-      {
-        jobId: 's' + strategyId,
-        attempts: 100,
-      },
-    );
+    await this.doSummitJob(strategy);
     strategy.jobSummited = true;
     await strategy.save();
   }
 
   async summitAllJobs() {
-    const strategies = await Strategy.find({
-      select: ['id', 'algoCode'],
-      where: { active: true, jobSummited: Or(IsNull(), Equal(false)) },
+    const strategies = await Strategy.findBy({
+      active: true,
+      jobSummited: Or(IsNull(), Equal(false)),
     });
     for (const strategy of strategies) {
-      const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
-      if (!jobFacade) {
-        throw new Error(`jobFacade ${strategy.algoCode} not found`);
-      }
-      await jobFacade.addTask(
-        { strategyId: strategy.id },
-        {
-          jobId: 's' + strategy.id,
-          attempts: 100,
-        },
-      );
+      await this.doSummitJob(strategy);
       await Strategy.update(strategy.id, { jobSummited: true });
     }
   }

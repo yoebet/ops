@@ -13,6 +13,7 @@ import { wait } from '@/common/utils/utils';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { AppLogger } from '@/common/app-logger';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
+import { fillOrderSize } from '@/trade-strategy/strategy.utils';
 
 export class MockExTradeService implements ExchangeTradeService {
   constructor(
@@ -21,23 +22,6 @@ export class MockExTradeService implements ExchangeTradeService {
     protected orderTracingService: MockOrderTracingService,
     protected logger: AppLogger,
   ) {}
-
-  protected fillSize(
-    order: ExOrderResp,
-    params: PlaceOrderParams,
-    price?: number,
-  ) {
-    price = price || +params.price;
-    const execSize = params.baseSize
-      ? +params.baseSize
-      : +params.quoteAmount / price;
-    const execAmount = params.quoteAmount
-      ? +params.quoteAmount
-      : +params.baseSize * price;
-    order.execPrice = price;
-    order.execSize = execSize;
-    order.execAmount = execAmount;
-  }
 
   async cancelOrder(
     apiKey: ExApiKey,
@@ -124,7 +108,7 @@ export class MockExTradeService implements ExchangeTradeService {
         status: OrderStatus.filled,
         rawOrder: {},
       };
-      this.fillSize(orderResp, params, price);
+      fillOrderSize(orderResp, params, price);
       return {
         rawParams: {},
         orderResp,

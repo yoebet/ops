@@ -1,15 +1,16 @@
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { Strategy } from '@/db/models/strategy';
-import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
+import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
 
 export class BurstMonitor extends BaseRunner {
   constructor(
     protected strategy: Strategy,
     protected env: StrategyEnv,
+    protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,
   ) {
-    super(strategy, env, logger);
+    super(strategy, env, jobEnv, logger);
   }
 
   protected resetRuntimeParams(): Promise<void> {

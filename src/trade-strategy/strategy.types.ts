@@ -1,5 +1,4 @@
 import { PlaceOrderParams } from '@/exchange/exchange-service-types';
-import { MINUTE_MS } from '@/common/utils/utils';
 import { TradeSide } from '@/data-service/models/base';
 
 export enum StrategyAlgo {
@@ -9,6 +8,13 @@ export enum StrategyAlgo {
 
 export interface StrategyJobData {
   strategyId: number;
+  dealId?: number;
+  runOneDeal?: boolean;
+}
+
+export interface TraceOrderJobData {
+  strategyId: number;
+  params: PlaceOrderParams;
 }
 
 export interface MVStartupParams {
@@ -18,22 +24,11 @@ export interface MVStartupParams {
   newDealTradeSide?: TradeSide;
 }
 
-export interface TraceOrderJobData {
-  strategyId: number;
-  params: PlaceOrderParams;
-}
-
 export declare type WatchLevel =
   | 'hibernate' // 2h
   | 'sleep' // 30m
   | 'snap' // 5m
   | 'loose' // 1m
-  | 'medium' // 5s
+  | 'medium' // 20s
+  | 'high' // 5s
   | 'intense'; // ws
-
-export const IntenseWatchThreshold = 0.3; // 0.3%
-export const IntenseWatchExitThreshold = 0.1; // 0.1%
-
-export const StrategyWorkerMaxStalledCount = 10;
-export const StrategyWorkerStalledInterval = 3 * MINUTE_MS;
-export const ReportStatusInterval = MINUTE_MS;

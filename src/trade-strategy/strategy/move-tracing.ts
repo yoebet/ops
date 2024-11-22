@@ -3,7 +3,7 @@ import { AppLogger } from '@/common/app-logger';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
-import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
+import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { evalDiffPercent, round } from '@/common/utils/utils';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
@@ -19,9 +19,10 @@ export class MoveTracing extends BaseRunner {
   constructor(
     protected strategy: Strategy,
     protected env: StrategyEnv,
+    protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,
   ) {
-    super(strategy, env, logger);
+    super(strategy, env, jobEnv, logger);
   }
 
   protected setDefaultStrategyParams() {
@@ -54,6 +55,8 @@ export class MoveTracing extends BaseRunner {
       if (lastSide !== strategy.nextTradeSide) {
         await this.resetStartingPrice(lastOrder.execPrice);
       }
+    } else {
+      strategy.nextTradeSide = this.newDealSide();
     }
     const runtimeParams = strategy.runtimeParams as RuntimeParams;
     if (!runtimeParams.startingPrice) {

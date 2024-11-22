@@ -51,6 +51,12 @@ export interface StrategyEnv extends MarketDataSupport {
   trySynchronizeOrder(order: ExOrder): Promise<boolean>;
 
   ensureApiKey(): Promise<ExApiKey>;
+}
 
+export interface StrategyJobEnv {
   getThisJob(): Job<StrategyJobData> | undefined;
+
+  queuePaused(): Promise<boolean>;
+
+  summitNewDealJob(): Promise<void>;
 }

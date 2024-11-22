@@ -5,7 +5,7 @@ import {
   PlaceOrderParams,
   PlaceTpslOrderParams,
 } from '@/exchange/exchange-service-types';
-import { ExOrder, ExOrderResp, OrderStatus } from '@/db/models/ex-order';
+import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';
 import {
   evalDiffPercent,
@@ -21,12 +21,13 @@ import {
 import { TradeSide } from '@/data-service/models/base';
 import { AppLogger } from '@/common/app-logger';
 import { JobFacade, JobsService } from '@/job/jobs.service';
+import { TraceOrderJobData } from '@/trade-strategy/strategy.types';
+import { fillOrderSize } from '@/trade-strategy/strategy.utils';
 import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
   ReportStatusInterval,
-  TraceOrderJobData,
-} from '@/trade-strategy/strategy.types';
+} from '@/trade-strategy/strategy.constants';
 
 declare type StatusReporter = (
   status: string,
@@ -279,7 +280,7 @@ export class MockOrderTracingService implements OnModuleInit {
           paperTrade: true,
         });
         // fill
-        this.fillSize(order, params);
+        fillOrderSize(order, params);
         order.status = OrderStatus.filled;
         await order.save();
         return order;
@@ -339,7 +340,7 @@ export class MockOrderTracingService implements OnModuleInit {
           paperTrade: true,
         });
         // fill
-        this.fillSize(order, params, hitPrice);
+        fillOrderSize(order, params, hitPrice);
         order.status = OrderStatus.filled;
         await order.save();
         return order;
@@ -411,22 +412,5 @@ export class MockOrderTracingService implements OnModuleInit {
       reportStatus,
       cancelCallback,
     );
-  }
-
-  protected fillSize(
-    order: ExOrderResp,
-    params: PlaceOrderParams,
-    price?: number,
-  ) {
-    price = price || +params.price;
-    const execSize = params.baseSize
-      ? +params.baseSize
-      : +params.quoteAmount / price;
-    const execAmount = params.quoteAmount
-      ? +params.quoteAmount
-      : +params.baseSize * price;
-    order.execPrice = price;
-    order.execSize = execSize;
-    order.execAmount = execAmount;
   }
 }
