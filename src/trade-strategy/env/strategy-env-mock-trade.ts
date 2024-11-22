@@ -10,11 +10,10 @@ import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { MockExTradeService } from '@/trade-strategy/env/mock-ex-trade-service';
 import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-data';
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
-import { JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 import { Job } from 'bullmq';
-
 import { StrategyJobData } from '@/trade-strategy/strategy.types';
+import { wait } from '@/common/utils/utils';
 
 export class StrategyEnvMockTrade
   extends StrategyEnvMarketData
@@ -27,7 +26,6 @@ export class StrategyEnvMockTrade
     protected job: Job<StrategyJobData> | undefined,
     protected publicDataService: ExPublicDataService,
     protected publicWsService: ExPublicWsService,
-    protected jobsService: JobsService,
     protected mockOrderTracingService: MockOrderTracingService,
     protected logger: AppLogger,
   ) {
@@ -51,6 +49,7 @@ export class StrategyEnvMockTrade
     ids: OrderIds,
     timeoutSeconds?: number,
   ): Promise<ExOrder | undefined> {
+    await wait(60 * 1000);
     return undefined;
   }
 

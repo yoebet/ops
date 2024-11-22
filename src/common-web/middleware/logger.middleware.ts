@@ -13,10 +13,10 @@ export class LoggerMiddleware implements NestMiddleware {
     if (req.method === 'OPTIONS') {
       return next();
     }
-    this.logger.debug('========= ' + req.ip);
+    this.logger.verbose('========= ' + req.ip);
     const methodAndUrl = `${req.method} ${decodeURIComponent(req.originalUrl)}`;
     if (req.method === 'GET') {
-      this.logger.debug(methodAndUrl);
+      this.logger.verbose(methodAndUrl);
     } else {
       this.logger.log(methodAndUrl);
     }

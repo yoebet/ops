@@ -12,7 +12,6 @@ import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-data';
-import { JobsService } from '@/job/jobs.service';
 import { Job } from 'bullmq';
 
 import { StrategyJobData } from '@/trade-strategy/strategy.types';
@@ -29,7 +28,6 @@ export class StrategyEnvTrade
     protected publicWsService: ExPublicWsService,
     protected privateWsService: ExPrivateWsService,
     protected exOrderService: ExOrderService,
-    protected jobsService: JobsService,
     protected logger: AppLogger,
   ) {
     super(strategy, publicDataService, publicWsService, logger);

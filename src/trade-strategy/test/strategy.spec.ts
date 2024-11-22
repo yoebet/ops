@@ -27,9 +27,9 @@ describe('strategy creating', () => {
     st.tradeType = ExTradeType.spot;
     st.quoteAmount = 200;
     st.params = {
-      waitForPercent: 1,
-      activePercent: 1,
-      drawbackPercent: 2,
+      waitForPercent: 0.2,
+      activePercent: 0.5,
+      drawbackPercent: 1,
     } as MVStartupParams;
     await st.save();
   });

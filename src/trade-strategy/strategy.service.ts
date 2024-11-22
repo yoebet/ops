@@ -61,7 +61,6 @@ export class StrategyService implements OnModuleInit {
         job,
         this.publicDataService,
         this.publicWsService,
-        this.jobsService,
         this.mockOrderTracingService,
         this.logger.newLogger(`${strategy.name}.mock-env`),
       );
@@ -74,7 +73,6 @@ export class StrategyService implements OnModuleInit {
       this.publicWsService,
       this.privateWsService,
       this.exOrderService,
-      this.jobsService,
       this.logger.newLogger(`${strategy.name}.env`),
     );
   }
@@ -85,7 +83,7 @@ export class StrategyService implements OnModuleInit {
     if (!strategy) {
       throw new Error(`strategy ${strategyId} not found`);
     }
-    await this.runStrategy(strategy);
+    await this.runStrategy(strategy, job);
   }
 
   async runStrategy(strategy: Strategy, job?: Job<StrategyJobData>) {

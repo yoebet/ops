@@ -48,6 +48,7 @@ export class SimpleMoveTracing extends BaseStrategyRunner {
     const strategy = this.strategy;
 
     await this.logJob(`run strategy #${strategy.id} ...`);
+    await this.reportJobStatus('top', `run strategy #${strategy.id} ...`);
 
     if (!strategy.active) {
       await this.logJob(`strategy ${strategy.id} is not active`);
