@@ -8,7 +8,11 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
-import { WatchLevel } from '@/trade-strategy/strategy.types';
+import {
+  CheckOpportunityReturn,
+  ExitSignal,
+  WatchLevel,
+} from '@/trade-strategy/strategy.types';
 import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
 import {
   createNewDealIfNone,
@@ -19,8 +23,11 @@ import {
   IntenseWatchThreshold,
   ReportStatusInterval,
 } from '@/trade-strategy/strategy.constants';
-
-class ExitSignal extends Error {}
+import {
+  PlaceOrderParams,
+  PlaceOrderReturns,
+  PlaceTpslOrderParams,
+} from '@/exchange/exchange-service-types';
 
 export abstract class BaseRunner {
   protected durationHumanizer = humanizeDuration.humanizer(
@@ -80,19 +87,19 @@ export abstract class BaseRunner {
 
         await this.resetRuntimeParams();
 
-        const opp = await this.repeatToComplete(
+        const opp = await this.repeatToComplete<CheckOpportunityReturn>(
           this.checkAndWaitOpportunity.bind(this),
           { context: 'wait-opportunity' },
         );
-        if (opp.placeOrder) {
-          await this.placeOrder();
-          if (!strategy.currentDealId) {
-            // deal closed due to order being filled
-            await this.createNewDeal();
-            if (runOneDeal) {
-              await this.jobEnv.summitNewDealJob();
-              break;
-            }
+        if (opp?.placeOrder) {
+          await this.placeOrder(opp.orderTag);
+        }
+        if (!strategy.currentDealId) {
+          // deal closed due to order being filled
+          await this.createNewDeal();
+          if (runOneDeal) {
+            await this.jobEnv.summitNewDealJob();
+            break;
           }
         }
       } catch (e) {
@@ -110,11 +117,52 @@ export abstract class BaseRunner {
 
   protected abstract resetRuntimeParams(): Promise<void>;
 
-  protected abstract checkAndWaitOpportunity(): Promise<{
-    placeOrder?: boolean;
-  }>;
+  protected abstract checkAndWaitOpportunity(): Promise<CheckOpportunityReturn>;
 
-  protected abstract placeOrder(): Promise<void>;
+  protected abstract placeOrder(orderTag?: string): Promise<void>;
+
+  protected async doPlaceOrder(
+    order: ExOrder,
+    params: PlaceOrderParams | PlaceTpslOrderParams,
+  ) {
+    const apiKey = await this.env.ensureApiKey();
+    const exService = this.env.getTradeService();
+
+    const currentDeal = this.strategy.currentDeal;
+    try {
+      await this.logJob(`place order(${order.clientOrderId}) ...`);
+
+      let result: PlaceOrderReturns;
+      if (order.tpslType) {
+        result = await exService.placeTpslOrder(apiKey, params);
+      } else {
+        result = await exService.placeOrder(apiKey, params);
+      }
+
+      ExOrder.setProps(order, result.orderResp);
+      order.rawOrderParams = result.rawParams;
+      await order.save();
+
+      if (order.status === OrderStatus.filled) {
+        currentDeal.lastOrder = order;
+        currentDeal.lastOrderId = order.id;
+        await currentDeal.save();
+        await this.logJob(`order filled`);
+        await this.onOrderFilled();
+      } else if (ExOrder.orderToWait(order.status)) {
+        currentDeal.pendingOrder = order;
+        currentDeal.pendingOrderId = order.id;
+        await currentDeal.save();
+      } else {
+        await this.logJob(`place order failed: ${order.status}`);
+      }
+    } catch (e) {
+      this.logger.error(e);
+      order.status = OrderStatus.summitFailed;
+      await order.save();
+      await this.logJob(`summit order failed`);
+    }
+  }
 
   protected evalWatchLevel(diffPercentAbs: number): WatchLevel {
     let watchLevel: WatchLevel;
@@ -250,6 +298,18 @@ export abstract class BaseRunner {
     if (!st || !st.active) {
       throw new ExitSignal('not active');
     }
+    if (st.currentDealId) {
+      const deal = await StrategyDeal.findOne({
+        select: ['id', 'status'],
+        where: { id: st.currentDealId },
+      });
+      if (deal?.status !== 'open') {
+        // been canceled or closed
+        st.currentDeal = await StrategyDeal.findOneBy({
+          id: st.currentDealId,
+        });
+      }
+    }
   }
 
   protected async repeatToComplete<T = any>(
@@ -349,6 +409,8 @@ export abstract class BaseRunner {
   }
 
   protected async closeDeal(deal: StrategyDeal) {
+    await this.logJob(`close deal ...`);
+
     const orders = await ExOrder.find({
       select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
       where: { dealId: deal.id, status: OrderStatus.filled },
@@ -374,6 +436,8 @@ export abstract class BaseRunner {
     this.strategy.currentDealId = undefined;
     this.strategy.currentDeal = undefined;
     await this.strategy.save();
+
+    await this.logJob(`deal closed.`);
   }
 
   protected async checkAndWaitPendingOrder(): Promise<boolean> {
@@ -432,21 +496,11 @@ export abstract class BaseRunner {
   protected async onOrderFilled() {
     const currentDeal = this.strategy.currentDeal;
     const lastOrder = currentDeal.lastOrder;
-    if (
-      !lastOrder ||
-      lastOrder.status !== OrderStatus.filled ||
-      lastOrder.side === this.newDealSide()
-    ) {
+    if (lastOrder.side === this.newDealSide()) {
       return;
     }
 
-    await this.logJob(`close deal ...`);
-
     await this.closeDeal(currentDeal);
-
-    await this.logJob(`deal closed.`);
-
-    await this.createNewDeal();
   }
 
   protected async ensureExchangeSymbol() {
@@ -464,8 +518,10 @@ export abstract class BaseRunner {
   }
 
   protected newClientOrderId(): string {
-    const code = this.strategy.algoCode.toLowerCase();
-    return `${code}${Math.round(Date.now() / 1000) - 1e9}`;
+    const { id, algoCode } = this.strategy;
+    const code = algoCode.toLowerCase();
+    const ms = '' + Date.now();
+    return `${code}${id}${ms.substring(1, 10)}`;
   }
 
   protected newOrderByStrategy(): ExOrder {

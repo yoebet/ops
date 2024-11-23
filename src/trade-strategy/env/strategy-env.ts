@@ -3,7 +3,7 @@ import {
   ExchangeTradeService,
   ExKline,
 } from '@/exchange/exchange-service-types';
-import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import {
   WatchRtPriceParams,
@@ -17,15 +17,13 @@ import { StrategyJobData } from '@/trade-strategy/strategy.types';
 export interface MarketDataSupport {
   getLastPrice(params?: {
     ex?: ExchangeCode;
-    market?: ExMarket;
-    rawSymbol?: string;
+    symbol?: string;
     cacheTimeLimit?: number;
   }): Promise<number>;
 
   getLatestKlines(params: {
     ex?: ExchangeCode;
-    market?: ExMarket;
-    rawSymbol?: string;
+    symbol?: string;
     interval: string;
     limit?: number;
   }): Promise<ExKline[]>;

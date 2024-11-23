@@ -97,12 +97,8 @@ export class MockExTradeService implements ExchangeTradeService {
     await wait(500);
     const exOrderId = this.newOrderId();
     if (params.priceType === 'market') {
-      const { ex, market, rawSymbol } = this.strategy;
-      const price = await this.publicDataService.getLastPrice(
-        ex,
-        market,
-        rawSymbol,
-      );
+      const { ex, symbol } = this.strategy;
+      const price = await this.publicDataService.getLastPrice(ex, symbol);
       const orderResp: ExOrderResp = {
         exOrderId,
         status: OrderStatus.filled,

@@ -1,13 +1,16 @@
 import { Strategy } from '@/db/models/strategy';
 import { AppLogger } from '@/common/app-logger';
 import { TradeSide } from '@/data-service/models/base';
-import { ExOrder, OrderStatus } from '@/db/models/ex-order';
+import { OrderStatus } from '@/db/models/ex-order';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { evalDiffPercent, round } from '@/common/utils/utils';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
-import { MVStartupParams } from '@/trade-strategy/strategy.types';
+import {
+  CheckOpportunityReturn,
+  MVStartupParams,
+} from '@/trade-strategy/strategy.types';
 
 interface RuntimeParams {
   startingPrice?: number;
@@ -81,9 +84,11 @@ export class MoveTracing extends BaseRunner {
     await this.logJob(`placeOrderPrice: ${runtimeParams.placeOrderPrice}`);
   }
 
-  protected async checkAndWaitOpportunity(): Promise<{
-    placeOrder?: boolean;
-  }> {
+  protected async checkAndWaitOpportunity(): Promise<CheckOpportunityReturn> {
+    return this.checkMVOpportunity();
+  }
+
+  protected async checkMVOpportunity(): Promise<CheckOpportunityReturn> {
     const strategy = this.strategy;
     const runtimeParams: RuntimeParams = strategy.runtimeParams;
 
@@ -137,21 +142,17 @@ export class MoveTracing extends BaseRunner {
     }
   }
 
-  protected async placeOrder() {
+  protected async placeOrder(orderTag?: string) {
     const exSymbol = await this.ensureExchangeSymbol();
-    const apiKey = await this.env.ensureApiKey();
-    const exService = this.env.getTradeService();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
     const strategy = this.strategy;
-    const currentDeal = strategy.currentDeal;
 
     const strategyParams: MVStartupParams = strategy.params;
     const { activePercent, drawbackPercent } = strategyParams;
     const runtimeParams: RuntimeParams = strategy.runtimeParams;
 
     const tradeSide = strategy.nextTradeSide;
-    let size = strategy.baseSize;
 
     const placeOrderPrice = runtimeParams.placeOrderPrice;
     let activePrice: number;
@@ -165,6 +166,7 @@ export class MoveTracing extends BaseRunner {
       }
     }
 
+    let size = strategy.baseSize;
     const quoteAmount = strategy.quoteAmount || 200;
     if (!size) {
       if (activePrice) {
@@ -209,35 +211,6 @@ export class MoveTracing extends BaseRunner {
     order.moveActivePrice = activePrice;
     await order.save();
 
-    try {
-      await this.logJob(`place order(${clientOrderId}) ...`);
-
-      const result = await exService.placeTpslOrder(apiKey, params);
-
-      ExOrder.setProps(order, result.orderResp);
-      order.rawOrderParams = result.rawParams;
-      await order.save();
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      if (order.status === OrderStatus.filled) {
-        currentDeal.lastOrder = order;
-        currentDeal.lastOrderId = order.id;
-        await currentDeal.save();
-        await this.logJob(`order filled`);
-        await this.onOrderFilled();
-      } else if (ExOrder.orderToWait(order.status)) {
-        currentDeal.pendingOrder = order;
-        currentDeal.pendingOrderId = order.id;
-        await currentDeal.save();
-      } else {
-        await this.logJob(`place order failed: ${order.status}`);
-      }
-    } catch (e) {
-      this.logger.error(e);
-      order.status = OrderStatus.summitFailed;
-      await order.save();
-      await this.logJob(`summit order failed`);
-    }
+    await this.doPlaceOrder(order, params);
   }
 }

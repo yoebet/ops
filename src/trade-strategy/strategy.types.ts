@@ -6,6 +6,13 @@ export enum StrategyAlgo {
   BR = 'BR',
 }
 
+export class ExitSignal extends Error {}
+
+export interface CheckOpportunityReturn {
+  placeOrder?: boolean;
+  orderTag?: string;
+}
+
 export interface StrategyJobData {
   strategyId: number;
   dealId?: number;

@@ -54,6 +54,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Index()
   dealId?: number;
 
+  @Column({ nullable: true })
+  tag?: string;
+
   @Column()
   side: TradeSide;
 

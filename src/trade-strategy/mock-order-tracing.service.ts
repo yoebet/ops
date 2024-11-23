@@ -92,7 +92,7 @@ export class MockOrderTracingService implements OnModuleInit {
     reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const { ex, market, symbol, rawSymbol } = strategy;
+    const { ex, symbol } = strategy;
     const direction = side === 'buy' ? 'down' : 'up';
     if (activePrice) {
       activePrice = await this.waitForPrice(
@@ -103,11 +103,7 @@ export class MockOrderTracingService implements OnModuleInit {
         cancelCallback,
       );
     } else {
-      activePrice = await this.publicDataService.getLastPrice(
-        ex,
-        market,
-        rawSymbol,
-      );
+      activePrice = await this.publicDataService.getLastPrice(ex, symbol);
     }
     const { obs, unsubs } = await this.publicWsService.subscribeRtPrice(
       ex,
@@ -304,14 +300,10 @@ export class MockOrderTracingService implements OnModuleInit {
     reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const { ex, market, symbol, rawSymbol } = strategy;
+    const { ex, symbol } = strategy;
 
     while (true) {
-      const lastPrice = await this.publicDataService.getLastPrice(
-        ex,
-        market,
-        rawSymbol,
-      );
+      const lastPrice = await this.publicDataService.getLastPrice(ex, symbol);
       if (direction === 'up') {
         if (lastPrice >= targetPrice) {
           return lastPrice;

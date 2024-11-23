@@ -1,5 +1,5 @@
 import { AppLogger } from '@/common/app-logger';
-import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
+import { ExchangeCode } from '@/db/models/exchange-types';
 import {
   ExPublicWsService,
   WatchRtPriceParams,
@@ -20,31 +20,27 @@ export class StrategyEnvMarketData implements MarketDataSupport {
 
   getLastPrice(params?: {
     ex?: ExchangeCode;
-    market?: ExMarket;
-    rawSymbol?: string;
+    symbol?: string;
     cacheTimeLimit?: number;
   }): Promise<number> {
     const strategy = this.strategy;
     return this.publicDataService.getLastPrice(
       params?.ex || strategy.ex,
-      params?.market || strategy.market,
-      params?.rawSymbol || strategy.rawSymbol,
+      params?.symbol || strategy.symbol,
       params?.cacheTimeLimit,
     );
   }
 
   getLatestKlines(params: {
     ex?: ExchangeCode;
-    market?: ExMarket;
-    rawSymbol?: string;
+    symbol?: string;
     interval: string;
     limit?: number;
   }): Promise<ExKline[]> {
     const strategy = this.strategy;
     return this.publicDataService.getLatestKlines(
       params.ex || strategy.ex,
-      params.market || strategy.market,
-      params.rawSymbol || strategy.rawSymbol,
+      params.symbol || strategy.symbol,
       params.interval,
     );
   }

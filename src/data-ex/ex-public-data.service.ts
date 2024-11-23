@@ -3,31 +3,49 @@ import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { ExKline } from '@/exchange/exchange-service-types';
+import { KlinesHolder } from '@/data-ex/kline-data-holder';
+import { TimeLevel } from '@/db/models/time-level';
+import { MINUTE_MS } from '@/common/utils/utils';
+import { SymbolService } from '@/common-services/symbol.service';
+
+const MAX_KEEP_KLINES = 120;
 
 @Injectable()
 export class ExPublicDataService {
   private latestPrices = new Map<string, { last: number; ts: number }>();
+  private klineHolders = new Map<string, KlinesHolder>();
 
   constructor(
     private exchanges: Exchanges,
+    private symbolServices: SymbolService,
     private logger: AppLogger,
   ) {
     logger.setContext('ex-public-data');
+
+    setInterval(() => {
+      for (const h of this.klineHolders.values()) {
+        h.keepLatest(MAX_KEEP_KLINES);
+      }
+    }, 10 * MINUTE_MS);
   }
 
   async getLastPrice(
     ex: ExchangeCode,
-    market: ExMarket,
-    rawSymbol: string,
+    symbol: string,
     cacheTimeLimit = 5000,
   ): Promise<number> {
-    const key = `${ex}:${market}:${rawSymbol}`;
+    await this.symbolServices.ensureLoaded();
+    const es = this.symbolServices.getExchangeSymbolByES(ex, symbol);
+    if (!es) {
+      throw new Error(`ExchangeSymbol not found: ${ex}, ${symbol}`);
+    }
+    const key = `${ex}:${es.market}:${es.rawSymbol}`;
     let lastPrice = this.latestPrices.get(key);
     if (lastPrice && Date.now() - lastPrice.ts <= cacheTimeLimit) {
       return lastPrice.last;
     }
-    const dataService = this.exchanges.getExMarketDataService(ex, market);
-    lastPrice = await dataService.getPrice(rawSymbol);
+    const dataService = this.exchanges.getExMarketDataService(ex, es.market);
+    lastPrice = await dataService.getPrice(es.rawSymbol);
     this.latestPrices.set(key, lastPrice);
     return lastPrice.last;
   }
@@ -35,7 +53,7 @@ export class ExPublicDataService {
   // okx: 1m+
   // binance: 1s+
   // old to new
-  async getLatestKlines(
+  private async fetchLatestKlines(
     ex: ExchangeCode,
     market: ExMarket,
     rawSymbol: string,
@@ -54,5 +72,55 @@ export class ExPublicDataService {
       }
     }
     return klines;
+  }
+
+  async getLatestKlines(
+    ex: ExchangeCode,
+    symbol: string,
+    interval: string,
+    limit = 60,
+  ): Promise<ExKline[]> {
+    await this.symbolServices.ensureLoaded();
+    const es = this.symbolServices.getExchangeSymbolByES(ex, symbol);
+    if (!es) {
+      throw new Error(`ExchangeSymbol not found: ${ex}, ${symbol}`);
+    }
+
+    const scopeKey = `${ex}:${symbol}:${interval}`;
+    const intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
+    const intervalMs = intervalSeconds * 1000;
+    const now = Date.now();
+    const liveOpenTs = now - (now % intervalMs);
+    const latestOpenTs = liveOpenTs - intervalMs;
+
+    let holder = this.klineHolders.get(scopeKey);
+    if (holder) {
+      const tt = holder.getLastTs();
+      if (tt) {
+        if (tt >= latestOpenTs && holder.data.length >= limit) {
+          return holder.getLatest(limit);
+        }
+        const fetchCount = Math.ceil((latestOpenTs - tt) / intervalSeconds);
+        const data = await this.fetchLatestKlines(
+          ex,
+          es.market,
+          es.rawSymbol,
+          interval,
+          fetchCount,
+        );
+        holder.append(data, { duplicated: true });
+      }
+    }
+    const data = await this.fetchLatestKlines(
+      ex,
+      es.market,
+      es.rawSymbol,
+      interval,
+      limit,
+    );
+    holder = new KlinesHolder();
+    holder.data = data;
+    this.klineHolders.set(scopeKey, holder);
+    return holder.getLatest(limit);
   }
 }
