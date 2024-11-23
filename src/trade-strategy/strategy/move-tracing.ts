@@ -4,19 +4,17 @@ import { TradeSide } from '@/data-service/models/base';
 import { OrderStatus } from '@/db/models/ex-order';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
-import { evalDiffPercent, round } from '@/common/utils/utils';
+import { round } from '@/common/utils/utils';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
 import {
   CheckOpportunityReturn,
   MVStartupParams,
 } from '@/trade-strategy/strategy.types';
-
-interface RuntimeParams {
-  startingPrice?: number;
-  placeOrderPrice?: number;
-  activePrice?: number;
-}
+import {
+  checkMVOpportunity,
+  MVRuntimeParams,
+} from '@/trade-strategy/opportunity/move';
 
 export class MoveTracing extends BaseRunner {
   constructor(
@@ -61,7 +59,7 @@ export class MoveTracing extends BaseRunner {
     } else {
       strategy.nextTradeSide = this.newDealSide();
     }
-    const runtimeParams = strategy.runtimeParams as RuntimeParams;
+    const runtimeParams = strategy.runtimeParams as MVRuntimeParams;
     if (!runtimeParams.startingPrice) {
       const startingPrice = await this.env.getLastPrice();
       await this.resetStartingPrice(startingPrice);
@@ -71,7 +69,7 @@ export class MoveTracing extends BaseRunner {
 
   protected async resetStartingPrice(startingPrice: number) {
     const strategy = this.strategy;
-    const runtimeParams: RuntimeParams = (strategy.runtimeParams = {});
+    const runtimeParams: MVRuntimeParams = (strategy.runtimeParams = {});
     runtimeParams.startingPrice = startingPrice;
     const strategyParams: MVStartupParams = strategy.params;
     const wfp = strategyParams.waitForPercent;
@@ -85,61 +83,10 @@ export class MoveTracing extends BaseRunner {
   }
 
   protected async checkAndWaitOpportunity(): Promise<CheckOpportunityReturn> {
-    return this.checkMVOpportunity();
-  }
-
-  protected async checkMVOpportunity(): Promise<CheckOpportunityReturn> {
-    const strategy = this.strategy;
-    const runtimeParams: RuntimeParams = strategy.runtimeParams;
-
-    while (true) {
-      const lastPrice = await this.env.getLastPrice();
-
-      if (!runtimeParams.placeOrderPrice) {
-        runtimeParams.placeOrderPrice = lastPrice;
-        await this.logJob('no `placeOrderPrice`, place order now');
-        return { placeOrder: true };
-      }
-
-      const placeOrderPrice = runtimeParams.placeOrderPrice;
-
-      if (strategy.nextTradeSide === TradeSide.buy) {
-        if (lastPrice <= placeOrderPrice) {
-          await this.logJob(`reach, to buy`);
-          return { placeOrder: true };
-        }
-      } else {
-        if (lastPrice >= placeOrderPrice) {
-          await this.logJob(`reach, to sell`);
-          return { placeOrder: true };
-        }
-      }
-      const logContext =
-        strategy.nextTradeSide === TradeSide.buy ? 'wait-up' : 'wait-down';
-
-      const diffPercent = evalDiffPercent(lastPrice, placeOrderPrice);
-      const diffPercentAbs = Math.abs(diffPercent);
-
-      const watchLevel = this.evalWatchLevel(diffPercentAbs);
-      const lps = lastPrice.toPrecision(6);
-      const tps = placeOrderPrice.toPrecision(6);
-      await this.logJob(
-        `watch level: ${watchLevel}, ${lps}(last) -> ${tps}, ${diffPercent.toFixed(4)}%`,
-        logContext,
-      );
-
-      const reachPrice = await this.waitForWatchLevel(
-        watchLevel,
-        lastPrice,
-        placeOrderPrice,
-        logContext,
-      );
-      if (reachPrice) {
-        return { placeOrder: true };
-      }
-
-      await this.checkCommands();
-    }
+    return checkMVOpportunity.call(
+      this,
+      this.strategy.runtimeParams as MVRuntimeParams,
+    );
   }
 
   protected async placeOrder(orderTag?: string) {
@@ -150,7 +97,7 @@ export class MoveTracing extends BaseRunner {
 
     const strategyParams: MVStartupParams = strategy.params;
     const { activePercent, drawbackPercent } = strategyParams;
-    const runtimeParams: RuntimeParams = strategy.runtimeParams;
+    const runtimeParams: MVRuntimeParams = strategy.runtimeParams;
 
     const tradeSide = strategy.nextTradeSide;
 
@@ -200,6 +147,7 @@ export class MoveTracing extends BaseRunner {
     }
 
     const order = this.newOrderByStrategy();
+    order.tag = orderTag;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
     order.priceType = params.priceType;
