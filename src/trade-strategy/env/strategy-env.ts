@@ -54,7 +54,7 @@ export interface StrategyEnv extends MarketDataSupport {
 }
 
 export interface StrategyJobEnv {
-  getThisJob(): Job<StrategyJobData> | undefined;
+  thisJob: Job<StrategyJobData> | undefined;
 
   queuePaused(): Promise<boolean>;
 

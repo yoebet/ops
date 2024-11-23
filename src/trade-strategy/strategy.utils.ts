@@ -2,6 +2,7 @@ import { ExOrderResp } from '@/db/models/ex-order';
 import { PlaceOrderParams } from '@/exchange/exchange-service-types';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyDeal } from '@/db/models/strategy-deal';
+import { HumanizerOptions } from 'humanize-duration';
 
 export function fillOrderSize(
   order: ExOrderResp,
@@ -30,3 +31,21 @@ export async function createNewDealIfNone(strategy: Strategy) {
   strategy.currentDeal = currentDeal;
   await strategy.save();
 }
+
+export const durationHumanizerOptions: HumanizerOptions = {
+  language: 'shortEn',
+  delimiter: ' ',
+  spacer: '',
+  languages: {
+    shortEn: {
+      y: () => 'y',
+      mo: () => 'mo',
+      w: () => 'w',
+      d: () => 'd',
+      h: () => 'h',
+      m: () => 'm',
+      s: () => 's',
+      ms: () => 'ms',
+    },
+  },
+};

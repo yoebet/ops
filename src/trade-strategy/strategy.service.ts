@@ -104,18 +104,14 @@ export class StrategyService implements OnModuleInit {
     const queue = jobFacade.getQueue();
     const service = this;
     const jobEnv: StrategyJobEnv = {
-      getThisJob(): Job<StrategyJobData> | undefined {
-        return job;
-      },
-      queuePaused(): Promise<boolean> {
-        return queue.isPaused();
-      },
-      summitNewDealJob(): Promise<void> {
-        return service.doSummitJob(strategy);
-      },
+      thisJob: job,
+      queuePaused: queue.isPaused.bind(queue),
+      summitNewDealJob: () => service.doSummitJob(strategy),
     };
+    const logContext = `${strategy.algoCode}/${strategy.id}`;
+    const logger = this.logger.subLogger(logContext);
+
     let runner: BaseRunner;
-    const logger = this.logger.subLogger(`${strategy.algoCode}/${strategy.id}`);
     if (strategy.algoCode === StrategyAlgo.MV) {
       runner = new MoveTracing(strategy, env, jobEnv, logger);
     } else if (strategy.algoCode === StrategyAlgo.BR) {
@@ -123,6 +119,7 @@ export class StrategyService implements OnModuleInit {
     } else {
       throw new Error(`unknown strategy ${strategy.algoCode}`);
     }
+
     await runner.run();
   }
 

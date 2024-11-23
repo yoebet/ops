@@ -7,7 +7,7 @@ import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
-import { MockExTradeService } from '@/trade-strategy/env/mock-ex-trade-service';
+import { MockExTradeService } from '@/trade-strategy/env/mock-ex-trade.service';
 import { StrategyEnvMarketData } from '@/trade-strategy/env/strategy-env-market-data';
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';

@@ -10,7 +10,10 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
 import { WatchLevel } from '@/trade-strategy/strategy.types';
 import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
-import { createNewDealIfNone } from '@/trade-strategy/strategy.utils';
+import {
+  createNewDealIfNone,
+  durationHumanizerOptions,
+} from '@/trade-strategy/strategy.utils';
 import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
@@ -20,23 +23,9 @@ import {
 class ExitSignal extends Error {}
 
 export abstract class BaseRunner {
-  protected durationHumanizer = humanizeDuration.humanizer({
-    language: 'shortEn',
-    delimiter: ' ',
-    spacer: '',
-    languages: {
-      shortEn: {
-        y: () => 'y',
-        mo: () => 'mo',
-        w: () => 'w',
-        d: () => 'd',
-        h: () => 'h',
-        m: () => 'm',
-        s: () => 's',
-        ms: () => 'ms',
-      },
-    },
-  });
+  protected durationHumanizer = humanizeDuration.humanizer(
+    durationHumanizerOptions,
+  );
 
   protected constructor(
     protected readonly strategy: Strategy,
@@ -48,7 +37,7 @@ export abstract class BaseRunner {
   async run() {
     let runOneDeal = false;
 
-    const job = this.jobEnv.getThisJob();
+    const job = this.jobEnv.thisJob;
     if (job && job.data.runOneDeal) {
       runOneDeal = true;
     }
@@ -225,7 +214,7 @@ export abstract class BaseRunner {
       message = `[${context}] ${message}`;
     }
     this.logger.log(message);
-    const job = this.jobEnv.getThisJob();
+    const job = this.jobEnv.thisJob;
     if (job) {
       await job
         .log(`${new Date().toISOString()} ${message}`)
@@ -240,7 +229,7 @@ export abstract class BaseRunner {
     status: string,
   ): Promise<void> {
     this.logger.log(`[${context}] ${status}`);
-    const job = this.jobEnv.getThisJob();
+    const job = this.jobEnv.thisJob;
     if (job) {
       await job.updateProgress({ [context]: status }).catch((err: Error) => {
         this.logger.error(err);
