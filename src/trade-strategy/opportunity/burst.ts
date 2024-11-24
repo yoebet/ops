@@ -11,18 +11,18 @@ import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 interface KlineAgg {
   // size: number;
   // amount: number;
-  // avgAmount: number;
+  avgAmount: number;
   // minAmount: number;
   // maxAmount: number;
-  amountFluc: number;
+  // amountFluc: number;
   avgPrice: number;
   // minPrice: number;
   // maxPrice: number;
-  priceFluc: number;
+  // priceFluc: number;
   // priceChange: number;
   // minPriceChange: number;
   // maxPriceChange: number;
-  // avgPriceChange: number;
+  avgPriceChange: number;
 }
 
 function fluctuationPercent(avg: number, low: number, high: number): number {
@@ -31,15 +31,15 @@ function fluctuationPercent(avg: number, low: number, high: number): number {
 }
 
 function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
-  // const firstKline = klines[0];
-  // const lastKline = klines[klines.length - 1];
+  const firstKline = klines[0];
+  const lastKline = klines[klines.length - 1];
   let size = 0;
   let amount = 0;
-  let minAmount = 0;
+  let minAmount = null;
   let maxAmount = 0;
-  let minPrice = 0;
+  let minPrice = null;
   let maxPrice = 0;
-  let minPriceChange = 0;
+  let minPriceChange = null;
   let maxPriceChange = 0;
   for (const k of klines) {
     if (!k.size) {
@@ -47,20 +47,20 @@ function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
     }
     size += k.size;
     amount += k.amount;
-    if (minAmount > k.amount) {
+    if (minAmount === null || minAmount > k.amount) {
       minAmount = k.amount;
     }
     if (maxAmount < k.amount) {
       maxAmount = k.amount;
     }
-    if (minPrice > k.low) {
+    if (minPrice === null || minPrice > k.low) {
       minPrice = k.low;
     }
     if (maxPrice < k.high) {
       maxPrice = k.high;
     }
     const pc = Math.abs(k.close - k.open);
-    if (minPriceChange > pc) {
+    if (minPriceChange === null || minPriceChange > pc) {
       minPriceChange = pc;
     }
     if (maxPriceChange < pc) {
@@ -72,13 +72,15 @@ function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
   }
   const avgAmount = amount / klines.length;
   const avgPrice = amount / size;
-  // const priceChange = Math.abs(lastKline.close - firstKline.open);
-  // const avgPriceChange = priceChange / klines.length;
+  const priceChange = Math.abs(lastKline.close - firstKline.open);
+  const avgPriceChange = priceChange / klines.length;
 
   return {
-    amountFluc: fluctuationPercent(avgAmount, minAmount, maxAmount),
-    priceFluc: fluctuationPercent(avgPrice, minPrice, maxPrice),
+    avgAmount,
+    // amountFluc: fluctuationPercent(avgAmount, minAmount, maxAmount),
+    // priceFluc: fluctuationPercent(avgPrice, minPrice, maxPrice),
     avgPrice,
+    avgPriceChange,
   };
 }
 
@@ -86,20 +88,24 @@ function checkBurst(
   this: BaseRunner,
   contrastAgg: KlineAgg,
   latestAgg: KlineAgg,
-  amountFlucTimes: number,
-  priceFlucTimes: number,
+  amountTimes: number,
+  priceChangeTimes: number,
   context?: string,
 ): boolean {
+  const laa = latestAgg.avgAmount;
+  const caa = contrastAgg.avgAmount;
+  const lpc = latestAgg.avgPriceChange;
+  const cpc = contrastAgg.avgPriceChange;
+  if (!laa || !caa || !lpc || !cpc) {
+    return false;
+  }
   this.logger.debug(
-    `[${context}] amount: ${latestAgg.amountFluc.toPrecision(5)} ~ ${contrastAgg.amountFluc.toPrecision(5)}`,
+    `[${context}] avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)}`,
   );
   this.logger.debug(
-    `[${context}] price: ${latestAgg.priceFluc.toPrecision(5)} ~ ${contrastAgg.priceFluc.toPrecision(5)}`,
+    `[${context}] priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)}`,
   );
-  return (
-    latestAgg.amountFluc >= contrastAgg.amountFluc * amountFlucTimes &&
-    latestAgg.priceFluc >= contrastAgg.priceFluc * priceFlucTimes
-  );
+  return laa >= caa * amountTimes && lpc >= cpc * priceChangeTimes;
 }
 
 export async function checkBurstOpp(
@@ -112,10 +118,10 @@ export async function checkBurstOpp(
     periods,
     checkPeriods,
     contrastPeriods,
-    baselineAmountFlucTimes,
-    baselinePriceFlucTimes,
-    selfAmountFlucTimes,
-    selfPriceFlucTimes,
+    baselineAmountTimes,
+    baselinePriceChangeTimes,
+    selfAmountTimes,
+    selfPriceChangeTimes,
   } = params;
   const latestFrom = periods - checkPeriods;
 
@@ -132,8 +138,8 @@ export async function checkBurstOpp(
       this,
       selfContrastAgg,
       selfLatestAgg,
-      selfAmountFlucTimes,
-      selfPriceFlucTimes,
+      selfAmountTimes,
+      selfPriceChangeTimes,
       'self',
     )
   ) {
@@ -158,8 +164,8 @@ export async function checkBurstOpp(
       this,
       blContrastAgg,
       blLatestAgg,
-      baselineAmountFlucTimes,
-      baselinePriceFlucTimes,
+      baselineAmountTimes,
+      baselinePriceChangeTimes,
       'baseline',
     )
   ) {

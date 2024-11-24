@@ -51,6 +51,8 @@ export abstract class BaseRunner {
 
     this.setupStrategyParams();
 
+    this.logger.log(JSON.stringify(strategy.params, null, 2), 'params');
+
     while (true) {
       try {
         if (!strategy.active) {

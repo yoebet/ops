@@ -53,10 +53,10 @@ export interface BRCheckerParams {
   periods: number;
   checkPeriods: number;
   contrastPeriods: number;
-  baselineAmountFlucTimes: number;
-  baselinePriceFlucTimes: number;
-  selfAmountFlucTimes: number;
-  selfPriceFlucTimes: number;
+  baselineAmountTimes: number;
+  baselinePriceChangeTimes: number;
+  selfAmountTimes: number;
+  selfPriceChangeTimes: number;
 }
 
 export interface MVRuntimeParams {

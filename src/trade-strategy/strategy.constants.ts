@@ -21,10 +21,10 @@ export const DefaultBRCheckerParams: BRCheckerParams = {
   periods: 16,
   checkPeriods: 2,
   contrastPeriods: 12,
-  baselineAmountFlucTimes: 2,
-  baselinePriceFlucTimes: 1.5,
-  selfAmountFlucTimes: 5,
-  selfPriceFlucTimes: 3,
+  baselineAmountTimes: 2,
+  baselinePriceChangeTimes: 1.5,
+  selfAmountTimes: 5,
+  selfPriceChangeTimes: 3,
 };
 
 export const defaultMVCheckerParams: MVCheckerParams = {

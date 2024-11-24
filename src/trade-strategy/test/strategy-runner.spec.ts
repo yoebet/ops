@@ -3,8 +3,9 @@ import { SystemConfigModule } from '@/common-services/system-config.module';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyModule } from '@/trade-strategy/strategy.module';
 import { StrategyService } from '@/trade-strategy/strategy.service';
+import { HOUR_MS } from '@/common/utils/utils';
 
-jest.setTimeout(60_000);
+jest.setTimeout(HOUR_MS);
 
 describe('strategy runner', () => {
   let service: StrategyService;
@@ -21,7 +22,7 @@ describe('strategy runner', () => {
   });
 
   it('summit', async () => {
-    await service.summitJob(3);
+    await service.summitJob(7, true);
   });
 
   it('run 1', async () => {

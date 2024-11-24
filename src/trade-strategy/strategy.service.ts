@@ -154,22 +154,27 @@ export class StrategyService implements OnModuleInit {
     );
   }
 
-  async summitJob(strategyId: number) {
+  async summitJob(strategyId: number, force?: boolean) {
     const strategy = await Strategy.findOneBy({ id: strategyId });
     if (!strategy) {
       throw new Error(`strategy ${strategyId} not found`);
     }
-    if (strategy.jobSummited) {
-      this.logger.log(`strategy job summited`);
-      return;
-    }
-    if (!strategy.active) {
-      this.logger.log(`strategy job not active`);
-      return;
+    if (!force) {
+      if (strategy.jobSummited) {
+        this.logger.log(`strategy job summited`);
+        return;
+      }
+      if (!strategy.active) {
+        this.logger.log(`strategy job not active`);
+        return;
+      }
     }
     await this.doSummitJob(strategy);
-    strategy.jobSummited = true;
-    await strategy.save();
+    if (!strategy.jobSummited || !strategy.active) {
+      strategy.jobSummited = true;
+      strategy.active = true;
+      await strategy.save();
+    }
   }
 
   async summitAllJobs() {
