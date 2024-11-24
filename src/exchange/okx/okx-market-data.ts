@@ -42,7 +42,7 @@ export class OkxMarketData implements ExchangeMarketDataService {
       high: Number(raw[2]),
       low: Number(raw[3]),
       close: Number(raw[4]),
-      size: Number(raw[6]),
+      size: Number(raw[5]),
       amount: Number(raw[7]),
       // bs: 0,
       // ba: 0,

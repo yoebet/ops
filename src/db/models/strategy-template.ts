@@ -5,12 +5,13 @@ import { StrategyAlgo } from '@/trade-strategy/strategy.types';
 
 @Entity()
 export class StrategyTemplate extends BaseModel {
+  // userId
+
   @Column()
-  @Index({ unique: true })
   name: string;
 
   @Column()
-  @Index({ unique: true })
+  @Index()
   code: StrategyAlgo;
 
   @Column({ nullable: true })

@@ -7,7 +7,7 @@ import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
-import { MoveTracing } from '@/trade-strategy/strategy/move-tracing';
+import { MoveTracingBuy } from '@/trade-strategy/strategy/move-tracing-buy';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvTrade } from '@/trade-strategy/env/strategy-env-trade';
@@ -23,7 +23,9 @@ import {
   WorkerConcurrency,
   WorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
-import { MINUTE_MS } from '@/common/utils/utils';
+import { MINUTE_MS, wait } from '@/common/utils/utils';
+import { MoveTracingSell } from '@/trade-strategy/strategy/move-tracing-sell';
+import { MoveTracingBothSide } from '@/trade-strategy/strategy/move-tracing-both-side';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -112,13 +114,24 @@ export class StrategyService implements OnModuleInit {
     const logger = this.logger.subLogger(logContext);
 
     let runner: BaseRunner;
-    if (strategy.algoCode === StrategyAlgo.MV) {
-      runner = new MoveTracing(strategy, env, jobEnv, logger);
-    } else if (strategy.algoCode === StrategyAlgo.BR) {
-      runner = new BurstMonitor(strategy, env, jobEnv, logger);
-    } else {
-      throw new Error(`unknown strategy ${strategy.algoCode}`);
+    switch (strategy.algoCode) {
+      case StrategyAlgo.BR:
+        runner = new BurstMonitor(strategy, env, jobEnv, logger);
+        break;
+      case StrategyAlgo.MVB:
+        runner = new MoveTracingBuy(strategy, env, jobEnv, logger);
+        break;
+      case StrategyAlgo.MVS:
+        runner = new MoveTracingSell(strategy, env, jobEnv, logger);
+        break;
+      case StrategyAlgo.MVBS:
+        runner = new MoveTracingBothSide(strategy, env, jobEnv, logger);
+        break;
+      default:
+        throw new Error(`unknown strategy ${strategy.algoCode}`);
     }
+
+    await wait(Math.round(10 * 1000 * Math.random()));
 
     await runner.run();
   }

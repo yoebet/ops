@@ -35,11 +35,6 @@ import {
   WorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
 
-declare type StatusReporter = (
-  status: string,
-  subContext?: string,
-) => Promise<void>;
-
 @Injectable()
 export class MockOrderTracingService implements OnModuleInit {
   protected traceOrderJobFacades = new Map<
@@ -78,28 +73,35 @@ export class MockOrderTracingService implements OnModuleInit {
     if (!jobFacade) {
       throw new Error(`jobFacade ${strategy.algoCode} not found`);
     }
-    await jobFacade.addTask({
-      strategyId,
-      params,
-    });
+    await jobFacade.addTask(
+      {
+        strategyId,
+        params,
+      },
+      {
+        jobId: `o${params.clientOrderId}`,
+        attempts: 10,
+        backoff: MINUTE_MS,
+      },
+    );
   }
 
   async traceMovingTpsl(
+    job: Job<TraceOrderJobData>,
     strategy: Strategy,
     side: TradeSide,
     drawbackRatio: number,
     activePrice: number | undefined,
-    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const { ex, symbol } = strategy;
     const direction = side === 'buy' ? 'down' : 'up';
     if (activePrice) {
       activePrice = await this.waitForPrice(
+        job,
         strategy,
         activePrice,
         direction,
-        reportStatus,
         cancelCallback,
       );
     } else {
@@ -117,9 +119,11 @@ export class MockOrderTracingService implements OnModuleInit {
 
     const reportStatusHandler = setInterval(async () => {
       const diffPercent = evalDiffPercent(price, placeOrderPrice);
-      await reportStatus(
-        `${sentinel}(sentinel) ~ ${price} ~ ${placeOrderPrice}, ${diffPercent.toFixed(4)}%`,
-        'subscribeRtPrice',
+      const pop = placeOrderPrice.toPrecision(6);
+      await this.logJob(
+        job,
+        `${sentinel} ~ ${price} ~ ${pop}, ${diffPercent.toFixed(4)}%`,
+        `subs-RtPrice`,
       ).catch((e) => this.logger.error(e));
     }, ReportStatusInterval);
 
@@ -150,9 +154,32 @@ export class MockOrderTracingService implements OnModuleInit {
 
     clearInterval(reportStatusHandler);
 
-    await reportStatus(`reach: ${placeOrderPrice}`, 'subscribeRtPrice');
+    await this.logJob(
+      job,
+      `reach: ${placeOrderPrice.toPrecision(6)}`,
+      `subs-RtPrice`,
+    );
 
     return placeOrderPrice;
+  }
+
+  protected async logJob(
+    job: Job<TraceOrderJobData>,
+    message: string,
+    context?: string,
+  ): Promise<void> {
+    const { params, strategyId } = job.data;
+    if (context) {
+      message = `${context}: ${message}`;
+    }
+    const mc = `[strategy: ${strategyId}, order: ${params.clientOrderId}]`;
+    this.logger.log(message, mc);
+    message = `${mc} ${message}`;
+    await job
+      .log(`${new Date().toISOString()} ${message}`)
+      .catch((err: Error) => {
+        this.logger.error(err);
+      });
   }
 
   async traceAndFillOrder(
@@ -161,7 +188,7 @@ export class MockOrderTracingService implements OnModuleInit {
     const { params, strategyId } = job.data;
     const strategy = await Strategy.findOneBy({ id: strategyId });
     const tradeSide = params.side as TradeSide;
-    await job.log(`strategy: ${strategy.name} #${strategy.id}`);
+    await this.logJob(job, `start tracing ...`);
 
     const cancelCallback = async () => {
       const order = await ExOrder.findOne({
@@ -178,17 +205,21 @@ export class MockOrderTracingService implements OnModuleInit {
       return !ExOrder.orderToWait(order.status);
     };
 
-    const reportStatusFn: (context: string) => StatusReporter = (
-      context: string,
-    ) => {
-      return async (status: string, subContext?: string) => {
-        const c = subContext ? `${context}/${subContext}` : context;
-        // await job.updateProgress({ [c]: status });
-        const msg = `[${c}] ${status}`;
-        this.logger.log(msg);
-        await job.log(`${new Date().toISOString()} ${msg}`);
-      };
-    };
+    // const reportStatusFn: (context: string) => StatusReporter = (
+    //   context: string,
+    // ) => {
+    //   return async (status: string, subContext?: string) => {
+    //     const c = subContext ? `${context}/${subContext}` : context;
+    //     // await job.updateProgress({ [c]: status });
+    //     const msg = `[${c}] ${status}`;
+    //     this.logger.log(msg);
+    //     await job.log(`${new Date().toISOString()} ${msg}`);
+    //   };
+    // };
+
+    if (!(await cancelCallback())) {
+      return undefined;
+    }
 
     if (!params.tpslType) {
       const price = +params.price;
@@ -196,10 +227,10 @@ export class MockOrderTracingService implements OnModuleInit {
         return undefined;
       }
       const hitPrice = await this.waitForPrice(
+        job,
         strategy,
         price,
         tradeSide === 'buy' ? 'down' : 'up',
-        reportStatusFn(`trace ${params.clientOrderId}`),
         cancelCallback,
       );
       if (hitPrice) {
@@ -220,33 +251,19 @@ export class MockOrderTracingService implements OnModuleInit {
       let hitPrice: number;
       let trigger: string;
       if (params.tpslType === 'tp') {
-        hitPrice = await this.waitTp(
-          strategy,
-          params,
-          reportStatusFn(`tp`),
-          cancelCallback,
-        );
+        hitPrice = await this.waitTp(job, strategy, params, cancelCallback);
       } else if (params.tpslType === 'sl') {
-        hitPrice = await this.waitSl(
-          strategy,
-          params,
-          reportStatusFn(`sl`),
-          cancelCallback,
-        );
+        hitPrice = await this.waitSl(job, strategy, params, cancelCallback);
       } else if (params.tpslType === 'tpsl') {
         [hitPrice, trigger] = (await Promise.race([
-          this.waitTp(
-            strategy,
-            params,
-            reportStatusFn(`tp`),
-            cancelCallback,
-          ).then((p) => [p, 'tp']),
-          this.waitSl(
-            strategy,
-            params,
-            reportStatusFn(`sl`),
-            cancelCallback,
-          ).then((p) => [p, 'sl']),
+          this.waitTp(job, strategy, params, cancelCallback).then((p) => [
+            p,
+            'tp',
+          ]),
+          this.waitSl(job, strategy, params, cancelCallback).then((p) => [
+            p,
+            'sl',
+          ]),
         ])) as [number, string];
         // TODO:
       } else if (params.tpslType === 'move') {
@@ -254,11 +271,11 @@ export class MockOrderTracingService implements OnModuleInit {
           params as PlaceTpslOrderParams;
         const activePrice = moveActivePrice ? +moveActivePrice : undefined;
         hitPrice = await this.traceMovingTpsl(
+          job,
           strategy,
           tradeSide,
           +moveDrawbackRatio,
           activePrice,
-          reportStatusFn('move'),
           cancelCallback,
         );
       }
@@ -294,10 +311,10 @@ export class MockOrderTracingService implements OnModuleInit {
   }
 
   protected async waitForPrice(
+    job: Job<TraceOrderJobData>,
     strategy: Strategy,
     targetPrice: number,
     direction: 'up' | 'down',
-    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const { ex, symbol } = strategy;
@@ -336,7 +353,7 @@ export class MockOrderTracingService implements OnModuleInit {
             upperBound: targetPrice,
           };
         }
-        await reportStatus(`${diffInfo}, watch`, logContext);
+        await this.logJob(job, `${diffInfo}, watch`, logContext);
         watchRtPriceParams.timeoutSeconds = 10 * 60;
         const watchResult = await this.publicWsService.watchRtPrice(
           ex,
@@ -359,73 +376,73 @@ export class MockOrderTracingService implements OnModuleInit {
         // await reportStatus(`${diffInfo}, wait 10s`, logContext);
         await wait(10 * 1000);
       } else if (diffPercentAbs < 2) {
-        await reportStatus(`${diffInfo}, wait 1m`, logContext);
+        await this.logJob(job, `${diffInfo}, wait 1m`, logContext);
         await wait(MINUTE_MS);
       } else if (diffPercentAbs < 5) {
-        await reportStatus(`${diffInfo}, wait 5m`, logContext);
+        await this.logJob(job, `${diffInfo}, wait 5m`, logContext);
         await wait(5 * MINUTE_MS);
       } else if (diffPercentAbs < 10) {
-        await reportStatus(`${diffInfo}, wait 30m`, logContext);
+        await this.logJob(job, `${diffInfo}, wait 30m`, logContext);
         await wait(30 * MINUTE_MS);
       } else {
-        await reportStatus(`${diffInfo}, wait 2h`, logContext);
+        await this.logJob(job, `${diffInfo}, wait 2h`, logContext);
         await wait(2 * HOUR_MS);
       }
 
       const cancel = await cancelCallback();
       if (cancel) {
-        await reportStatus(`exit due to cancel callback`, logContext);
+        await this.logJob(job, `exit due to cancel callback`, logContext);
         return undefined;
       }
     }
   }
 
   protected async waitTp(
+    job,
     strategy: Strategy,
     params: PlaceOrderParams,
-    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const direction = params.side === 'buy' ? 'up' : 'down';
     if (params.tpTriggerPrice) {
       await this.waitForPrice(
+        job,
         strategy,
         +params.tpTriggerPrice,
         direction,
-        reportStatus,
         cancelCallback,
       );
     }
     return this.waitForPrice(
+      job,
       strategy,
       +params.tpOrderPrice,
       direction,
-      reportStatus,
       cancelCallback,
     );
   }
 
   protected async waitSl(
+    job,
     strategy: Strategy,
     params: PlaceOrderParams,
-    reportStatus: StatusReporter,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const direction = params.side === 'buy' ? 'down' : 'up';
     if (params.slTriggerPrice) {
       await this.waitForPrice(
+        job,
         strategy,
         +params.slTriggerPrice,
         direction,
-        reportStatus,
         cancelCallback,
       );
     }
     return this.waitForPrice(
+      job,
       strategy,
       +params.slOrderPrice,
       direction,
-      reportStatus,
       cancelCallback,
     );
   }

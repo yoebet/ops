@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
-import { ExKline } from '@/exchange/exchange-service-types';
+import { ExKline, ExPrice } from '@/exchange/exchange-service-types';
 import { KlinesHolder } from '@/data-ex/kline-data-holder';
 import { TimeLevel } from '@/db/models/time-level';
 import { MINUTE_MS } from '@/common/utils/utils';
@@ -12,7 +12,7 @@ const MAX_KEEP_KLINES = 120;
 
 @Injectable()
 export class ExPublicDataService {
-  private latestPrices = new Map<string, { last: number; ts: number }>();
+  private latestPrices = new Map<string, ExPrice>();
   private klineHolders = new Map<string, KlinesHolder>();
 
   constructor(
@@ -39,7 +39,7 @@ export class ExPublicDataService {
     if (!es) {
       throw new Error(`ExchangeSymbol not found: ${ex}, ${symbol}`);
     }
-    const key = `${ex}:${es.market}:${es.rawSymbol}`;
+    const key = `${ex}:${es.symbol}`;
     let lastPrice = this.latestPrices.get(key);
     if (lastPrice && Date.now() - lastPrice.ts <= cacheTimeLimit) {
       return lastPrice.last;
@@ -100,7 +100,7 @@ export class ExPublicDataService {
         if (tt >= latestOpenTs && holder.data.length >= limit) {
           return holder.getLatest(limit);
         }
-        const fetchCount = Math.ceil((latestOpenTs - tt) / intervalSeconds);
+        const fetchCount = Math.ceil((latestOpenTs - tt) / intervalMs) + 1;
         const data = await this.fetchLatestKlines(
           ex,
           es.market,
@@ -109,6 +109,7 @@ export class ExPublicDataService {
           fetchCount,
         );
         holder.append(data, { duplicated: true });
+        return holder.getLatest(limit);
       }
     }
     const data = await this.fetchLatestKlines(

@@ -86,7 +86,8 @@ export class MockExTradeService implements ExchangeTradeService {
   }
 
   protected newOrderId() {
-    return `${this.strategy.ex.toLowerCase()}${Math.round(Date.now() / 1000) - 1e9}`;
+    const { id, ex } = this.strategy;
+    return `${ex.toLowerCase()}${id}${Math.round(Date.now() / 1000) - 1e9}`;
   }
 
   async placeOrder(

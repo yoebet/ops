@@ -42,6 +42,7 @@ export class StrategyEnvMarketData implements MarketDataSupport {
       params.ex || strategy.ex,
       params.symbol || strategy.symbol,
       params.interval,
+      params.limit,
     );
   }
 

@@ -7,19 +7,21 @@ import { round } from '@/common/utils/utils';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { OrderStatus } from '@/db/models/ex-order';
 import {
-  BRCheckerParams,
   BRStrategyParams,
-  CheckOpportunityReturn,
-  MVCheckerParams,
+  TradeOpportunity,
   MVRuntimeParams,
 } from '@/trade-strategy/strategy.types';
 import { checkBurstOpp } from '@/trade-strategy/opportunity/burst';
 import {
   checkMVOpportunity,
-  setMVRuntimeParams,
+  setPlaceOrderPrice,
 } from '@/trade-strategy/opportunity/move';
 import { TradeSide } from '@/data-service/models/base';
 import * as _ from 'lodash';
+import {
+  DefaultBRCheckerParams,
+  defaultMVCheckerParams,
+} from '@/trade-strategy/strategy.constants';
 
 export class BurstMonitor extends BaseRunner {
   protected runtimeParams: {
@@ -36,23 +38,9 @@ export class BurstMonitor extends BaseRunner {
   }
 
   setupStrategyParams(): void {
-    const open: BRCheckerParams = {
-      interval: '1m',
-      periods: 30,
-      checkPeriods: 2,
-      contrastPeriods: 26,
-      baselineAmountFlucTimes: 2,
-      baselinePriceFlucTimes: 1.5,
-      selfAmountFlucTimes: 5,
-      selfPriceFlucTimes: 3,
-    };
-    const close: MVCheckerParams = {
-      waitForPercent: 2,
-      drawbackPercent: 2,
-    };
     const defaultParams: BRStrategyParams = {
-      open,
-      close,
+      open: DefaultBRCheckerParams,
+      close: defaultMVCheckerParams,
     };
     const st = this.strategy;
     if (!st.params) {
@@ -80,7 +68,7 @@ export class BurstMonitor extends BaseRunner {
 
     const strategyParams: BRStrategyParams = strategy.params;
 
-    await setMVRuntimeParams.call(
+    await setPlaceOrderPrice.call(
       this,
       mvParams,
       strategyParams.close.waitForPercent,
@@ -89,7 +77,7 @@ export class BurstMonitor extends BaseRunner {
     await strategy.save();
   }
 
-  protected async checkAndWaitOpportunity(): Promise<CheckOpportunityReturn> {
+  protected async checkAndWaitOpportunity(): Promise<TradeOpportunity> {
     const strategy = this.strategy;
     const runtimeParams = this.runtimeParams;
     if (strategy.currentDeal?.lastOrder?.tag === 'open') {
@@ -99,13 +87,17 @@ export class BurstMonitor extends BaseRunner {
     return checkBurstOpp.call(this, strategyParams.open, 'open');
   }
 
-  protected async placeOrder(orderTag?: string): Promise<void> {
+  protected async placeOrder(oppo: TradeOpportunity): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
     const strategy = this.strategy;
+
+    if (oppo.side) {
+      strategy.nextTradeSide = oppo.side;
+    }
     const tradeSide = strategy.nextTradeSide;
-    const clientOrderId = this.newClientOrderId();
+    const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
     const params: PlaceOrderParams = {
       side: tradeSide,
@@ -129,24 +121,17 @@ export class BurstMonitor extends BaseRunner {
     }
 
     const order = this.newOrderByStrategy();
-    order.tag = orderTag;
+    order.tag = oppo.orderTag;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
     order.priceType = params.priceType;
-    order.baseSize = size;
+    if (size) {
+      order.baseSize = size;
+    }
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
     await order.save();
 
     await this.doPlaceOrder(order, params);
-  }
-
-  protected async onOrderFilled() {
-    const currentDeal = this.strategy.currentDeal;
-    const lastOrder = currentDeal.lastOrder;
-
-    if (lastOrder.tag === 'close') {
-      await this.closeDeal(currentDeal);
-    }
   }
 }

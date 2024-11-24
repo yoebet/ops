@@ -8,10 +8,7 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { MINUTE_MS, wait } from '@/common/utils/utils';
-import {
-  CheckOpportunityReturn,
-  ExitSignal,
-} from '@/trade-strategy/strategy.types';
+import { TradeOpportunity, ExitSignal } from '@/trade-strategy/strategy.types';
 import {
   createNewDealIfNone,
   durationHumanizerOptions,
@@ -80,12 +77,12 @@ export abstract class BaseRunner {
 
         await this.resetRuntimeParams();
 
-        const opp = await this.repeatToComplete<CheckOpportunityReturn>(
+        const opp = await this.repeatToComplete<TradeOpportunity | undefined>(
           this.checkAndWaitOpportunity.bind(this),
           { context: 'wait-opportunity' },
         );
-        if (opp?.placeOrder) {
-          await this.placeOrder(opp.orderTag);
+        if (opp) {
+          await this.placeOrder(opp);
         }
         if (!strategy.currentDealId) {
           // deal closed due to order being filled
@@ -110,9 +107,11 @@ export abstract class BaseRunner {
 
   protected abstract resetRuntimeParams(): Promise<void>;
 
-  protected abstract checkAndWaitOpportunity(): Promise<CheckOpportunityReturn>;
+  protected abstract checkAndWaitOpportunity(): Promise<
+    TradeOpportunity | undefined
+  >;
 
-  protected abstract placeOrder(orderTag?: string): Promise<void>;
+  protected abstract placeOrder(oppo: TradeOpportunity): Promise<void>;
 
   protected async doPlaceOrder(
     order: ExOrder,
@@ -269,10 +268,6 @@ export abstract class BaseRunner {
     }
   }
 
-  protected newDealSide(): TradeSide {
-    return TradeSide.buy;
-  }
-
   protected async createNewDeal() {
     await createNewDealIfNone(this.strategy);
   }
@@ -285,6 +280,9 @@ export abstract class BaseRunner {
         id: strategy.currentDealId,
       });
       strategy.currentDeal = currentDeal;
+      if (!currentDeal) {
+        strategy.currentDealId = undefined;
+      }
     }
     if (currentDeal) {
       if (currentDeal.status !== 'open') {
@@ -297,12 +295,20 @@ export abstract class BaseRunner {
         currentDeal.lastOrder = await ExOrder.findOneBy({
           id: lastOrderId,
         });
+        if (!currentDeal.lastOrder) {
+          currentDeal.lastOrderId = undefined;
+        }
       }
       if (currentDeal.pendingOrderId) {
         currentDeal.pendingOrder = await ExOrder.findOneBy({
           id: pendingOrderId,
         });
+        if (!currentDeal.pendingOrder) {
+          currentDeal.pendingOrderId = undefined;
+        }
       }
+      await currentDeal.save();
+      await strategy.save();
     } else {
       await this.createNewDeal();
     }
@@ -393,10 +399,15 @@ export abstract class BaseRunner {
     return true;
   }
 
+  protected shouldCloseDeal(currentDeal: StrategyDeal): boolean {
+    return (
+      !currentDeal.pendingOrderId && currentDeal.lastOrder?.tag === 'close'
+    );
+  }
+
   protected async onOrderFilled() {
     const currentDeal = this.strategy.currentDeal;
-    const lastOrder = currentDeal.lastOrder;
-    if (lastOrder.side === this.newDealSide()) {
+    if (this.shouldCloseDeal(currentDeal)) {
       return;
     }
 
@@ -417,11 +428,11 @@ export abstract class BaseRunner {
     return strategy.exchangeSymbol;
   }
 
-  protected newClientOrderId(): string {
+  protected newClientOrderId(orderTag?: string): string {
     const { id, algoCode } = this.strategy;
     const code = algoCode.toLowerCase();
     const ms = '' + Date.now();
-    return `${code}${id}${ms.substring(1, 10)}`;
+    return `${code}${id}${ms.substring(1, 10)}${orderTag || ''}`;
   }
 
   protected newOrderByStrategy(): ExOrder {

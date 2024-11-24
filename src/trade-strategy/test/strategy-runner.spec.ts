@@ -25,7 +25,7 @@ describe('strategy runner', () => {
   });
 
   it('run 1', async () => {
-    const strategy = await Strategy.findOneBy({ id: 1 });
+    const strategy = await Strategy.findOneBy({ id: 7 });
     await service.runStrategy(strategy);
   });
 });
