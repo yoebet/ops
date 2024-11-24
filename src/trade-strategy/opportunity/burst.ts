@@ -144,7 +144,7 @@ export async function checkBurstOpp(
     )
   ) {
     await this.logJob(`quiet, wait ${interval}`);
-    await wait(intervalSeconds * 1000);
+    await wait((intervalSeconds * 1000) / 2);
     return undefined;
   }
 

@@ -51,12 +51,12 @@ export abstract class BaseRunner {
 
     this.setupStrategyParams();
 
-    this.logger.log(JSON.stringify(strategy.params, null, 2), 'params');
+    await this.logJob(JSON.stringify(strategy.params, null, 2), 'params');
 
     while (true) {
       try {
         if (!strategy.active) {
-          this.logger.log(`strategy ${strategy.id} is not active, exit ...`);
+          await this.logJob(`strategy is not active, exit ...`);
           break;
         }
 
