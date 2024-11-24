@@ -51,9 +51,6 @@ export class Strategy extends ExSymbolBase {
   @Column('jsonb', { nullable: true })
   params?: any;
 
-  // @Column('jsonb', { nullable: true })
-  runtimeParams?: any;
-
   @Column({ nullable: true })
   paperTrade?: boolean;
 

@@ -52,8 +52,7 @@ export abstract class BaseRunner {
       return;
     }
 
-    this.setDefaultStrategyParams();
-    strategy.runtimeParams = {};
+    this.setupStrategyParams();
 
     while (true) {
       try {
@@ -107,7 +106,7 @@ export abstract class BaseRunner {
     }
   }
 
-  protected setDefaultStrategyParams() {}
+  protected setupStrategyParams() {}
 
   protected abstract resetRuntimeParams(): Promise<void>;
 

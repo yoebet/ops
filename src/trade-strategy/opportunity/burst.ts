@@ -1,5 +1,8 @@
 import { ExKline } from '@/exchange/exchange-service-types';
-import { CheckOpportunityReturn } from '@/trade-strategy/strategy.types';
+import {
+  BRCheckerParams,
+  CheckOpportunityReturn,
+} from '@/trade-strategy/strategy.types';
 import { TimeLevel } from '@/db/models/time-level';
 import { wait } from '@/common/utils/utils';
 import { TradeSide } from '@/data-service/models/base';
@@ -11,11 +14,11 @@ interface KlineAgg {
   // avgAmount: number;
   // minAmount: number;
   // maxAmount: number;
-  amountFluctuation: number;
+  amountFluc: number;
   avgPrice: number;
   // minPrice: number;
   // maxPrice: number;
-  priceFluctuation: number;
+  priceFluc: number;
   // priceChange: number;
   // minPriceChange: number;
   // maxPriceChange: number;
@@ -73,49 +76,40 @@ function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
   // const avgPriceChange = priceChange / klines.length;
 
   return {
-    // size,
-    // amount,
-    // avgAmount,
-    // minAmount,
-    // maxAmount,
-    amountFluctuation: fluctuationPercent(avgAmount, minAmount, maxAmount),
+    amountFluc: fluctuationPercent(avgAmount, minAmount, maxAmount),
+    priceFluc: fluctuationPercent(avgPrice, minPrice, maxPrice),
     avgPrice,
-    // minPrice,
-    // maxPrice,
-    priceFluctuation: fluctuationPercent(avgPrice, minPrice, maxPrice),
-    // priceChange,
-    // avgPriceChange,
-    // minPriceChange,
-    // maxPriceChange,
   };
 }
 
-function checkBaselineBurst(
+function checkBurst(
   contrastAgg: KlineAgg,
   latestAgg: KlineAgg,
+  amountFlucTimes: number,
+  priceFlucTimes: number,
 ): boolean {
   return (
-    latestAgg.amountFluctuation >= contrastAgg.amountFluctuation * 2 &&
-    latestAgg.priceFluctuation >= contrastAgg.priceFluctuation * 1.5
-  );
-}
-
-function checkSelfBurst(contrastAgg: KlineAgg, latestAgg: KlineAgg): boolean {
-  return (
-    latestAgg.amountFluctuation >= contrastAgg.amountFluctuation * 5 &&
-    latestAgg.priceFluctuation >= contrastAgg.priceFluctuation * 3
+    latestAgg.amountFluc >= contrastAgg.amountFluc * amountFlucTimes &&
+    latestAgg.priceFluc >= contrastAgg.priceFluc * priceFlucTimes
   );
 }
 
 export async function checkBurstOpp(
   this: BaseRunner,
+  params: BRCheckerParams,
   orderTag?: string,
 ): Promise<CheckOpportunityReturn> {
-  const interval = '1m';
-  const periods = 32;
-  const checkPeriods = 2;
+  const {
+    interval,
+    periods,
+    checkPeriods,
+    contrastPeriods,
+    baselineAmountFlucTimes,
+    baselinePriceFlucTimes,
+    selfAmountFlucTimes,
+    selfPriceFlucTimes,
+  } = params;
   const latestFrom = periods - checkPeriods;
-  const contrastTo = latestFrom - 2;
 
   const intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
 
@@ -123,9 +117,16 @@ export async function checkBurstOpp(
     interval,
     limit: periods,
   });
-  const selfContrastAgg = evalKlineAgg(selfKls.slice(0, contrastTo));
+  const selfContrastAgg = evalKlineAgg(selfKls.slice(0, contrastPeriods));
   const selfLatestAgg = evalKlineAgg(selfKls.slice(latestFrom));
-  if (!checkSelfBurst(selfContrastAgg, selfLatestAgg)) {
+  if (
+    !checkBurst(
+      selfContrastAgg,
+      selfLatestAgg,
+      selfAmountFlucTimes,
+      selfPriceFlucTimes,
+    )
+  ) {
     await this.logJob(`quiet, wait ${interval}`);
     await wait(intervalSeconds * 1000);
     return {};
@@ -136,9 +137,16 @@ export async function checkBurstOpp(
     interval,
     limit: periods,
   });
-  const blContrastAgg = evalKlineAgg(baselineKls.slice(0, contrastTo));
+  const blContrastAgg = evalKlineAgg(baselineKls.slice(0, contrastPeriods));
   const blLatestAgg = evalKlineAgg(baselineKls.slice(latestFrom));
-  if (checkBaselineBurst(blContrastAgg, blLatestAgg)) {
+  if (
+    checkBurst(
+      blContrastAgg,
+      blLatestAgg,
+      baselineAmountFlucTimes,
+      baselinePriceFlucTimes,
+    )
+  ) {
     await this.logJob(`no special, wait 6*${interval}`);
     await wait(6 * intervalSeconds * 1000);
     return {};

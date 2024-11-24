@@ -6,14 +6,26 @@ import { PlaceOrderParams } from '@/exchange/exchange-service-types';
 import { round } from '@/common/utils/utils';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { OrderStatus } from '@/db/models/ex-order';
-import { CheckOpportunityReturn } from '@/trade-strategy/strategy.types';
+import {
+  BRCheckerParams,
+  BRStrategyParams,
+  CheckOpportunityReturn,
+  MVCheckerParams,
+  MVRuntimeParams,
+} from '@/trade-strategy/strategy.types';
 import { checkBurstOpp } from '@/trade-strategy/opportunity/burst';
 import {
   checkMVOpportunity,
-  MVRuntimeParams,
+  setMVRuntimeParams,
 } from '@/trade-strategy/opportunity/move';
+import { TradeSide } from '@/data-service/models/base';
+import * as _ from 'lodash';
 
 export class BurstMonitor extends BaseRunner {
+  protected runtimeParams: {
+    close?: MVRuntimeParams;
+  };
+
   constructor(
     protected strategy: Strategy,
     protected env: StrategyEnv,
@@ -23,20 +35,68 @@ export class BurstMonitor extends BaseRunner {
     super(strategy, env, jobEnv, logger);
   }
 
-  protected resetRuntimeParams(): Promise<void> {
-    throw new Error('Method not implemented.');
+  setupStrategyParams(): void {
+    const open: BRCheckerParams = {
+      interval: '1m',
+      periods: 30,
+      checkPeriods: 2,
+      contrastPeriods: 26,
+      baselineAmountFlucTimes: 2,
+      baselinePriceFlucTimes: 1.5,
+      selfAmountFlucTimes: 5,
+      selfPriceFlucTimes: 3,
+    };
+    const close: MVCheckerParams = {
+      waitForPercent: 2,
+      drawbackPercent: 2,
+    };
+    const defaultParams: BRStrategyParams = {
+      open,
+      close,
+    };
+    const st = this.strategy;
+    if (!st.params) {
+      st.params = defaultParams;
+      return;
+    }
+    _.mergeWith(st.params, defaultParams);
+  }
+
+  protected async resetRuntimeParams() {
+    const strategy = this.strategy;
+    const currentDeal = strategy.currentDeal!;
+    const lastOrder = currentDeal.lastOrder;
+
+    this.runtimeParams = {};
+    if (!lastOrder) {
+      return;
+    }
+
+    strategy.nextTradeSide =
+      lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
+
+    const mvParams: MVRuntimeParams = { startingPrice: lastOrder.execPrice };
+    this.runtimeParams.close = mvParams;
+
+    const strategyParams: BRStrategyParams = strategy.params;
+
+    await setMVRuntimeParams.call(
+      this,
+      mvParams,
+      strategyParams.close.waitForPercent,
+    );
+
+    await strategy.save();
   }
 
   protected async checkAndWaitOpportunity(): Promise<CheckOpportunityReturn> {
-    const runtimeParams = this.strategy.runtimeParams;
-    if (this.strategy.currentDeal?.lastOrder?.tag === 'open') {
-      return checkMVOpportunity.call(
-        this,
-        runtimeParams.close as MVRuntimeParams,
-        'close',
-      );
+    const strategy = this.strategy;
+    const runtimeParams = this.runtimeParams;
+    if (strategy.currentDeal?.lastOrder?.tag === 'open') {
+      return checkMVOpportunity.call(this, runtimeParams.close, 'close');
     }
-    return checkBurstOpp.call(this, 'open');
+    const strategyParams: BRStrategyParams = strategy.params;
+    return checkBurstOpp.call(this, strategyParams.open, 'open');
   }
 
   protected async placeOrder(orderTag?: string): Promise<void> {

@@ -9,7 +9,10 @@ import { StrategyTemplate } from '@/db/models/strategy-template';
 import { Strategy } from '@/db/models/strategy';
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { MVStartupParams, StrategyAlgo } from '@/trade-strategy/strategy.types';
+import {
+  MVStrategyParams,
+  StrategyAlgo,
+} from '@/trade-strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 
 jest.setTimeout(60_000);
@@ -31,7 +34,7 @@ describe('strategy creating', () => {
       waitForPercent: 0.2,
       activePercent: 0.5,
       drawbackPercent: 1,
-    } as MVStartupParams;
+    } as MVStrategyParams;
     await st.save();
   });
 
@@ -59,7 +62,7 @@ describe('strategy creating', () => {
     const strategy = new Strategy();
     strategy.algoCode = code;
     strategy.name = `${st.name}-${baseCoin}`;
-    const params: MVStartupParams = {
+    const params: MVStrategyParams = {
       ...st.params,
       newDealTradeSide: TradeSide.sell,
     };

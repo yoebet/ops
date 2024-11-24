@@ -1,4 +1,7 @@
-import { CheckOpportunityReturn } from '@/trade-strategy/strategy.types';
+import {
+  CheckOpportunityReturn,
+  MVRuntimeParams,
+} from '@/trade-strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { evalDiffPercent } from '@/common/utils/utils';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
@@ -7,10 +10,21 @@ import {
   waitForWatchLevel,
 } from '@/trade-strategy/opportunity/helper';
 
-export interface MVRuntimeParams {
-  startingPrice?: number;
-  placeOrderPrice?: number;
-  activePrice?: number;
+export async function setMVRuntimeParams(
+  this: BaseRunner,
+  runtimeParams: MVRuntimeParams,
+  waitForPercent?: number,
+) {
+  const strategy = this.strategy;
+  const wfp = waitForPercent;
+  if (wfp) {
+    const ratio =
+      strategy.nextTradeSide === TradeSide.buy ? 1 - wfp / 100 : 1 + wfp / 100;
+    runtimeParams.placeOrderPrice = runtimeParams.startingPrice * ratio;
+    await this.logJob(
+      `placeOrderPrice: ${runtimeParams.placeOrderPrice.toPrecision(6)}`,
+    );
+  }
 }
 
 export async function checkMVOpportunity(
