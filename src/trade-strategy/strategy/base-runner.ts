@@ -7,8 +7,12 @@ import { StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { MINUTE_MS, wait } from '@/common/utils/utils';
-import { TradeOpportunity, ExitSignal } from '@/trade-strategy/strategy.types';
+import { MINUTE_MS, round, wait } from '@/common/utils/utils';
+import {
+  TradeOpportunity,
+  ExitSignal,
+  MVRuntimeParams,
+} from '@/trade-strategy/strategy.types';
 import {
   createNewDealIfNone,
   durationHumanizerOptions,
@@ -19,6 +23,7 @@ import {
   PlaceOrderReturns,
   PlaceTpslOrderParams,
 } from '@/exchange/exchange-service-types';
+import { ExTradeType } from '@/db/models/exchange-types';
 
 export abstract class BaseRunner {
   protected durationHumanizer = humanizeDuration.humanizer(
@@ -432,6 +437,10 @@ export abstract class BaseRunner {
     return strategy.exchangeSymbol;
   }
 
+  protected inverseSide(side: TradeSide): TradeSide {
+    return side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
+  }
+
   protected newClientOrderId(orderTag?: string): string {
     const { id, algoCode } = this.strategy;
     const code = algoCode.toLowerCase();
@@ -454,5 +463,177 @@ export abstract class BaseRunner {
     exOrder.tradeType = strategy.tradeType;
     exOrder.paperTrade = strategy.paperTrade;
     return exOrder;
+  }
+
+  protected async buildMarketOrder(
+    oppo: TradeOpportunity,
+  ): Promise<{ order: ExOrder; params: PlaceOrderParams }> {
+    const exSymbol = await this.ensureExchangeSymbol();
+
+    const unifiedSymbol = exSymbol.unifiedSymbol;
+    const strategy = this.strategy;
+    const tradeSide = oppo.side;
+    const clientOrderId = this.newClientOrderId(oppo.orderTag);
+
+    const params: PlaceOrderParams = {
+      side: tradeSide,
+      symbol: strategy.rawSymbol,
+      priceType: 'market',
+      clientOrderId,
+      algoOrder: false,
+    };
+
+    if (strategy.tradeType === ExTradeType.margin) {
+      params.marginMode = 'cross';
+      params.marginCoin = unifiedSymbol.quote;
+    }
+
+    const size = strategy.baseSize;
+    const quoteAmount = strategy.quoteAmount || 200;
+    if (size) {
+      params.baseSize = round(size, exSymbol.baseSizeDigits);
+    } else {
+      params.quoteAmount = quoteAmount.toFixed(2);
+    }
+
+    const order = this.newOrderByStrategy();
+    order.tag = oppo.orderTag;
+    order.side = tradeSide;
+    order.status = OrderStatus.notSummited;
+    order.clientOrderId = clientOrderId;
+    order.priceType = params.priceType;
+    if (size) {
+      order.baseSize = size;
+    }
+    order.quoteAmount = size ? undefined : quoteAmount;
+    order.algoOrder = false;
+
+    return { order, params };
+  }
+
+  protected async buildLimitOrder(
+    oppo: TradeOpportunity,
+  ): Promise<{ order: ExOrder; params: PlaceOrderParams }> {
+    const exSymbol = await this.ensureExchangeSymbol();
+
+    const unifiedSymbol = exSymbol.unifiedSymbol;
+    const strategy = this.strategy;
+    const tradeSide = oppo.side;
+    const clientOrderId = this.newClientOrderId(oppo.orderTag);
+
+    const orderPrice = oppo.orderPrice;
+
+    const params: PlaceOrderParams = {
+      side: tradeSide,
+      symbol: strategy.rawSymbol,
+      priceType: 'limit',
+      clientOrderId,
+      algoOrder: false,
+    };
+
+    if (strategy.tradeType === ExTradeType.margin) {
+      params.marginMode = 'cross';
+      params.marginCoin = unifiedSymbol.quote;
+    }
+
+    let size = strategy.baseSize;
+    const quoteAmount = strategy.quoteAmount || 200;
+    if (!size) {
+      if (orderPrice) {
+        size = quoteAmount / orderPrice;
+      }
+    }
+
+    const order = this.newOrderByStrategy();
+    order.tag = oppo.orderTag;
+    order.side = tradeSide;
+    order.status = OrderStatus.notSummited;
+    order.clientOrderId = clientOrderId;
+    order.priceType = params.priceType;
+    order.limitPrice = orderPrice;
+    if (size) {
+      order.baseSize = size;
+    }
+    order.quoteAmount = size ? undefined : quoteAmount;
+    order.algoOrder = false;
+
+    return { order, params };
+  }
+
+  protected async buildMoveTpslOrder(
+    oppo: TradeOpportunity,
+    rps: MVRuntimeParams,
+  ): Promise<{ order: ExOrder; params: PlaceOrderParams }> {
+    const exSymbol = await this.ensureExchangeSymbol();
+
+    const unifiedSymbol = exSymbol.unifiedSymbol;
+    const strategy = this.strategy;
+
+    const { activePercent, drawbackPercent } = rps;
+    const placeOrderPrice = oppo.orderPrice;
+    const tradeSide = oppo.side;
+
+    let activePrice: number;
+
+    if (activePercent) {
+      const activeRatio = activePercent / 100;
+      if (tradeSide === TradeSide.buy) {
+        activePrice = placeOrderPrice * (1 - activeRatio);
+      } else {
+        activePrice = placeOrderPrice * (1 + activeRatio);
+      }
+    }
+
+    let size = strategy.baseSize;
+    const quoteAmount = strategy.quoteAmount || 200;
+    if (!size) {
+      if (activePrice) {
+        size = quoteAmount / activePrice;
+      } else {
+        size = quoteAmount / placeOrderPrice;
+      }
+    }
+
+    const clientOrderId = this.newClientOrderId(oppo.orderTag);
+
+    const params: PlaceTpslOrderParams = {
+      side: tradeSide,
+      symbol: strategy.rawSymbol,
+      priceType: 'limit',
+      clientOrderId,
+      algoOrder: true,
+    };
+
+    if (strategy.tradeType === ExTradeType.margin) {
+      params.marginMode = 'cross';
+      params.marginCoin = unifiedSymbol.quote;
+    }
+
+    params.tpslType = 'move';
+    params.baseSize = round(size, exSymbol.baseSizeDigits);
+    params.moveDrawbackRatio = (drawbackPercent / 100).toFixed(4);
+    if (activePrice) {
+      const priceDigits = exSymbol.priceDigits;
+      params.moveActivePrice = round(activePrice, priceDigits);
+    }
+
+    const order = this.newOrderByStrategy();
+    order.tag = oppo.orderTag;
+    order.side = tradeSide;
+    order.status = OrderStatus.notSummited;
+    order.clientOrderId = clientOrderId;
+    order.priceType = params.priceType;
+    if (size) {
+      order.baseSize = size;
+    }
+    order.quoteAmount = size ? undefined : quoteAmount;
+    order.algoOrder = true;
+    order.tpslType = params.tpslType;
+    order.moveDrawbackRatio = drawbackPercent / 100;
+    if (activePrice) {
+      order.moveActivePrice = activePrice;
+    }
+
+    return { order, params };
   }
 }

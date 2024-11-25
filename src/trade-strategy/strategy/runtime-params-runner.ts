@@ -3,6 +3,7 @@ import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
 import * as _ from 'lodash';
+import { TradeOpportunity } from '@/trade-strategy/strategy.types';
 
 export abstract class RuntimeParamsRunner<
   ORP = any,
@@ -48,4 +49,17 @@ export abstract class RuntimeParamsRunner<
   protected getCloseRuntimeParams(): CRP {
     return this.getRuntimeSubParams('close');
   }
+
+  protected async checkAndWaitOpportunity(): Promise<TradeOpportunity> {
+    const currentDeal = this.strategy.currentDeal!;
+    const lastOrder = currentDeal.lastOrder;
+    if (lastOrder) {
+      return this.checkAndWaitToCloseDeal();
+    }
+    return this.checkAndWaitToOpenDeal();
+  }
+
+  protected abstract checkAndWaitToOpenDeal(): Promise<TradeOpportunity>;
+
+  protected abstract checkAndWaitToCloseDeal(): Promise<TradeOpportunity>;
 }

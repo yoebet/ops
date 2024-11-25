@@ -6,6 +6,9 @@ export enum StrategyAlgo {
   MVS = 'MVS',
   MVBS = 'MVBS',
   BR = 'BR',
+  FDB = 'FDB',
+  FDS = 'FDS',
+  LS = 'LS',
 }
 
 // runners
@@ -15,7 +18,7 @@ export class ExitSignal extends Error {}
 export interface TradeOpportunity {
   orderTag?: string;
   side: TradeSide;
-  placeOrderPrice?: number;
+  orderPrice?: number;
 }
 
 export declare type WatchLevel =
@@ -48,6 +51,11 @@ export interface MVCheckerParams {
   drawbackPercent: number;
 }
 
+export interface MVRuntimeParams extends MVCheckerParams {
+  startingPrice?: number;
+  orderPrice?: number;
+}
+
 export interface BRCheckerParams {
   interval: string;
   periods: number;
@@ -59,11 +67,6 @@ export interface BRCheckerParams {
   selfPriceChangeTimes: number;
 }
 
-export interface MVRuntimeParams extends MVCheckerParams {
-  startingPrice?: number;
-  placeOrderPrice?: number;
-}
-
 export interface LSCheckerParams {
   interval: string;
   periods: number;
@@ -71,6 +74,17 @@ export interface LSCheckerParams {
   contrastPeriods: number;
   amountTimes: number;
   priceChangeTimes: number;
+}
+
+export interface PriceDiffParams {
+  waitForPercent?: number;
+  priceDiffPercent?: number;
+}
+
+export interface PriceDiffRuntimeParams extends PriceDiffParams {
+  startingPrice?: number;
+  basePointPrice?: number;
+  orderPrice?: number;
 }
 
 // strategies:

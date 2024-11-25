@@ -26,6 +26,9 @@ import {
 import { MINUTE_MS, wait } from '@/common/utils/utils';
 import { MoveTracingSell } from '@/trade-strategy/strategy/move-tracing-sell';
 import { MoveTracingBothSide } from '@/trade-strategy/strategy/move-tracing-both-side';
+import { FixedDiffPriceBuy } from '@/trade-strategy/strategy/fixed-diff-price-buy';
+import { FixedDiffPriceSell } from '@/trade-strategy/strategy/fixed-diff-price-sell';
+import { LongStillBounceBack } from '@/trade-strategy/strategy/long-still-bounce-back';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -129,6 +132,15 @@ export class StrategyService implements OnModuleInit {
         break;
       case StrategyAlgo.MVBS:
         runner = new MoveTracingBothSide(strategy, env, jobEnv, logger);
+        break;
+      case StrategyAlgo.FDB:
+        runner = new FixedDiffPriceBuy(strategy, env, jobEnv, logger);
+        break;
+      case StrategyAlgo.FDS:
+        runner = new FixedDiffPriceSell(strategy, env, jobEnv, logger);
+        break;
+      case StrategyAlgo.LS:
+        runner = new LongStillBounceBack(strategy, env, jobEnv, logger);
         break;
       default:
         throw new Error(`unknown strategy ${strategy.algoCode}`);

@@ -5,7 +5,12 @@ import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
 } from '@/trade-strategy/strategy.constants';
-import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
+import {
+  evalDiffPercent,
+  HOUR_MS,
+  MINUTE_MS,
+  wait,
+} from '@/common/utils/utils';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { ExKline } from '@/exchange/exchange-service-types';
 
@@ -172,4 +177,83 @@ export async function waitForWatchLevel(
       break;
   }
   return false;
+}
+
+export function evalTargetPrice(
+  basePrice: number,
+  diffPercent: number,
+  side: TradeSide,
+): number {
+  const ratio =
+    side === TradeSide.buy ? 1 - diffPercent / 100 : 1 + diffPercent / 100;
+  return basePrice * ratio;
+}
+
+export async function setPlaceOrderPrice(
+  this: BaseRunner,
+  params: {
+    waitForPercent?: number;
+    startingPrice: number;
+    placeOrderPrice?: number;
+  },
+  side: TradeSide,
+) {
+  const wfp = params.waitForPercent;
+  if (wfp) {
+    params.placeOrderPrice = evalTargetPrice(params.startingPrice, wfp, side);
+    await this.logJob(`target-price: ${params.placeOrderPrice.toPrecision(6)}`);
+  }
+}
+
+export async function waitForPrice(
+  this: BaseRunner,
+  side: TradeSide,
+  targetPrice?: number,
+): Promise<number> {
+  while (true) {
+    const lastPrice = await this.env.getLastPrice();
+
+    if (!targetPrice) {
+      await this.logJob('no `placeOrderPrice`, place order now');
+      return lastPrice;
+    }
+
+    if (side === TradeSide.buy) {
+      if (lastPrice <= targetPrice) {
+        await this.logJob(`reach, to buy`);
+        return targetPrice;
+      }
+    } else {
+      if (lastPrice >= targetPrice) {
+        await this.logJob(`reach, to sell`);
+        return targetPrice;
+      }
+    }
+    const logContext = side === TradeSide.buy ? 'wait-up' : 'wait-down';
+
+    const diffPercent = evalDiffPercent(lastPrice, targetPrice);
+    const diffPercentAbs = Math.abs(diffPercent);
+
+    const watchLevel = evalWatchLevel(diffPercentAbs);
+    const lps = lastPrice.toPrecision(6);
+    const tps = targetPrice.toPrecision(6);
+    await this.logJob(
+      `watch level: ${watchLevel}, ${lps}(last) -> ${tps}, ${diffPercent.toFixed(4)}%`,
+      logContext,
+    );
+
+    const reachPrice = await waitForWatchLevel.call(
+      this,
+      side,
+      watchLevel,
+      lastPrice,
+      targetPrice,
+      logContext,
+    );
+    if (reachPrice) {
+      return targetPrice;
+    }
+
+    await this.checkCommands();
+  }
 }

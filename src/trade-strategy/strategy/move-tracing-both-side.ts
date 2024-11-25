@@ -4,10 +4,8 @@ import { AppLogger } from '@/common/app-logger';
 import { MoveTracingBuy } from '@/trade-strategy/strategy/move-tracing-buy';
 import { TradeSide } from '@/data-service/models/base';
 import { TradeOpportunity } from '@/trade-strategy/strategy.types';
-import {
-  checkMVOpportunity,
-  setPlaceOrderPrice,
-} from '@/trade-strategy/opportunity/move';
+import { checkMVOpportunity } from '@/trade-strategy/opportunity/move';
+import { setPlaceOrderPrice } from '@/trade-strategy/opportunity/helper';
 
 export class MoveTracingBothSide extends MoveTracingBuy {
   constructor(
@@ -19,21 +17,9 @@ export class MoveTracingBothSide extends MoveTracingBuy {
     super(strategy, env, jobEnv, logger);
   }
 
-  protected async checkAndWaitOpportunity(): Promise<
+  protected async checkAndWaitToOpenDeal(): Promise<
     TradeOpportunity | undefined
   > {
-    const lastOrder = this.strategy.currentDeal.lastOrder;
-    let side: TradeSide;
-    if (lastOrder) {
-      side = lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
-      return checkMVOpportunity.call(
-        this,
-        this.getCloseRuntimeParams(),
-        side,
-        'close',
-      );
-    }
-
     const rps = this.getOpenRuntimeParams();
 
     const buyRps = { ...rps };
@@ -55,5 +41,16 @@ export class MoveTracingBothSide extends MoveTracingBuy {
     );
 
     return Promise.race([$buyOppo, $sellOppo]);
+  }
+
+  protected async checkAndWaitToCloseDeal(): Promise<TradeOpportunity> {
+    const lastOrder = this.strategy.currentDeal.lastOrder;
+    const side = this.inverseSide(lastOrder.side);
+    return checkMVOpportunity.call(
+      this,
+      this.getCloseRuntimeParams(),
+      side,
+      'close',
+    );
   }
 }
