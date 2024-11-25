@@ -7,7 +7,7 @@ import {
   PlaceTpslOrderParams,
   SyncOrder,
   AccountAsset,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { OrderResponse } from '@/exchange/binance/types';
 import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
 import { AppLogger } from '@/common/app-logger';

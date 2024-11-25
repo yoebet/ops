@@ -4,7 +4,7 @@ import { AppLogger } from '@/common/app-logger';
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
-import { ExchangeTradeService } from '@/exchange/exchange-service-types';
+import { ExchangeTradeService } from '@/exchange/exchange-service.types';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyEnv } from '@/trade-strategy/env/strategy-env';

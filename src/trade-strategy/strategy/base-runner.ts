@@ -22,7 +22,7 @@ import {
   PlaceOrderParams,
   PlaceOrderReturns,
   PlaceTpslOrderParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { ExTradeType } from '@/db/models/exchange-types';
 
 export abstract class BaseRunner {

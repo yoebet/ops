@@ -15,7 +15,7 @@ import {
   ExTrade,
   ExchangeMarketDataWs,
   TradeChannelEvent,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { TradeTicker, WsCandle } from '@/exchange/binance/types';
 
 export abstract class BinanceWs extends ExWs implements ExchangeMarketDataWs {

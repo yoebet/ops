@@ -5,7 +5,7 @@ import {
   ExchangeMarketDataWs,
   ExchangePrivateDataWs,
   ExchangeTradeService,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { AppLogger } from '@/common/app-logger';
 import { ExMarket, ExTradeType } from '@/db/models/exchange-types';
 import { ConfigService } from '@nestjs/config';

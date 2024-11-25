@@ -14,7 +14,7 @@ import {
   ExWsKline,
   ExTrade,
   ExchangeMarketDataWs,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { Exchanges } from '@/exchange/exchanges';
 import { wait } from '@/common/utils/utils';
 

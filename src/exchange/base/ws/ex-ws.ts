@@ -16,7 +16,7 @@ import { wait } from '@/common/utils/utils';
 import {
   SyncOrder,
   TradeChannelEvent,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 
 const zhDuration = humanizeDuration.humanizer({
   language: 'zh_CN',

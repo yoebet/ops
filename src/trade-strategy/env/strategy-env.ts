@@ -2,7 +2,7 @@ import { Observable } from 'rxjs';
 import {
   ExchangeTradeService,
   ExKline,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';
 import {

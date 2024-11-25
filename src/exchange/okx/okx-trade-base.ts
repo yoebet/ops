@@ -7,7 +7,7 @@ import {
   PlaceTpslOrderParams,
   SyncOrder,
   AccountAsset,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { ExApiKey, ExRestParams } from '@/exchange/base/rest/rest.type';
 import {
   BalanceDetail,

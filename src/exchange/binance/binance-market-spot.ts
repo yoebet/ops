@@ -7,7 +7,7 @@ import {
   FetchKlineParams,
   HistoryKlinesByDayParams,
   HistoryKlinesByMonthParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
 import { Candle, SymbolInfo } from '@/exchange/binance/types';
 import { AppLogger } from '@/common/app-logger';

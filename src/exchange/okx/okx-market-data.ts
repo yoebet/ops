@@ -5,7 +5,7 @@ import {
   FetchKlineParams,
   HistoryKlinesByDayParams,
   HistoryKlinesByMonthParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { OkxRest } from '@/exchange/okx/rest';
 import { CandleRaw } from '@/exchange/okx/types';
 import { AppLogger } from '@/common/app-logger';

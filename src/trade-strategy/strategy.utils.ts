@@ -1,5 +1,5 @@
 import { ExOrderResp } from '@/db/models/ex-order';
-import { PlaceOrderParams } from '@/exchange/exchange-service-types';
+import { PlaceOrderParams } from '@/exchange/exchange-service.types';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { HumanizerOptions } from 'humanize-duration';

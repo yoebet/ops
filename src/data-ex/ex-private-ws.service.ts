@@ -4,7 +4,7 @@ import * as Rx from 'rxjs';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
-import { ExchangePrivateDataWs } from '@/exchange/exchange-service-types';
+import { ExchangePrivateDataWs } from '@/exchange/exchange-service.types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { NoParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { ExOrder, ExOrderResp, OrderIds } from '@/db/models/ex-order';

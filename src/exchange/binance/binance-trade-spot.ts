@@ -6,7 +6,7 @@ import {
   PlaceTpslOrderParams,
   SyncOrder,
   AccountAsset,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import {
   CreateOrderParamsBase,
   CreateSpotOrderParams,

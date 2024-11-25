@@ -5,7 +5,7 @@ import {
   WatchRtPriceParams,
   WatchRtPriceResult,
 } from '@/data-ex/ex-public-ws.service';
-import { ExKline } from '@/exchange/exchange-service-types';
+import { ExKline } from '@/exchange/exchange-service.types';
 import { Strategy } from '@/db/models/strategy';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { MarketDataSupport } from '@/trade-strategy/env/strategy-env';

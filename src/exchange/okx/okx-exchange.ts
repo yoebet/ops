@@ -5,7 +5,7 @@ import {
   ExchangePrivateDataWs,
   ExchangeTradeService,
   SyncOrder,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { ExMarket, ExTradeType } from '@/db/models/exchange-types';
 import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';

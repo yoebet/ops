@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
-import { ExKline, ExPrice } from '@/exchange/exchange-service-types';
+import { ExKline, ExPrice } from '@/exchange/exchange-service.types';
 import { KlinesHolder } from '@/data-ex/kline-data-holder';
 import { TimeLevel } from '@/db/models/time-level';
 import { MINUTE_MS } from '@/common/utils/utils';

@@ -1,4 +1,4 @@
-import { PlaceOrderParams } from '@/exchange/exchange-service-types';
+import { PlaceOrderParams } from '@/exchange/exchange-service.types';
 import { TradeSide } from '@/data-service/models/base';
 
 export enum StrategyAlgo {

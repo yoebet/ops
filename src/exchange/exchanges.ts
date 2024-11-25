@@ -14,7 +14,7 @@ import {
   ExchangeMarketDataWs,
   ExchangePrivateDataWs,
   ExchangeTradeService,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { BinanceExchange } from '@/exchange/binance/binance-exchange';
 import { OkxExchange } from '@/exchange/okx/okx-exchange';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';

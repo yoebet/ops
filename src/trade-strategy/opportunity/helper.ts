@@ -12,7 +12,7 @@ import {
   wait,
 } from '@/common/utils/utils';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
-import { ExKline } from '@/exchange/exchange-service-types';
+import { ExKline } from '@/exchange/exchange-service.types';
 
 export function evalWatchLevel(diffPercentAbs: number): WatchLevel {
   let watchLevel: WatchLevel;

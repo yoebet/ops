@@ -4,7 +4,7 @@ import * as Rx from 'rxjs';
 import {
   PlaceOrderParams,
   PlaceTpslOrderParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';
 import {

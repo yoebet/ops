@@ -1,4 +1,4 @@
-import { ExKline } from '@/exchange/exchange-service-types';
+import { ExKline } from '@/exchange/exchange-service.types';
 
 export interface Timed {
   ts: number;

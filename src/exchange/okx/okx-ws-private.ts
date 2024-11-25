@@ -20,7 +20,7 @@ import {
 import {
   ExchangePrivateDataWs,
   SyncOrder,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { OkxTradeBase } from '@/exchange/okx/okx-trade-base';
 
 export class OkxWsPrivate extends OkxBaseWs implements ExchangePrivateDataWs {

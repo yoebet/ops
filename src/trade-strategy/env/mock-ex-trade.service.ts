@@ -5,7 +5,7 @@ import {
   PlaceOrderParams,
   PlaceOrderReturns,
   PlaceTpslOrderParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrder, ExOrderResp, OrderStatus } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';

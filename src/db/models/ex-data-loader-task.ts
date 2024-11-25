@@ -15,7 +15,7 @@ export type DateRange = [startDate?: string, endDate?: string];
 
 @Entity()
 @Index(['ex', 'symbol', 'interval', 'startDate', 'endDate'], { unique: true })
-export class ExSymbolDataTask extends BaseModel {
+export class ExDataLoaderTask extends BaseModel {
   @Column()
   ex: ExchangeCode;
 

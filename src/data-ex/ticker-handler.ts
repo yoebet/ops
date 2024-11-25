@@ -10,7 +10,7 @@ import {
 import { RtPrice } from '@/data-service/models/realtime';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
-import { ExTrade } from '@/exchange/exchange-service-types';
+import { ExTrade } from '@/exchange/exchange-service.types';
 
 export class TickerHandler {
   private rtPriceProducer: ChannelProducer<RtPrice>;

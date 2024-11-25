@@ -7,7 +7,7 @@ import {
   ExKline,
   HistoryKlinesByDayParams,
   HistoryKlinesByMonthParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { BinanceMarketSpot } from '@/exchange/binance/binance-market-spot';
 import { Candle } from '@/exchange/binance/types';

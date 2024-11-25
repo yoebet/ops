@@ -6,7 +6,7 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import {
   PlaceOrderParams,
   PlaceTpslOrderParams,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { TestConfig } from '@/env.local.test';
 import { round } from '@/common/utils/utils';
 

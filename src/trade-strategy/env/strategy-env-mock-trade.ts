@@ -2,7 +2,7 @@ import * as Rx from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
 import { UserExAccount } from '@/db/models/user-ex-account';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
-import { ExchangeTradeService } from '@/exchange/exchange-service-types';
+import { ExchangeTradeService } from '@/exchange/exchange-service.types';
 import { Strategy } from '@/db/models/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';

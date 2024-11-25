@@ -9,7 +9,7 @@ import {
   ExTrade,
   ExWsKline,
   TradeChannelEvent,
-} from '@/exchange/exchange-service-types';
+} from '@/exchange/exchange-service.types';
 import { CandleRaw, TradeTicker } from '@/exchange/okx/types';
 import { OkxMarketData } from '@/exchange/okx/okx-market-data';
 import { OkxBaseWs } from '@/exchange/okx/okx-ws-base';

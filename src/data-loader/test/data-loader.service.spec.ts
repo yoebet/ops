@@ -7,7 +7,7 @@ import {
 import { In } from 'typeorm';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { DateRange, ExSymbolDataTask } from '@/db/models/ex-symbol-data-task';
+import { DateRange, ExDataLoaderTask } from '@/db/models/ex-data-loader-task';
 
 jest.setTimeout(1000_000);
 
@@ -181,7 +181,7 @@ describe('load-kline-data', () => {
   });
 
   it('re-summit tasks', async () => {
-    const tasks = await ExSymbolDataTask.findBy({
+    const tasks = await ExDataLoaderTask.findBy({
       ex: ExchangeCode.okx,
       interval: '5m',
       // symbol: In(['BTC/USDT', 'ETH/USDT']),
