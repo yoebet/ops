@@ -22,6 +22,18 @@ export interface FetchKlineParams {
   limit?: number;
 }
 
+export interface HistoryKlinesByMonthParams {
+  symbol: string;
+  interval: string;
+  yearMonth: string; // yyyy-mm
+}
+
+export interface HistoryKlinesByDayParams {
+  symbol: string;
+  interval: string;
+  date: string; // yyyy-mm-dd
+}
+
 export interface ExPrice {
   last: number;
   ts: number;
@@ -105,6 +117,12 @@ export interface ExchangeMarketDataService {
   getKlines(params: FetchKlineParams): Promise<ExKline[]>;
 
   getPrice(symbol: string): Promise<ExPrice>;
+
+  loadHistoryKlinesOneMonth(
+    params: HistoryKlinesByMonthParams,
+  ): Promise<ExKline[]>;
+
+  loadHistoryKlinesOneDay(params: HistoryKlinesByDayParams): Promise<ExKline[]>;
 }
 
 export interface ExchangeTradeService {

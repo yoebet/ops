@@ -34,6 +34,7 @@ function checkStill(
 export async function checkLongStillOpp(
   this: BaseRunner,
   params: LSCheckerParams,
+  bounceBackTrend: boolean,
   orderTag?: string,
 ): Promise<TradeOpportunity | undefined> {
   const {
@@ -69,7 +70,7 @@ export async function checkLongStillOpp(
   }
 
   const side =
-    selfLatestAgg.avgPrice > selfContrastAgg.avgPrice
+    selfLatestAgg.avgPrice > selfContrastAgg.avgPrice && bounceBackTrend
       ? TradeSide.sell
       : TradeSide.buy;
 

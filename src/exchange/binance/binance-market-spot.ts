@@ -5,18 +5,23 @@ import {
   ExKline,
   ExPrice,
   FetchKlineParams,
+  HistoryKlinesByDayParams,
+  HistoryKlinesByMonthParams,
 } from '@/exchange/exchange-service-types';
 import { BinanceBaseRest } from '@/exchange/binance/rest';
 import { Candle, SymbolInfo } from '@/exchange/binance/types';
 import { AppLogger } from '@/common/app-logger';
+import { BinanceHistoryDataLoader } from '@/exchange/binance/history-data-loader';
 
 export class BinanceMarketSpot implements ExchangeMarketDataService {
   protected restSpot: BinanceSpotRest;
   protected readonly logger: AppLogger;
+  protected historyDataLoader: BinanceHistoryDataLoader;
 
   constructor(protected params?: Partial<ExRestParams>) {
     this.restSpot = new BinanceSpotRest(params);
     this.logger = params.logger || AppLogger.build(this.constructor.name);
+    this.historyDataLoader = new BinanceHistoryDataLoader(params?.proxies);
   }
 
   static toKline(raw: Candle): ExKline {
@@ -68,5 +73,17 @@ export class BinanceMarketSpot implements ExchangeMarketDataService {
   async getPrice(symbol: string): Promise<ExPrice> {
     const res: any = await this.restSpot.getPrice(symbol);
     return { last: +res.price, ts: Date.now() };
+  }
+
+  async loadHistoryKlinesOneMonth(
+    params: HistoryKlinesByMonthParams,
+  ): Promise<ExKline[]> {
+    return this.historyDataLoader.loadHistoryKlinesByMonth(params);
+  }
+
+  async loadHistoryKlinesOneDay(
+    params: HistoryKlinesByDayParams,
+  ): Promise<ExKline[]> {
+    return this.historyDataLoader.loadHistoryKlinesByDay(params);
   }
 }

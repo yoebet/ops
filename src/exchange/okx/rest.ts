@@ -264,6 +264,21 @@ export class OkxRest extends ExRest {
     });
   }
 
+  // Rate Limit: 20 requests per 2 seconds
+  async getHistoryCandles(params: {
+    instId: string;
+    bar?: string;
+    before?: string | number;
+    after?: string | number;
+    limit?: number; // 最大100，默认100
+  }): Promise<CandleRaw[]> {
+    return this.requestPickData({
+      path: '/api/v5/market/history-candles',
+      method: HttpMethodType.get,
+      params,
+    });
+  }
+
   // 获取指数价格K线 https://www.okx.com/docs-v5/zh/#rest-api-market-data-get-index-candlesticks
   async getIndexPriceCandles(params: {
     instId: string;

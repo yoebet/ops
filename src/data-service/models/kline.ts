@@ -1,3 +1,5 @@
+import { ES } from '@/data-service/models/base';
+
 export interface FtKline {
   ts: number;
   size: number;
@@ -11,4 +13,18 @@ export interface FtKline {
   ss?: number;
   sa?: number;
   tds?: number;
+}
+
+export interface Kline extends Omit<FtKline, 'ts'>, ES {
+  time: Date;
+  market: string;
+  interval: string;
+  base: string;
+  quote: string;
+  bc?: number;
+  sc?: number;
+  p_ch?: number;
+  p_avg?: number;
+  p_cp?: number;
+  p_ap?: number;
 }

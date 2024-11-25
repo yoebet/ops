@@ -1,15 +1,24 @@
-import { BaseModel } from '@/db/models/base-model';
-import { Column, Entity, Index } from 'typeorm';
+// import { BaseModel } from '@/db/models/base-model';
+// import { Column, Entity, Index } from 'typeorm';
 
 // @Entity()
-@Index(['interval'], { unique: true })
-export class TimeLevel extends BaseModel {
+// @Index(['interval'], { unique: true })
+export class TimeLevel {
   // month 1o
-  @Column()
+  // @Column()
   interval: string;
 
-  @Column()
+  // @Column()
   intervalSeconds: number;
+
+  static ALL = ['1m', '5m', '15m', '1h', '4h', '1d', '1w', '1o'].map(
+    (interval) => {
+      const tl = new TimeLevel();
+      tl.interval = interval;
+      tl.intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
+      return tl;
+    },
+  );
 
   static evalIntervalSeconds(interval: string): number {
     const u = interval.charAt(interval.length - 1);

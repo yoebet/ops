@@ -3,11 +3,16 @@ import {
   ExKline,
   ExPrice,
   FetchKlineParams,
+  HistoryKlinesByDayParams,
+  HistoryKlinesByMonthParams,
 } from '@/exchange/exchange-service-types';
 import { OkxRest } from '@/exchange/okx/rest';
 import { CandleRaw } from '@/exchange/okx/types';
 import { AppLogger } from '@/common/app-logger';
 import { ExRestParams } from '@/exchange/base/rest/rest.type';
+import { DateTime } from 'luxon';
+import { TimeLevel } from '@/db/models/time-level';
+import { wait } from '@/common/utils/utils';
 
 export class OkxMarketData implements ExchangeMarketDataService {
   protected rest: OkxRest;
@@ -79,5 +84,91 @@ export class OkxMarketData implements ExchangeMarketDataService {
     const tickers = await this.rest.getTicker({ instId: symbol });
     const t = tickers[0];
     return { last: +t.last, ts: +t.ts };
+  }
+
+  async loadHistoryKlinesOneMonth(
+    params: HistoryKlinesByMonthParams,
+  ): Promise<ExKline[]> {
+    const { symbol, interval, yearMonth } = params;
+    const monthBegin = DateTime.fromFormat(yearMonth, 'yyyy-MM', {
+      zone: 'UTC',
+    });
+    const monthEnd = monthBegin.plus({ month: 1 });
+
+    return this.collectHistoryKlines(interval, symbol, monthBegin, monthEnd);
+  }
+
+  protected toFetchCandleParams(params: FetchKlineParams): Record<string, any> {
+    return {
+      instId: params.symbol,
+      bar: OkxMarketData.toCandleInv(params.interval),
+      before: params.startTime,
+      after: params.endTime,
+      limit: params.limit,
+    };
+  }
+
+  async loadHistoryKlinesOneDay(
+    params: HistoryKlinesByDayParams,
+  ): Promise<ExKline[]> {
+    const { symbol, interval, date } = params;
+    const dayBegin = DateTime.fromFormat(date, 'yyyy-MM-dd', {
+      zone: 'UTC',
+    });
+    const dayEnd = dayBegin.plus({ day: 1 });
+
+    return this.collectHistoryKlines(interval, symbol, dayBegin, dayEnd);
+  }
+
+  // https://www.okx.com/docs-v5/zh/#order-book-trading-market-data-get-candlesticks-history
+  protected async collectHistoryKlines(
+    interval: string,
+    symbol: string,
+    startTime: DateTime,
+    endTime: DateTime,
+  ): Promise<ExKline[]> {
+    const limit = 100; // limit 最大100，默认100
+    const rateLimitWait = 200; // Rate Limit: 20 requests per 2 seconds
+    const intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
+    const intervalMillis = intervalSeconds * 1000;
+    const eachTsRange = limit * intervalMillis;
+
+    const startTs0 = startTime.toMillis() - intervalMillis / 2;
+    const endTs0 = endTime.toMillis();
+
+    let startTs = startTs0;
+    let endTs = startTs + eachTsRange;
+    if (endTs > endTs0) {
+      endTs = endTs0;
+    }
+
+    let klines: ExKline[] = [];
+
+    while (startTs < endTs0) {
+      // this.logger.log(
+      //   `${new Date(startTs).toISOString()} - ${new Date(endTs).toISOString()}`,
+      // );
+      const rawData: CandleRaw[] = await this.rest.getHistoryCandles({
+        instId: symbol,
+        bar: OkxMarketData.toCandleInv(interval),
+        before: startTs,
+        after: endTs,
+        limit: limit,
+      });
+
+      await wait(rateLimitWait);
+
+      const kls = rawData.map(OkxMarketData.toKline);
+      klines = klines.concat(kls.reverse());
+      this.logger.log(`got: ${rawData.length}`);
+
+      startTs = endTs;
+      endTs = endTs + eachTsRange;
+      if (endTs > endTs0) {
+        endTs = endTs0;
+      }
+    }
+
+    return klines;
   }
 }

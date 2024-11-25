@@ -25,7 +25,12 @@ export class LongStillBounceBack extends RuntimeParamsRunner<
   }
 
   protected async checkAndWaitToOpenDeal(): Promise<TradeOpportunity> {
-    return checkLongStillOpp.call(this, this.getOpenRuntimeParams(), 'open');
+    return checkLongStillOpp.call(
+      this,
+      this.getOpenRuntimeParams(),
+      true,
+      'open',
+    );
   }
 
   protected async checkAndWaitToCloseDeal(): Promise<TradeOpportunity> {
