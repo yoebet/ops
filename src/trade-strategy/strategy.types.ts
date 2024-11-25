@@ -64,6 +64,15 @@ export interface MVRuntimeParams {
   placeOrderPrice?: number;
 }
 
+export interface LSCheckerParams {
+  interval: string;
+  periods: number;
+  checkPeriods: number;
+  contrastPeriods: number;
+  amountTimes: number;
+  priceChangeTimes: number;
+}
+
 // strategies:
 
 export interface MVStrategyParams {

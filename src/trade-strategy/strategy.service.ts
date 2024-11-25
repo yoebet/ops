@@ -31,7 +31,7 @@ import { MoveTracingBothSide } from '@/trade-strategy/strategy/move-tracing-both
 export class StrategyService implements OnModuleInit {
   private strategyJobFacades = new Map<
     StrategyAlgo,
-    JobFacade<StrategyJobData>
+    JobFacade<StrategyJobData, string>
   >();
 
   constructor(
@@ -49,7 +49,7 @@ export class StrategyService implements OnModuleInit {
 
   onModuleInit(): any {
     for (const code of Object.values(StrategyAlgo)) {
-      const facade = this.jobsService.defineJob<StrategyJobData, any>({
+      const facade = this.jobsService.defineJob<StrategyJobData, string>({
         queueName: `strategy/${code}`,
         processJob: this.runStrategyJob.bind(this),
         workerOptions: {
@@ -88,16 +88,19 @@ export class StrategyService implements OnModuleInit {
     );
   }
 
-  async runStrategyJob(job: Job<StrategyJobData>) {
+  async runStrategyJob(job: Job<StrategyJobData>): Promise<string> {
     const { strategyId } = job.data;
     const strategy = await Strategy.findOneBy({ id: strategyId });
     if (!strategy) {
       throw new Error(`strategy ${strategyId} not found`);
     }
-    await this.runStrategy(strategy, job);
+    return this.runStrategy(strategy, job);
   }
 
-  async runStrategy(strategy: Strategy, job?: Job<StrategyJobData>) {
+  async runStrategy(
+    strategy: Strategy,
+    job?: Job<StrategyJobData>,
+  ): Promise<string> {
     const env = this.prepareEnv(strategy, job);
     const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
     if (!jobFacade) {
@@ -133,7 +136,7 @@ export class StrategyService implements OnModuleInit {
 
     await wait(Math.round(10 * 1000 * Math.random()));
 
-    await runner.run();
+    return runner.run();
   }
 
   protected async doSummitJob(strategy: Strategy) {

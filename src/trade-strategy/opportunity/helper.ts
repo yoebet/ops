@@ -7,6 +7,7 @@ import {
 } from '@/trade-strategy/strategy.constants';
 import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
+import { ExKline } from '@/exchange/exchange-service-types';
 
 export function evalWatchLevel(diffPercentAbs: number): WatchLevel {
   let watchLevel: WatchLevel;
@@ -26,6 +27,77 @@ export function evalWatchLevel(diffPercentAbs: number): WatchLevel {
     watchLevel = 'hibernate';
   }
   return watchLevel;
+}
+
+export interface KlineAgg {
+  // size: number;
+  // amount: number;
+  avgAmount: number;
+  // minAmount: number;
+  // maxAmount: number;
+  // amountFluc: number;
+  avgPrice: number;
+  // minPrice: number;
+  // maxPrice: number;
+  // priceFluc: number;
+  // priceChange: number;
+  // minPriceChange: number;
+  // maxPriceChange: number;
+  avgPriceChange: number;
+}
+
+export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
+  const firstKline = klines[0];
+  const lastKline = klines[klines.length - 1];
+  let size = 0;
+  let amount = 0;
+  let minAmount = null;
+  let maxAmount = 0;
+  let minPrice = null;
+  let maxPrice = 0;
+  let minPriceChange = null;
+  let maxPriceChange = 0;
+  for (const k of klines) {
+    if (!k.size) {
+      continue;
+    }
+    size += k.size;
+    amount += k.amount;
+    if (minAmount === null || minAmount > k.amount) {
+      minAmount = k.amount;
+    }
+    if (maxAmount < k.amount) {
+      maxAmount = k.amount;
+    }
+    if (minPrice === null || minPrice > k.low) {
+      minPrice = k.low;
+    }
+    if (maxPrice < k.high) {
+      maxPrice = k.high;
+    }
+    const pc = Math.abs(k.close - k.open);
+    if (minPriceChange === null || minPriceChange > pc) {
+      minPriceChange = pc;
+    }
+    if (maxPriceChange < pc) {
+      maxPriceChange = pc;
+    }
+  }
+  if (!size) {
+    return undefined;
+  }
+  const avgAmount = amount / klines.length;
+  const avgPrice = amount / size;
+  const priceChange = Math.abs(lastKline.close - firstKline.open);
+  const avgPriceChange = priceChange / klines.length;
+
+  return {
+    avgAmount,
+    // amountFluc: fluctuationPercent(avgAmount, minAmount, maxAmount),
+    // priceFluc: fluctuationPercent(avgPrice, minPrice, maxPrice),
+    avgPrice,
+    avgPriceChange,
+  };
 }
 
 export async function waitForWatchLevel(

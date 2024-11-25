@@ -32,7 +32,8 @@ export abstract class BaseRunner {
     protected logger: AppLogger,
   ) {}
 
-  async run() {
+  // return exit reason
+  async run(): Promise<string> {
     let runOneDeal = false;
 
     const job = this.jobEnv.thisJob;
@@ -46,7 +47,7 @@ export abstract class BaseRunner {
 
     if (!strategy.active) {
       await this.logJob(`strategy ${strategy.id} is not active`);
-      return;
+      return 'not active';
     }
 
     this.setupStrategyParams();
@@ -57,7 +58,7 @@ export abstract class BaseRunner {
       try {
         if (!strategy.active) {
           await this.logJob(`strategy is not active, exit ...`);
-          break;
+          return 'not active';
         }
 
         await this.checkCommands();
@@ -73,7 +74,7 @@ export abstract class BaseRunner {
           await this.createNewDeal();
           if (runOneDeal) {
             await this.jobEnv.summitNewDealJob();
-            break;
+            return 'summit new';
           }
         }
 
@@ -84,6 +85,11 @@ export abstract class BaseRunner {
           { context: 'wait-opportunity' },
         );
         if (opp) {
+          const sg = await Strategy.existsBy({ id: strategy.id, active: true });
+          if (!sg) {
+            await this.logJob(`is no active when about to place order.`);
+            return 'not active';
+          }
           await this.placeOrder(opp);
         }
         if (!strategy.currentDealId) {
@@ -91,15 +97,15 @@ export abstract class BaseRunner {
           await this.createNewDeal();
           if (runOneDeal) {
             await this.jobEnv.summitNewDealJob();
-            break;
+            return 'summit new';
           }
         }
       } catch (e) {
         if (e instanceof ExitSignal) {
-          throw e;
+          return e.message;
         }
         this.logger.error(e);
-        await this.logJob(e.message, 'run()');
+        await this.logJob(e.message);
         await wait(MINUTE_MS);
       }
     }
