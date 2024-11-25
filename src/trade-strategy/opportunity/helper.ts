@@ -102,6 +102,7 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
 
 export async function waitForWatchLevel(
   this: BaseRunner,
+  side: TradeSide,
   watchLevel: WatchLevel,
   lastPrice: number,
   targetPrice: number,
@@ -110,8 +111,7 @@ export async function waitForWatchLevel(
   switch (watchLevel) {
     case 'intense':
       let watchRtPriceParams: WatchRtPriceParams;
-      const toBuy = this.strategy.nextTradeSide === TradeSide.buy;
-      if (toBuy) {
+      if (side === TradeSide.buy) {
         watchRtPriceParams = {
           lowerBound: targetPrice,
           upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
@@ -132,7 +132,7 @@ export async function waitForWatchLevel(
         await this.logJob(`timeout, ${ps}(last)`, logContext);
         return false;
       }
-      if (toBuy) {
+      if (side === TradeSide.buy) {
         if (result.reachLower) {
           const ps = result.price.toPrecision(6);
           await this.logJob(`reachLower, ${ps}(last)`, logContext);

@@ -14,9 +14,8 @@ export async function setPlaceOrderPrice(
   this: BaseRunner,
   params: MVRuntimeParams,
   side: TradeSide,
-  waitForPercent?: number,
 ) {
-  const wfp = waitForPercent;
+  const wfp = params.waitForPercent;
   if (wfp) {
     const ratio = side === TradeSide.buy ? 1 - wfp / 100 : 1 + wfp / 100;
     params.placeOrderPrice = params.startingPrice * ratio;
@@ -69,6 +68,7 @@ export async function checkMVOpportunity(
 
     const reachPrice = await waitForWatchLevel.call(
       this,
+      side,
       watchLevel,
       lastPrice,
       placeOrderPrice,

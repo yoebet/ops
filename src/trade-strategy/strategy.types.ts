@@ -14,7 +14,7 @@ export class ExitSignal extends Error {}
 
 export interface TradeOpportunity {
   orderTag?: string;
-  side?: TradeSide;
+  side: TradeSide;
   placeOrderPrice?: number;
 }
 
@@ -59,7 +59,7 @@ export interface BRCheckerParams {
   selfPriceChangeTimes: number;
 }
 
-export interface MVRuntimeParams {
+export interface MVRuntimeParams extends MVCheckerParams {
   startingPrice?: number;
   placeOrderPrice?: number;
 }

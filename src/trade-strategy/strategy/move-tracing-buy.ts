@@ -2,29 +2,26 @@ import { Strategy } from '@/db/models/strategy';
 import { AppLogger } from '@/common/app-logger';
 import { TradeSide } from '@/data-service/models/base';
 import { OrderStatus } from '@/db/models/ex-order';
-import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { round } from '@/common/utils/utils';
 import { PlaceTpslOrderParams } from '@/exchange/exchange-service-types';
 import { ExTradeType } from '@/db/models/exchange-types';
 import {
-  TradeOpportunity,
-  MVCheckerParams,
   MVRuntimeParams,
   MVStrategyParams,
+  TradeOpportunity,
 } from '@/trade-strategy/strategy.types';
 import {
   checkMVOpportunity,
   setPlaceOrderPrice,
 } from '@/trade-strategy/opportunity/move';
 import { defaultMVCheckerParams } from '@/trade-strategy/strategy.constants';
+import { RuntimeParamsRunner } from '@/trade-strategy/strategy/runtime-params-runner';
 
-export class MoveTracingBuy extends BaseRunner {
-  protected runtimeParams: {
-    open: MVRuntimeParams;
-    close: MVRuntimeParams;
-  };
-
+export class MoveTracingBuy extends RuntimeParamsRunner<
+  MVRuntimeParams,
+  MVRuntimeParams
+> {
   constructor(
     protected strategy: Strategy,
     protected env: StrategyEnv,
@@ -52,61 +49,36 @@ export class MoveTracingBuy extends BaseRunner {
     return TradeSide.buy;
   }
 
-  protected async resetRuntimeParams() {
-    if (!this.runtimeParams) {
-      this.runtimeParams = {
-        open: {},
-        close: {},
-      };
-    }
-
-    const strategy = this.strategy;
-    const currentDeal = strategy.currentDeal!;
-    const lastOrder = currentDeal.lastOrder;
-
-    let startingPrice: number;
-    if (lastOrder) {
-      strategy.nextTradeSide =
-        lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
-    } else {
-      strategy.nextTradeSide = this.newDealSide();
-    }
-
-    const strategyParams: MVStrategyParams = strategy.params;
-    let rps: MVRuntimeParams;
-    let cps: MVCheckerParams;
-    if (lastOrder) {
-      startingPrice = lastOrder.execPrice;
-      rps = this.runtimeParams.close;
-      cps = strategyParams.close;
-    } else {
-      startingPrice = await this.env.getLastPrice();
-      rps = this.runtimeParams.open;
-      cps = strategyParams.open;
-    }
-
-    rps.startingPrice = startingPrice;
-    await setPlaceOrderPrice.call(
-      this,
-      rps,
-      strategy.nextTradeSide,
-      cps.waitForPercent,
-    );
-
-    await strategy.save();
-  }
-
   protected async checkAndWaitOpportunity(): Promise<
     TradeOpportunity | undefined
   > {
-    const strategy = this.strategy;
-    const orderTag = strategy.currentDeal.lastOrder ? 'close' : 'open';
-    return checkMVOpportunity.call(
-      this,
-      this.runtimeParams,
-      strategy.nextTradeSide,
-      orderTag,
-    );
+    const currentDeal = this.strategy.currentDeal!;
+    const lastOrder = currentDeal.lastOrder;
+
+    let side: TradeSide;
+    if (lastOrder) {
+      side = lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
+    } else {
+      side = this.newDealSide();
+    }
+
+    let rps: MVRuntimeParams;
+    if (lastOrder) {
+      rps = this.getCloseRuntimeParams();
+      if (rps.startingPrice !== lastOrder.execPrice) {
+        rps.startingPrice = lastOrder.execPrice;
+        await setPlaceOrderPrice.call(this, rps, side);
+      }
+    } else {
+      rps = this.getOpenRuntimeParams();
+      if (!rps.startingPrice) {
+        rps.startingPrice = await this.env.getLastPrice();
+        await setPlaceOrderPrice.call(this, rps, side);
+      }
+    }
+
+    const orderTag = lastOrder ? 'close' : 'open';
+    return checkMVOpportunity.call(this, rps, side, orderTag);
   }
 
   protected async placeOrder(oppo: TradeOpportunity) {
@@ -119,11 +91,7 @@ export class MoveTracingBuy extends BaseRunner {
     const openOrder = oppo.orderTag === 'open';
     const { activePercent, drawbackPercent } = openOrder ? sps.open : sps.close;
     const placeOrderPrice = oppo.placeOrderPrice;
-
-    if (oppo.side) {
-      strategy.nextTradeSide = oppo.side;
-    }
-    const tradeSide = strategy.nextTradeSide;
+    const tradeSide = oppo.side;
 
     let activePrice: number;
 
@@ -171,6 +139,7 @@ export class MoveTracingBuy extends BaseRunner {
 
     const order = this.newOrderByStrategy();
     order.tag = oppo.orderTag;
+    order.side = tradeSide;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
     order.priceType = params.priceType;

@@ -3,10 +3,7 @@ import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
 import { MoveTracingBuy } from '@/trade-strategy/strategy/move-tracing-buy';
 import { TradeSide } from '@/data-service/models/base';
-import {
-  MVStrategyParams,
-  TradeOpportunity,
-} from '@/trade-strategy/strategy.types';
+import { TradeOpportunity } from '@/trade-strategy/strategy.types';
 import {
   checkMVOpportunity,
   setPlaceOrderPrice,
@@ -22,54 +19,25 @@ export class MoveTracingBothSide extends MoveTracingBuy {
     super(strategy, env, jobEnv, logger);
   }
 
-  protected async resetRuntimeParams() {
-    if (!this.runtimeParams) {
-      this.runtimeParams = {
-        open: {},
-        close: {},
-      };
-    }
-    const runtimeParams = this.runtimeParams;
-
-    const strategy = this.strategy;
-    const currentDeal = strategy.currentDeal!;
-    const lastOrder = currentDeal.lastOrder;
-    if (!lastOrder) {
-      runtimeParams.open.startingPrice = await this.env.getLastPrice();
-      return;
-    }
-
-    const strategyParams: MVStrategyParams = strategy.params;
-    const rps = runtimeParams.close;
-    const cps = strategyParams.close;
-    rps.startingPrice = lastOrder.execPrice;
-    await setPlaceOrderPrice.call(this, rps, cps.waitForPercent);
-
-    await strategy.save();
-  }
-
   protected async checkAndWaitOpportunity(): Promise<
     TradeOpportunity | undefined
   > {
-    const strategy = this.strategy;
-    const lastOrder = strategy.currentDeal.lastOrder;
+    const lastOrder = this.strategy.currentDeal.lastOrder;
+    let side: TradeSide;
     if (lastOrder) {
-      strategy.nextTradeSide =
-        lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
+      side = lastOrder.side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
       return checkMVOpportunity.call(
         this,
-        this.runtimeParams.close,
-        strategy.nextTradeSide,
+        this.getCloseRuntimeParams(),
+        side,
         'close',
       );
     }
 
-    const strategyParams: MVStrategyParams = strategy.params;
-    const rps = this.runtimeParams.open;
-    const cps = strategyParams.open;
+    const rps = this.getOpenRuntimeParams();
 
     const buyRps = { ...rps };
-    await setPlaceOrderPrice.call(this, buyRps, cps.waitForPercent);
+    await setPlaceOrderPrice.call(this, buyRps, TradeSide.buy);
     const $buyOppo = checkMVOpportunity.call(
       this,
       buyRps,
@@ -78,7 +46,7 @@ export class MoveTracingBothSide extends MoveTracingBuy {
     );
 
     const sellRps = { ...rps };
-    await setPlaceOrderPrice.call(this, sellRps, cps.waitForPercent);
+    await setPlaceOrderPrice.call(this, sellRps, TradeSide.sell);
     const $sellOppo = checkMVOpportunity.call(
       this,
       sellRps,

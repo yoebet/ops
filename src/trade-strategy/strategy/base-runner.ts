@@ -78,8 +78,6 @@ export abstract class BaseRunner {
           }
         }
 
-        await this.resetRuntimeParams();
-
         const opp = await this.repeatToComplete<TradeOpportunity | undefined>(
           this.checkAndWaitOpportunity.bind(this),
           { context: 'wait-opportunity' },
@@ -112,8 +110,6 @@ export abstract class BaseRunner {
   }
 
   protected setupStrategyParams() {}
-
-  protected abstract resetRuntimeParams(): Promise<void>;
 
   protected abstract checkAndWaitOpportunity(): Promise<
     TradeOpportunity | undefined
@@ -454,7 +450,7 @@ export abstract class BaseRunner {
     exOrder.userExAccountId = strategy.userExAccountId;
     exOrder.strategyId = strategy.id;
     exOrder.dealId = strategy.currentDealId;
-    exOrder.side = strategy.nextTradeSide;
+    // exOrder.side = strategy.nextTradeSide;
     exOrder.tradeType = strategy.tradeType;
     exOrder.paperTrade = strategy.paperTrade;
     return exOrder;
