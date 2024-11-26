@@ -24,10 +24,10 @@ function checkBurst(
     return false;
   }
   this.logger.debug(
-    `[${context}] avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)}`,
+    `[${context}] avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)} ~ ${amountTimes}`,
   );
   this.logger.debug(
-    `[${context}] priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)}`,
+    `[${context}] priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)} ~ ${priceChangeTimes}`,
   );
   return laa >= caa * amountTimes && lpc >= cpc * priceChangeTimes;
 }

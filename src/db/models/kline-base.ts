@@ -1,7 +1,13 @@
-import { ES } from '@/data-service/models/base';
+import { Kline } from '@/data-service/models/kline';
+import { Entity, Index } from 'typeorm';
 
-export interface FtKline {
-  ts: number;
+// @Entity('md-kline')
+export class KlineBase implements Kline {
+  time: Date;
+  ex: string;
+  symbol: string;
+  market: string;
+  interval: string;
   size: number;
   amount: number;
   open: number;
@@ -13,16 +19,8 @@ export interface FtKline {
   ss?: number;
   sa?: number;
   tds?: number;
-}
-
-export interface Kline extends Omit<FtKline, 'ts'>, ES {
-  time: Date;
-  market: string;
-  interval: string;
   base: string;
   quote: string;
-  // bc?: number;
-  // sc?: number;
   p_ch?: number;
   p_avg?: number;
   p_cp?: number;

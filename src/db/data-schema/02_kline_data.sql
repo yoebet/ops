@@ -1,6 +1,7 @@
+
 -- 1m
 
-update md.kline_1m
+update st.kline_1m
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -9,7 +10,7 @@ set p_ch=close - open,
 
 -- 5m
 
-update md.kline_5m
+update st.kline_5m
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -18,7 +19,7 @@ set p_ch=close - open,
 
 -- 15m
 
-update md.kline_15m
+update st.kline_15m
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -27,7 +28,7 @@ set p_ch=close - open,
 
 -- 1h
 
-update md.kline_1h
+update st.kline_1h
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -36,7 +37,7 @@ set p_ch=close - open,
 
 -- 4h
 
-update md.kline_4h
+update st.kline_4h
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -45,7 +46,7 @@ set p_ch=close - open,
 
 -- 1d
 
-update md.kline_1d
+update st.kline_1d
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -54,7 +55,7 @@ set p_ch=close - open,
 
 -- 1w
 
-update md.kline_1w
+update st.kline_1w
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,
@@ -63,7 +64,7 @@ set p_ch=close - open,
 
 -- 1o
 
-update md.kline_1o
+update st.kline_1o
 set p_ch=close - open,
     p_avg=case when size = 0 then 0 else amount / size end,
     p_cp=case when open = 0 then 0 else (close - open) / open * 100 end,

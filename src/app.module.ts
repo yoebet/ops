@@ -18,6 +18,7 @@ import { AuthModule } from '@/common-web/auth/auth.module';
 import { JobsModule } from '@/job/jobs.module';
 import { StrategyModule } from '@/trade-strategy/strategy.module';
 import { ExSyncModule } from '@/ex-sync/ex-sync.module';
+import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ExSyncModule } from '@/ex-sync/ex-sync.module';
     AuthModule,
     SystemConfigModule,
     MarketDataModule,
+    HistoryDataLoaderModule,
     ExDataModule,
     StrategyModule,
     ExSyncModule,

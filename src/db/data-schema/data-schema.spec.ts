@@ -4,7 +4,7 @@ import { SystemConfigModule } from '@/common-services/system-config.module';
 import { TimeLevel } from '@/db/models/time-level';
 import { DB_SCHEMA } from '@/env';
 
-// const DB_SCHEMA = 'tm';
+const baseDir = __dirname;
 
 jest.setTimeout(60_000);
 
@@ -31,10 +31,8 @@ create table ${ftable}
     tds      integer                     not null,
     size     numeric                     not null,
     amount   numeric                     not null,
-    bc       integer                     null,
     bs       numeric                     null,
     ba       numeric                     null,
-    sc       integer                     null,
     ss       numeric                     null,
     sa       numeric                     null,
     open     numeric                     not null,
@@ -61,7 +59,7 @@ SELECT add_dimension('${ftable}', by_hash('symbol', 16));
 
   const content = sqls.join('\n');
 
-  fs.writeFileSync('data-schema/01_kline.sql', content);
+  fs.writeFileSync(`${baseDir}/01_kline.sql`, content);
 }
 
 function buildKlineData(tls: TimeLevel[]) {
@@ -85,7 +83,7 @@ set p_ch=close - open,
 
   const content = sqls.join('\n');
 
-  fs.writeFileSync('data-schema/02_kline_data.sql', content);
+  fs.writeFileSync(`${baseDir}/02_kline_data.sql`, content);
 }
 
 function buildKlineViews(tls: TimeLevel[]) {
@@ -111,10 +109,8 @@ SELECT time_bucket('${interval}'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -138,16 +134,16 @@ FROM ${ftable};
 
   const content = sqls.join('\n');
 
-  fs.writeFileSync('data-schema/03_kline_view.sql', content);
+  fs.writeFileSync(`${baseDir}/03_kline_view.sql`, content);
 }
 
 describe('data-schema', () => {
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule],
-    }).compile();
-
-    await moduleRef.init();
+    // const moduleRef = await Test.createTestingModule({
+    //   imports: [SystemConfigModule],
+    // }).compile();
+    //
+    // await moduleRef.init();
   });
 
   it('cs', async () => {

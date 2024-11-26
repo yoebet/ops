@@ -238,7 +238,7 @@ export abstract class BaseRunner {
       const hd = setInterval(() => {
         const ms = Date.now() - start;
         const duration = this.durationHumanizer(ms, { round: true });
-        const msg = `try #${tried}, been waited ${duration}.`;
+        const msg = `try #${tried}, been waiting ${duration}.`;
         this.logJob(msg, options.context);
       }, ReportStatusInterval);
       try {

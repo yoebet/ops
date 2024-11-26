@@ -1,7 +1,7 @@
 
 -- 1m
 
-CREATE VIEW md.klinex_1m AS
+CREATE VIEW st.klinex_1m AS
 SELECT time_bucket('1m'::interval, "time") as time,
        ex,
        market,
@@ -12,10 +12,8 @@ SELECT time_bucket('1m'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -33,12 +31,12 @@ SELECT time_bucket('1m'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_1m;
+FROM st.kline_1m;
 
 
 -- 5m
 
-CREATE VIEW md.klinex_5m AS
+CREATE VIEW st.klinex_5m AS
 SELECT time_bucket('5m'::interval, "time") as time,
        ex,
        market,
@@ -49,10 +47,8 @@ SELECT time_bucket('5m'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -70,12 +66,12 @@ SELECT time_bucket('5m'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_5m;
+FROM st.kline_5m;
 
 
 -- 15m
 
-CREATE VIEW md.klinex_15m AS
+CREATE VIEW st.klinex_15m AS
 SELECT time_bucket('15m'::interval, "time") as time,
        ex,
        market,
@@ -86,10 +82,8 @@ SELECT time_bucket('15m'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -107,12 +101,12 @@ SELECT time_bucket('15m'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_15m;
+FROM st.kline_15m;
 
 
 -- 1h
 
-CREATE VIEW md.klinex_1h AS
+CREATE VIEW st.klinex_1h AS
 SELECT time_bucket('1h'::interval, "time") as time,
        ex,
        market,
@@ -123,10 +117,8 @@ SELECT time_bucket('1h'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -144,12 +136,12 @@ SELECT time_bucket('1h'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_1h;
+FROM st.kline_1h;
 
 
 -- 4h
 
-CREATE VIEW md.klinex_4h AS
+CREATE VIEW st.klinex_4h AS
 SELECT time_bucket('4h'::interval, "time") as time,
        ex,
        market,
@@ -160,10 +152,8 @@ SELECT time_bucket('4h'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -181,12 +171,12 @@ SELECT time_bucket('4h'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_4h;
+FROM st.kline_4h;
 
 
 -- 1d
 
-CREATE VIEW md.klinex_1d AS
+CREATE VIEW st.klinex_1d AS
 SELECT time_bucket('1d'::interval, "time") as time,
        ex,
        market,
@@ -197,10 +187,8 @@ SELECT time_bucket('1d'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -218,12 +206,12 @@ SELECT time_bucket('1d'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_1d;
+FROM st.kline_1d;
 
 
 -- 1w
 
-CREATE VIEW md.klinex_1w AS
+CREATE VIEW st.klinex_1w AS
 SELECT time_bucket('1w'::interval, "time") as time,
        ex,
        market,
@@ -234,10 +222,8 @@ SELECT time_bucket('1w'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -255,12 +241,12 @@ SELECT time_bucket('1w'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_1w;
+FROM st.kline_1w;
 
 
 -- 1o
 
-CREATE VIEW md.klinex_1o AS
+CREATE VIEW st.klinex_1o AS
 SELECT time_bucket('1o'::interval, "time") as time,
        ex,
        market,
@@ -271,10 +257,8 @@ SELECT time_bucket('1o'::interval, "time") as time,
        tds,
        size,
        amount,
-       bc,
        bs,
        ba,
-       sc,
        ss,
        sa,
        open,
@@ -292,4 +276,4 @@ SELECT time_bucket('1o'::interval, "time") as time,
        date_part('day', time)      as day,
        date_part('dow', time)      as week_day,
        date_part('hour', time)     as hour
-FROM md.kline_1o;
+FROM st.kline_1o;
