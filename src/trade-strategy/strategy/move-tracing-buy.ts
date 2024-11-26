@@ -40,9 +40,7 @@ export class MoveTracingBuy extends RuntimeParamsRunner<
   protected async checkAndWaitToCloseDeal(): Promise<TradeOpportunity> {
     const currentDeal = this.strategy.currentDeal!;
     const lastOrder = currentDeal.lastOrder;
-
     const side = this.inverseSide(lastOrder.side);
-
     const rps = this.getCloseRuntimeParams();
     if (rps.startingPrice !== lastOrder.execPrice) {
       rps.startingPrice = lastOrder.execPrice;

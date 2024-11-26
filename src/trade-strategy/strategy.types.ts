@@ -89,6 +89,14 @@ export interface PriceDiffRuntimeParams extends PriceDiffParams {
 
 // strategies:
 
+export interface CommonStrategyParams {
+  open?: any;
+  close?: any;
+  minTpslInterval?: number;
+  maxCloseInterval?: number;
+  slPriceDiffPercent?: number;
+}
+
 export interface MVStrategyParams {
   open: MVCheckerParams;
   close?: MVCheckerParams;

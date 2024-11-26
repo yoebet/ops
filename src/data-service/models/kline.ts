@@ -21,8 +21,6 @@ export interface Kline extends Omit<FtKline, 'ts'>, ES {
   interval: string;
   base: string;
   quote: string;
-  // bc?: number;
-  // sc?: number;
   p_ch?: number;
   p_avg?: number;
   p_cp?: number;
