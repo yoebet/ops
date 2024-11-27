@@ -42,8 +42,8 @@ export interface KlineAgg {
   // maxAmount: number;
   // amountFluc: number;
   avgPrice: number;
-  // minPrice: number;
-  // maxPrice: number;
+  minPrice: number;
+  maxPrice: number;
   // priceFluc: number;
   // priceChange: number;
   // minPriceChange: number;
@@ -100,6 +100,8 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
     avgAmount,
     // amountFluc: fluctuationPercent(avgAmount, minAmount, maxAmount),
     // priceFluc: fluctuationPercent(avgPrice, minPrice, maxPrice),
+    minPrice,
+    maxPrice,
     avgPrice,
     avgPriceChange,
   };
@@ -187,22 +189,6 @@ export function evalTargetPrice(
   const ratio =
     side === TradeSide.buy ? 1 - diffPercent / 100 : 1 + diffPercent / 100;
   return basePrice * ratio;
-}
-
-export async function setPlaceOrderPrice(
-  this: BaseRunner,
-  params: {
-    waitForPercent?: number;
-    startingPrice: number;
-    placeOrderPrice?: number;
-  },
-  side: TradeSide,
-) {
-  const wfp = params.waitForPercent;
-  if (wfp) {
-    params.placeOrderPrice = evalTargetPrice(params.startingPrice, wfp, side);
-    await this.logJob(`target-price: ${params.placeOrderPrice.toPrecision(6)}`);
-  }
 }
 
 export async function waitForPrice(

@@ -5,6 +5,7 @@ import { AppLogger } from '@/common/app-logger';
 import * as _ from 'lodash';
 import {
   CommonStrategyParams,
+  StopLossParams,
   TradeOpportunity,
 } from '@/trade-strategy/strategy.types';
 import { TimeLevel } from '@/db/models/time-level';
@@ -13,12 +14,13 @@ import {
   evalTargetPrice,
   waitForPrice,
 } from '@/trade-strategy/opportunity/helper';
+import { StrategyDeal } from '@/db/models/strategy-deal';
 
 export abstract class RuntimeParamsRunner<
   ORP = any,
   CRP = any,
 > extends BaseRunner {
-  protected runtimeParams: CommonStrategyParams & {
+  protected _runtimeParams: CommonStrategyParams & {
     open: ORP;
     close: CRP;
   } & any;
@@ -39,48 +41,54 @@ export abstract class RuntimeParamsRunner<
     return this.strategy.params;
   }
 
-  protected getRuntimeSubParams(orderTag: string) {
-    if (!this.runtimeParams) {
-      this.runtimeParams = _.merge({}, this.strategyParams) as any;
+  protected getRuntimeParams(): CommonStrategyParams & any {
+    if (!this._runtimeParams) {
+      this._runtimeParams = _.merge({}, this.strategyParams) as any;
     }
-    let rp = this.runtimeParams[orderTag];
+    return this._runtimeParams;
+  }
+
+  protected getRuntimeParamsOf(orderTag: string) {
+    const runtimeParams = this.getRuntimeParams();
+    let rp = runtimeParams[orderTag];
     if (!rp) {
       rp = {};
-      this.runtimeParams[orderTag] = rp;
+      this._runtimeParams[orderTag] = rp;
     }
     return rp;
   }
 
   protected getOpenRuntimeParams(): ORP {
-    return this.getRuntimeSubParams('open');
+    return this.getRuntimeParamsOf('open');
   }
 
   protected getCloseRuntimeParams(): CRP {
-    return this.getRuntimeSubParams('close');
+    return this.getRuntimeParamsOf('close');
+  }
+
+  protected async closeDeal(deal: StrategyDeal): Promise<void> {
+    await super.closeDeal(deal);
+
+    this._runtimeParams = undefined;
   }
 
   protected async checkAndWaitOpportunity(): Promise<TradeOpportunity> {
-    const currentDeal = this.strategy.currentDeal!;
+    const strategy = this.strategy;
+    const { currentDeal, lastDealId } = this.strategy;
     const lastOrder = currentDeal.lastOrder;
+    const rps = this.getRuntimeParams();
     if (lastOrder) {
       const lastOrderTs = lastOrder.exUpdatedAt.getTime();
-      const timeElapse = Date.now() - lastOrderTs;
+      const elapsed = Date.now() - lastOrderTs;
       const oppositeSide = this.inverseSide(lastOrder.side);
-      const rps = this.runtimeParams;
-      if (rps.minTpslInterval) {
-        if (!rps.minTpslIntervalSeconds) {
-          rps.minTpslIntervalSeconds = TimeLevel.evalIntervalSeconds(
-            rps.minTpslInterval,
+      if (rps.minCloseInterval) {
+        if (!rps.minCloseIntervalSeconds) {
+          rps.minCloseIntervalSeconds = TimeLevel.evalIntervalSeconds(
+            rps.minCloseInterval,
           );
         }
-        if (timeElapse < rps.minTpslIntervalSeconds * 1000) {
-          if (timeElapse > 10 * MINUTE_MS) {
-            await wait(10 * MINUTE_MS);
-          } else if (timeElapse > MINUTE_MS) {
-            await wait(MINUTE_MS);
-          } else {
-            await wait(5 * 1000);
-          }
+        if (elapsed < rps.minCloseIntervalSeconds * 1000) {
+          await this.waitOnce(elapsed);
           return undefined;
         }
       }
@@ -90,17 +98,18 @@ export abstract class RuntimeParamsRunner<
             rps.maxCloseInterval,
           );
         }
-        if (timeElapse > rps.maxCloseIntervalSeconds * 1000) {
-          const { order, params } = await this.buildMarketOrder({
+        if (elapsed > rps.maxCloseIntervalSeconds * 1000) {
+          const oppo: TradeOpportunity = {
             orderTag: 'force-close',
             side: oppositeSide,
-          });
-          await order.save();
-          await this.doPlaceOrder(order, params);
+          };
+          await this.buildMarketOrder(oppo);
+          await oppo.order.save();
+          await this.doPlaceOrder(oppo.order, oppo.params);
           return undefined;
         }
       }
-      if (rps.slPriceDiffPercent) {
+      if (rps.stopLoss?.priceDiffPercent) {
         return Promise.race([
           this.checkAndWaitToStopLoss(),
           this.checkAndWaitToCloseDeal(),
@@ -109,7 +118,43 @@ export abstract class RuntimeParamsRunner<
         return this.checkAndWaitToCloseDeal();
       }
     }
+
+    if (rps.lossCoolDownInterval && lastDealId) {
+      if (!rps.lossCoolDownIntervalSeconds) {
+        rps.lossCoolDownIntervalSeconds = TimeLevel.evalIntervalSeconds(
+          rps.lossCoolDownInterval,
+        );
+      }
+      if (!strategy.lastDeal) {
+        strategy.lastDeal = await StrategyDeal.findOneBy({
+          id: lastDealId,
+        });
+      }
+      const lastDeal = strategy.lastDeal;
+      if (
+        lastDeal &&
+        lastDeal.closedAt &&
+        lastDeal.pnlUsd &&
+        lastDeal.pnlUsd < 0
+      ) {
+        const timeSpan = Date.now() - lastDeal.closedAt.getTime();
+        if (timeSpan < rps.lossCoolDownIntervalSeconds * 1000) {
+          await this.waitOnce(timeSpan);
+          return undefined;
+        }
+      }
+    }
     return this.checkAndWaitToOpenDeal();
+  }
+
+  protected async waitOnce(timeSpan: number): Promise<void> {
+    if (timeSpan > 10 * MINUTE_MS) {
+      await wait(10 * MINUTE_MS);
+    } else if (timeSpan > MINUTE_MS) {
+      await wait(MINUTE_MS);
+    } else {
+      await wait(5 * 1000);
+    }
   }
 
   protected abstract checkAndWaitToOpenDeal(): Promise<TradeOpportunity>;
@@ -122,29 +167,41 @@ export abstract class RuntimeParamsRunner<
     if (!lastOrder) {
       return undefined;
     }
-    const oppositeSide = this.inverseSide(lastOrder.side);
-    const rps = this.runtimeParams;
-    if (!rps.slPriceDiffPercent) {
+    const slSide = this.inverseSide(lastOrder.side);
+    const rps = this.getRuntimeParams();
+    const stopLossParams: StopLossParams = rps.stopLoss;
+    const priceDiffPercent = stopLossParams?.limitPriceDiffPercent;
+    if (!priceDiffPercent) {
       return undefined;
     }
 
-    if (!rps.slPrice) {
-      rps.slPrice = evalTargetPrice(
-        lastOrder.execPrice,
-        rps.slPriceDiffPercent,
-        oppositeSide,
-      );
-    }
+    const slPrice = evalTargetPrice(
+      lastOrder.execPrice,
+      priceDiffPercent,
+      slSide,
+    );
 
-    const _price = await waitForPrice.call(this, oppositeSide, rps.slPrice);
+    const _price = await waitForPrice.call(this, slSide, slPrice);
 
-    const { order, params } = await this.buildMarketOrder({
+    const oppo: TradeOpportunity = {
       orderTag: 'stop-loss',
-      side: oppositeSide,
-    });
-    await order.save();
-    await this.doPlaceOrder(order, params);
+      side: slSide,
+    };
+    await this.buildMarketOrder(oppo);
+    await oppo.order.save();
+    await this.doPlaceOrder(oppo.order, oppo.params);
 
     return undefined;
+  }
+
+  protected async placeOrder(oppo: TradeOpportunity): Promise<void> {
+    if (!oppo.order) {
+      if (oppo.orderPrice) {
+        await super.buildLimitOrder(oppo);
+      } else {
+        await super.buildMarketOrder(oppo);
+      }
+    }
+    return super.placeOrder(oppo);
   }
 }

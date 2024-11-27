@@ -1,43 +1,60 @@
 import {
   evalTargetPrice,
-  setPlaceOrderPrice,
   waitForPrice,
 } from '@/trade-strategy/opportunity/helper';
 import {
-  PriceDiffRuntimeParams,
+  ConsiderSide,
+  PriceDiffParams,
   TradeOpportunity,
 } from '@/trade-strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 
-export async function waitToPlaceOrder(
+export async function waitToPlaceLimitOrder(
   this: BaseRunner,
-  rps: PriceDiffRuntimeParams,
-  side: TradeSide,
+  rps: PriceDiffParams,
+  side: ConsiderSide,
   orderTag?: string,
 ): Promise<TradeOpportunity | undefined> {
   if (!rps.startingPrice) {
     rps.startingPrice = await this.env.getLastPrice();
   }
-  if (!rps.basePointPrice) {
-    if (rps.waitForPercent) {
-      await setPlaceOrderPrice.call(this, rps, side);
-    } else {
-      rps.basePointPrice = rps.startingPrice;
+
+  if (side === 'both') {
+    return Promise.race([
+      waitToPlaceOrderOneSide.call(this, rps, TradeSide.buy, orderTag),
+      waitToPlaceOrderOneSide.call(this, rps, TradeSide.sell, orderTag),
+    ]);
+  } else {
+    return waitToPlaceOrderOneSide.call(this, rps, side, orderTag);
+  }
+}
+
+async function waitToPlaceOrderOneSide(
+  this: BaseRunner,
+  rps: PriceDiffParams,
+  side: TradeSide,
+  orderTag?: string,
+): Promise<TradeOpportunity | undefined> {
+  let basePointPrice = rps.startingPrice;
+  if (rps.waitForTriggerPercent) {
+    const wfp = rps.waitForTriggerPercent;
+    if (wfp) {
+      basePointPrice = evalTargetPrice(rps.startingPrice, wfp, side);
+      await this.logJob(`target-price: ${basePointPrice.toPrecision(6)}`);
     }
   }
-  const targetPrice = await waitForPrice.call(this, side, rps.basePointPrice);
+  const targetPrice = await waitForPrice.call(this, side, basePointPrice);
   if (!targetPrice) {
     return undefined;
   }
-  let limitPrice = rps.basePointPrice;
+
+  let orderPrice = targetPrice;
   if (rps.priceDiffPercent) {
-    limitPrice = evalTargetPrice(
-      rps.basePointPrice,
-      rps.priceDiffPercent,
-      side,
-    );
+    orderPrice = evalTargetPrice(basePointPrice, rps.priceDiffPercent, side);
   }
 
-  return { orderTag, side, orderPrice: limitPrice };
+  const oppo: TradeOpportunity = { orderTag, side, orderPrice };
+  await this.buildLimitOrder(oppo);
+  return oppo;
 }

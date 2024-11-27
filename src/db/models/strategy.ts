@@ -4,7 +4,12 @@ import { ExTradeType } from '@/db/models/exchange-types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { StrategyAlgo } from '@/trade-strategy/strategy.types';
+import {
+  ConsiderSide,
+  OppCheckerAlgo,
+  StrategyAlgo,
+} from '@/trade-strategy/strategy.types';
+import { TradeSide } from '@/data-service/models/base';
 
 @Entity()
 // @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
@@ -15,6 +20,15 @@ export class Strategy extends ExSymbolBase {
 
   @Column()
   name: string;
+
+  @Column({ nullable: true })
+  openCheckerAlgo?: OppCheckerAlgo;
+
+  @Column({ nullable: true })
+  closeCheckerAlgo?: OppCheckerAlgo;
+
+  @Column({ nullable: true })
+  openDealSide?: TradeSide | 'both';
 
   // @Column()
   // userId: number;
@@ -29,8 +43,8 @@ export class Strategy extends ExSymbolBase {
   @Column({ nullable: true })
   currentDealId?: number;
 
-  // @Column({ nullable: true })
-  // lastDealId?: number;
+  @Column({ nullable: true })
+  lastDealId?: number;
 
   @Column('numeric', { nullable: true })
   baseSize?: number;
@@ -56,5 +70,6 @@ export class Strategy extends ExSymbolBase {
   // template?: StrategyTemplate;
   apiKey?: ExApiKey;
   currentDeal?: StrategyDeal;
+  lastDeal?: StrategyDeal;
   exchangeSymbol?: ExchangeSymbol;
 }

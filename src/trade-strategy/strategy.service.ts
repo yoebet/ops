@@ -7,7 +7,6 @@ import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
-import { MoveTracingBuy } from '@/trade-strategy/strategy/move-tracing-buy';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
 import { StrategyEnvTrade } from '@/trade-strategy/env/strategy-env-trade';
@@ -16,7 +15,6 @@ import { JobFacade, JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { StrategyAlgo, StrategyJobData } from '@/trade-strategy/strategy.types';
-import { BurstMonitor } from '@/trade-strategy/strategy/burst-monitor';
 import { createNewDealIfNone } from '@/trade-strategy/strategy.utils';
 import {
   WorkerMaxStalledCount,
@@ -24,11 +22,7 @@ import {
   WorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
 import { MINUTE_MS, wait } from '@/common/utils/utils';
-import { MoveTracingSell } from '@/trade-strategy/strategy/move-tracing-sell';
-import { MoveTracingBothSide } from '@/trade-strategy/strategy/move-tracing-both-side';
-import { FixedDiffPriceBuy } from '@/trade-strategy/strategy/fixed-diff-price-buy';
-import { FixedDiffPriceSell } from '@/trade-strategy/strategy/fixed-diff-price-sell';
-import { LongStillBounceBack } from '@/trade-strategy/strategy/long-still-bounce-back';
+import { IntegratedStrategy } from '@/trade-strategy/strategy/integrated-strategy';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -121,26 +115,8 @@ export class StrategyService implements OnModuleInit {
 
     let runner: BaseRunner;
     switch (strategy.algoCode) {
-      case StrategyAlgo.BR:
-        runner = new BurstMonitor(strategy, env, jobEnv, logger);
-        break;
-      case StrategyAlgo.MVB:
-        runner = new MoveTracingBuy(strategy, env, jobEnv, logger);
-        break;
-      case StrategyAlgo.MVS:
-        runner = new MoveTracingSell(strategy, env, jobEnv, logger);
-        break;
-      case StrategyAlgo.MVBS:
-        runner = new MoveTracingBothSide(strategy, env, jobEnv, logger);
-        break;
-      case StrategyAlgo.FDB:
-        runner = new FixedDiffPriceBuy(strategy, env, jobEnv, logger);
-        break;
-      case StrategyAlgo.FDS:
-        runner = new FixedDiffPriceSell(strategy, env, jobEnv, logger);
-        break;
-      case StrategyAlgo.LS:
-        runner = new LongStillBounceBack(strategy, env, jobEnv, logger);
+      case strategy.algoCode:
+        runner = new IntegratedStrategy(strategy, env, jobEnv, logger);
         break;
       default:
         throw new Error(`unknown strategy ${strategy.algoCode}`);

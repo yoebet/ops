@@ -1,15 +1,33 @@
 import { PlaceOrderParams } from '@/exchange/exchange-service.types';
 import { TradeSide } from '@/data-service/models/base';
+import { ExOrder } from '@/db/models/ex-order';
 
 export enum StrategyAlgo {
-  MVB = 'MVB',
-  MVS = 'MVS',
-  MVBS = 'MVBS',
-  BR = 'BR',
-  FDB = 'FDB',
-  FDS = 'FDS',
-  LS = 'LS',
+  // MVB = 'MVB',
+  // MVS = 'MVS',
+  // MVBS = 'MVBS',
+  // BR = 'BR',
+  // FDB = 'FDB',
+  // FDS = 'FDS',
+  // LS = 'LS',
+  INT = 'INT',
 }
+
+export enum OppCheckerAlgo {
+  MV = 'MV',
+  BR = 'BR',
+  FP = 'FP',
+  LS = 'LS',
+  JP = 'JP',
+}
+
+// export enum ConsiderSide {
+//   buy = 'buy',
+//   sell = 'sell',
+//   both = 'both',
+// }
+
+export declare type ConsiderSide = TradeSide | 'both';
 
 // runners
 
@@ -19,6 +37,8 @@ export interface TradeOpportunity {
   orderTag?: string;
   side: TradeSide;
   orderPrice?: number;
+  order?: ExOrder;
+  params?: PlaceOrderParams;
 }
 
 export declare type WatchLevel =
@@ -47,13 +67,15 @@ export interface TraceOrderJobData {
 
 export interface MVCheckerParams {
   waitForPercent?: number;
+  startingPrice?: number;
   activePercent?: number;
   drawbackPercent: number;
 }
 
-export interface MVRuntimeParams extends MVCheckerParams {
+export interface PriceDiffParams {
+  waitForTriggerPercent?: number;
+  priceDiffPercent?: number;
   startingPrice?: number;
-  orderPrice?: number;
 }
 
 export interface BRCheckerParams {
@@ -65,6 +87,7 @@ export interface BRCheckerParams {
   baselinePriceChangeTimes: number;
   selfAmountTimes: number;
   selfPriceChangeTimes: number;
+  limitPriceDiffPercent?: number;
 }
 
 export interface LSCheckerParams {
@@ -74,27 +97,62 @@ export interface LSCheckerParams {
   contrastPeriods: number;
   amountTimes: number;
   priceChangeTimes: number;
+  limitPriceDiffPercent?: number;
 }
 
-export interface PriceDiffParams {
-  waitForPercent?: number;
-  priceDiffPercent?: number;
+export interface JumpCheckerParams {
+  interval: string;
+  jumpPeriods: number;
+  stopPeriods: number;
+  priceChangeTimes: number;
+  limitPriceDiffPercent?: number;
 }
 
-export interface PriceDiffRuntimeParams extends PriceDiffParams {
-  startingPrice?: number;
-  basePointPrice?: number;
-  orderPrice?: number;
+export interface StopLossParams {
+  limitPriceDiffPercent?: number;
 }
 
 // strategies:
 
 export interface CommonStrategyParams {
-  open?: any;
-  close?: any;
-  minTpslInterval?: number;
-  maxCloseInterval?: number;
-  slPriceDiffPercent?: number;
+  // open?: any;
+  // close?: any;
+  stopLoss?: StopLossParams;
+  lossCoolDownInterval?: string;
+  minCloseInterval?: string;
+  maxCloseInterval?: string;
+}
+
+export interface OpportunityCheckerMV extends MVCheckerParams {
+  algo: OppCheckerAlgo.MV;
+}
+
+export interface OpportunityCheckerBR extends BRCheckerParams {
+  algo: OppCheckerAlgo.BR;
+}
+
+export interface OpportunityCheckerFP extends PriceDiffParams {
+  algo: OppCheckerAlgo.FP;
+}
+
+export interface OpportunityCheckerLS extends LSCheckerParams {
+  algo: OppCheckerAlgo.LS;
+}
+
+export interface OpportunityCheckerJP extends JumpCheckerParams {
+  algo: OppCheckerAlgo.JP;
+}
+
+export type CheckOpportunityParams =
+  | OpportunityCheckerMV
+  | OpportunityCheckerBR
+  | OpportunityCheckerFP
+  | OpportunityCheckerLS
+  | OpportunityCheckerJP;
+
+export interface IntegratedStrategyParams extends CommonStrategyParams {
+  open?: CheckOpportunityParams;
+  close?: CheckOpportunityParams;
 }
 
 export interface MVStrategyParams {

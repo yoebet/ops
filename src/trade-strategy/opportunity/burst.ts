@@ -1,12 +1,17 @@
 import {
   BRCheckerParams,
+  ConsiderSide,
   TradeOpportunity,
 } from '@/trade-strategy/strategy.types';
 import { TimeLevel } from '@/db/models/time-level';
 import { wait } from '@/common/utils/utils';
 import { TradeSide } from '@/data-service/models/base';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
-import { evalKlineAgg, KlineAgg } from '@/trade-strategy/opportunity/helper';
+import {
+  evalKlineAgg,
+  evalTargetPrice,
+  KlineAgg,
+} from '@/trade-strategy/opportunity/helper';
 
 function checkBurst(
   this: BaseRunner,
@@ -35,6 +40,7 @@ function checkBurst(
 export async function checkBurstOpp(
   this: BaseRunner,
   params: BRCheckerParams,
+  considerSide: ConsiderSide,
   orderTag?: string,
 ): Promise<TradeOpportunity | undefined> {
   const {
@@ -73,36 +79,43 @@ export async function checkBurstOpp(
     return undefined;
   }
 
-  waitPeriods = 6;
-  const waitMs = waitPeriods * intervalSeconds * 1000;
-  const waitStr = `wait ${waitPeriods}*${interval}`;
-
-  const baselineKls = await this.env.getLatestKlines({
-    symbol: 'BTC/USDT',
-    interval,
-    limit: periods,
-  });
-  const blContrastAgg = evalKlineAgg(baselineKls.slice(0, contrastPeriods));
-  const blLatestAgg = evalKlineAgg(baselineKls.slice(latestFrom));
-  if (
-    checkBurst.call(
-      this,
-      blContrastAgg,
-      blLatestAgg,
-      baselineAmountTimes,
-      baselinePriceChangeTimes,
-      'baseline',
-    )
-  ) {
-    await this.logJob(`no special, ${waitStr}`);
-    await wait(waitMs);
-    return undefined;
-  }
-
   const side =
     selfLatestAgg.avgPrice > selfContrastAgg.avgPrice
       ? TradeSide.buy
       : TradeSide.sell;
+
+  if (considerSide !== 'both' && side !== considerSide) {
+    return undefined;
+  }
+
+  waitPeriods = 6;
+  const waitMs = waitPeriods * intervalSeconds * 1000;
+  const waitStr = `wait ${waitPeriods}*${interval}`;
+
+  const baselineSymbol = 'BTC/USDT';
+  if (this.strategy.symbol !== baselineSymbol) {
+    const baselineKls = await this.env.getLatestKlines({
+      symbol: baselineSymbol,
+      interval,
+      limit: periods,
+    });
+    const blContrastAgg = evalKlineAgg(baselineKls.slice(0, contrastPeriods));
+    const blLatestAgg = evalKlineAgg(baselineKls.slice(latestFrom));
+    if (
+      checkBurst.call(
+        this,
+        blContrastAgg,
+        blLatestAgg,
+        baselineAmountTimes,
+        baselinePriceChangeTimes,
+        'baseline',
+      )
+    ) {
+      await this.logJob(`no special, ${waitStr}`);
+      await wait(waitMs);
+      return undefined;
+    }
+  }
 
   const lastKlPrice = selfKls[selfKls.length - 1].close;
   const lastPrice = await this.env.getLastPrice();
@@ -120,8 +133,12 @@ export async function checkBurstOpp(
     }
   }
 
-  return {
-    orderTag,
-    side,
-  };
+  let orderPrice: number = undefined;
+  if (params.limitPriceDiffPercent) {
+    orderPrice = evalTargetPrice(lastPrice, params.limitPriceDiffPercent, side);
+  }
+
+  const oppo: TradeOpportunity = { orderTag, side, orderPrice };
+  await this.buildMarketOrLimitOrder(oppo);
+  return oppo;
 }

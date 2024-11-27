@@ -1,6 +1,7 @@
 import { MINUTE_MS } from '@/common/utils/utils';
 import {
   BRCheckerParams,
+  JumpCheckerParams,
   LSCheckerParams,
   MVCheckerParams,
 } from '@/trade-strategy/strategy.types';
@@ -35,6 +36,13 @@ export const DefaultLSCheckerParams: LSCheckerParams = {
   contrastPeriods: 8,
   amountTimes: 0.2,
   priceChangeTimes: 0.2,
+};
+
+export const DefaultJumpCheckerParams: JumpCheckerParams = {
+  interval: '15m',
+  jumpPeriods: 3,
+  stopPeriods: 2,
+  priceChangeTimes: 3,
 };
 
 export const defaultMVCheckerParams: MVCheckerParams = {

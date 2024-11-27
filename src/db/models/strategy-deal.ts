@@ -41,6 +41,9 @@ export class StrategyDeal extends ExSymbolBase {
   @Column({ nullable: true })
   paperTrade?: boolean;
 
+  @Column({ nullable: true })
+  closedAt?: Date;
+
   pendingOrder?: ExOrder;
   lastOrder?: ExOrder;
 

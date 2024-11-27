@@ -11,7 +11,7 @@ import { MINUTE_MS, round, wait } from '@/common/utils/utils';
 import {
   TradeOpportunity,
   ExitSignal,
-  MVRuntimeParams,
+  MVCheckerParams,
 } from '@/trade-strategy/strategy.types';
 import {
   createNewDealIfNone,
@@ -120,7 +120,13 @@ export abstract class BaseRunner {
     TradeOpportunity | undefined
   >;
 
-  protected abstract placeOrder(oppo: TradeOpportunity): Promise<void>;
+  protected async placeOrder(oppo: TradeOpportunity): Promise<void> {
+    const { order, params } = oppo;
+    if (order && params) {
+      await order.save();
+      await this.doPlaceOrder(order, params);
+    }
+  }
 
   protected async doPlaceOrder(
     order: ExOrder,
@@ -346,11 +352,15 @@ export abstract class BaseRunner {
     // .. USD
     deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
     deal.status = 'closed';
+    deal.closedAt = new Date();
     await deal.save();
 
-    this.strategy.currentDealId = undefined;
-    this.strategy.currentDeal = undefined;
-    await this.strategy.save();
+    const strategy = this.strategy;
+    strategy.lastDealId = strategy.currentDealId;
+    strategy.lastDeal = strategy.currentDeal;
+    strategy.currentDealId = undefined;
+    strategy.currentDeal = undefined;
+    await strategy.save();
 
     await this.logJob(`deal closed.`);
   }
@@ -409,9 +419,7 @@ export abstract class BaseRunner {
   }
 
   protected shouldCloseDeal(currentDeal: StrategyDeal): boolean {
-    return (
-      !currentDeal.pendingOrderId && currentDeal.lastOrder?.tag === 'close'
-    );
+    return !currentDeal.pendingOrderId && !!currentDeal.lastOrder;
   }
 
   protected async onOrderFilled() {
@@ -465,9 +473,7 @@ export abstract class BaseRunner {
     return exOrder;
   }
 
-  protected async buildMarketOrder(
-    oppo: TradeOpportunity,
-  ): Promise<{ order: ExOrder; params: PlaceOrderParams }> {
+  protected async buildMarketOrder(oppo: TradeOpportunity): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
@@ -508,12 +514,11 @@ export abstract class BaseRunner {
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
 
-    return { order, params };
+    oppo.order = order;
+    oppo.params = params;
   }
 
-  protected async buildLimitOrder(
-    oppo: TradeOpportunity,
-  ): Promise<{ order: ExOrder; params: PlaceOrderParams }> {
+  protected async buildLimitOrder(oppo: TradeOpportunity): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
@@ -557,26 +562,39 @@ export abstract class BaseRunner {
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
 
-    return { order, params };
+    oppo.order = order;
+    oppo.params = params;
+  }
+
+  protected async buildMarketOrLimitOrder(
+    oppo: TradeOpportunity,
+  ): Promise<void> {
+    if (oppo.order) {
+      return this.buildLimitOrder(oppo);
+    }
+    return this.buildMarketOrder(oppo);
   }
 
   protected async buildMoveTpslOrder(
     oppo: TradeOpportunity,
-    rps: MVRuntimeParams,
-  ): Promise<{ order: ExOrder; params: PlaceOrderParams }> {
+    rps: MVCheckerParams,
+  ): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
     const strategy = this.strategy;
 
     const { activePercent, drawbackPercent } = rps;
-    const placeOrderPrice = oppo.orderPrice;
+    let placeOrderPrice = oppo.orderPrice;
     const tradeSide = oppo.side;
 
     let activePrice: number;
 
     if (activePercent) {
       const activeRatio = activePercent / 100;
+      if (!placeOrderPrice) {
+        placeOrderPrice = await this.env.getLastPrice();
+      }
       if (tradeSide === TradeSide.buy) {
         activePrice = placeOrderPrice * (1 - activeRatio);
       } else {
@@ -590,6 +608,9 @@ export abstract class BaseRunner {
       if (activePrice) {
         size = quoteAmount / activePrice;
       } else {
+        if (!placeOrderPrice) {
+          placeOrderPrice = await this.env.getLastPrice();
+        }
         size = quoteAmount / placeOrderPrice;
       }
     }
@@ -634,6 +655,7 @@ export abstract class BaseRunner {
       order.moveActivePrice = activePrice;
     }
 
-    return { order, params };
+    oppo.order = order;
+    oppo.params = params;
   }
 }
