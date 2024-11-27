@@ -3,13 +3,6 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExOrder } from '@/db/models/ex-order';
 
 export enum StrategyAlgo {
-  // MVB = 'MVB',
-  // MVS = 'MVS',
-  // MVBS = 'MVBS',
-  // BR = 'BR',
-  // FDB = 'FDB',
-  // FDS = 'FDS',
-  // LS = 'LS',
   INT = 'INT',
 }
 
@@ -20,12 +13,6 @@ export enum OppCheckerAlgo {
   LS = 'LS',
   JP = 'JP',
 }
-
-// export enum ConsiderSide {
-//   buy = 'buy',
-//   sell = 'sell',
-//   both = 'both',
-// }
 
 export declare type ConsiderSide = TradeSide | 'both';
 

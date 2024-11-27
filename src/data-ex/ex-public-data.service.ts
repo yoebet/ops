@@ -59,8 +59,8 @@ export class ExPublicDataService implements OnModuleInit {
     if (lastPrice && Date.now() - lastPrice.ts <= cacheTimeLimit) {
       return lastPrice.last;
     }
-    const dataService = this.exchanges.getExMarketDataService(ex, es.market);
     if (!this.$lastPrice) {
+      const dataService = this.exchanges.getExMarketDataService(ex, es.market);
       this.$lastPrice = dataService.getPrice(es.rawSymbol);
     }
     lastPrice = await this.$lastPrice;
@@ -71,7 +71,6 @@ export class ExPublicDataService implements OnModuleInit {
 
   // okx: 1m+
   // binance: 1s+
-
   async getLatestKlines(
     ex: ExchangeCode,
     symbol: string,

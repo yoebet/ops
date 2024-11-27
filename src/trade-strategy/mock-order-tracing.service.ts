@@ -79,7 +79,7 @@ export class MockOrderTracingService implements OnModuleInit {
         params,
       },
       {
-        jobId: `o${params.clientOrderId}`,
+        jobId: `o/${params.clientOrderId}`,
         attempts: 10,
         backoff: MINUTE_MS,
       },
