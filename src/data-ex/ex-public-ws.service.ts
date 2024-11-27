@@ -42,6 +42,10 @@ export interface WatchRtPriceResult {
   reachUpper?: boolean;
 }
 
+export interface RtPriceTap {
+  (trade: RtPrice): Promise<void>;
+}
+
 @Injectable()
 export class ExPublicWsService implements OnApplicationShutdown {
   private runningWs = new Map<string, ExMarketWs>();
@@ -54,6 +58,7 @@ export class ExPublicWsService implements OnApplicationShutdown {
     // ex-symbol-interval
     [key: string]: { obs: Subject<RtKline>; clients: Set<number> };
   } = {};
+  private rtPriceTaps: [string, RtPriceTap][] = [];
 
   private tickerHandler: TickerHandler;
   private klineHandler: KlineHandler;
@@ -78,6 +83,22 @@ export class ExPublicWsService implements OnApplicationShutdown {
       false,
       logger.newLogger('kline-handler'),
     );
+  }
+
+  addRtPriceTap(key: string, tap: RtPriceTap) {
+    const kt = this.rtPriceTaps.find(([k, t]) => k === key);
+    if (kt) {
+      kt[1] = tap;
+      return;
+    }
+    this.rtPriceTaps.push([key, tap]);
+  }
+
+  removeRtPriceTap(key: string) {
+    const idx = this.rtPriceTaps.findIndex(([k, t]) => k === key);
+    if (idx) {
+      this.rtPriceTaps.splice(idx, 1);
+    }
   }
 
   private getExMarketWs(ex: ExchangeCode, market: ExMarket): ExMarketWs {
@@ -115,6 +136,9 @@ export class ExPublicWsService implements OnApplicationShutdown {
         this.rtPriceObs[key] = symbolObs;
       }
       symbolObs.obs.next(trade);
+      for (const [key, tt] of this.rtPriceTaps) {
+        tt(trade).catch((e) => this.logger.error(e, `rtPrice-tap:${key}`));
+      }
     });
   }
 

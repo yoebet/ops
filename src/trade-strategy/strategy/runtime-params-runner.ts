@@ -77,7 +77,7 @@ export abstract class RuntimeParamsRunner<
     const { currentDeal, lastDealId } = this.strategy;
     const lastOrder = currentDeal.lastOrder;
     const rps = this.getRuntimeParams();
-    if (lastOrder) {
+    if (lastOrder?.exUpdatedAt) {
       const lastOrderTs = lastOrder.exUpdatedAt.getTime();
       const elapsed = Date.now() - lastOrderTs;
       const oppositeSide = this.inverseSide(lastOrder.side);

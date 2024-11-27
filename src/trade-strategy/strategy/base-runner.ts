@@ -453,7 +453,8 @@ export abstract class BaseRunner {
     const { id, algoCode } = this.strategy;
     const code = algoCode.toLowerCase();
     const ms = '' + Date.now();
-    return `${code}${id}${ms.substring(1, 10)}${orderTag || ''}`;
+    const tag = orderTag?.replace(/[^a-zA-Z]/, '')?.toLowerCase() || '';
+    return `${code}${id}${ms.substring(1, 10)}${tag}`;
   }
 
   protected newOrderByStrategy(): ExOrder {
@@ -467,7 +468,6 @@ export abstract class BaseRunner {
     exOrder.userExAccountId = strategy.userExAccountId;
     exOrder.strategyId = strategy.id;
     exOrder.dealId = strategy.currentDealId;
-    // exOrder.side = strategy.nextTradeSide;
     exOrder.tradeType = strategy.tradeType;
     exOrder.paperTrade = strategy.paperTrade;
     return exOrder;
