@@ -23,7 +23,7 @@ export abstract class RuntimeParamsRunner<
   protected _runtimeParams: CommonStrategyParams & {
     open: ORP;
     close: CRP;
-  } & any;
+  };
 
   protected constructor(
     protected strategy: Strategy,
@@ -82,23 +82,17 @@ export abstract class RuntimeParamsRunner<
       const elapsed = Date.now() - lastOrderTs;
       const oppositeSide = this.inverseSide(lastOrder.side);
       if (rps.minCloseInterval) {
-        if (!rps.minCloseIntervalSeconds) {
-          rps.minCloseIntervalSeconds = TimeLevel.evalIntervalSeconds(
-            rps.minCloseInterval,
-          );
-        }
-        if (elapsed < rps.minCloseIntervalSeconds * 1000) {
+        const minCloseIntervalSeconds = TimeLevel.evalIntervalSeconds(
+          rps.minCloseInterval,
+        );
+        if (elapsed < minCloseIntervalSeconds * 1000) {
           await this.waitOnce(elapsed);
           return undefined;
         }
       }
       if (rps.maxCloseInterval) {
-        if (!rps.maxCloseIntervalSeconds) {
-          rps.maxCloseIntervalSeconds = TimeLevel.evalIntervalSeconds(
-            rps.maxCloseInterval,
-          );
-        }
-        if (elapsed > rps.maxCloseIntervalSeconds * 1000) {
+        const seconds = TimeLevel.evalIntervalSeconds(rps.maxCloseInterval);
+        if (elapsed > seconds * 1000) {
           const oppo: TradeOpportunity = {
             orderTag: 'force-close',
             side: oppositeSide,
@@ -120,17 +114,13 @@ export abstract class RuntimeParamsRunner<
     }
 
     if (rps.lossCoolDownInterval && lastDealId) {
-      if (!rps.lossCoolDownIntervalSeconds) {
-        rps.lossCoolDownIntervalSeconds = TimeLevel.evalIntervalSeconds(
-          rps.lossCoolDownInterval,
-        );
-      }
       if (!strategy.lastDeal) {
         strategy.lastDeal = await StrategyDeal.findOneBy({
           id: lastDealId,
         });
       }
       const lastDeal = strategy.lastDeal;
+      const seconds = TimeLevel.evalIntervalSeconds(rps.lossCoolDownInterval);
       if (
         lastDeal &&
         lastDeal.closedAt &&
@@ -138,7 +128,7 @@ export abstract class RuntimeParamsRunner<
         lastDeal.pnlUsd < 0
       ) {
         const timeSpan = Date.now() - lastDeal.closedAt.getTime();
-        if (timeSpan < rps.lossCoolDownIntervalSeconds * 1000) {
+        if (timeSpan < seconds * 1000) {
           await this.waitOnce(timeSpan);
           return undefined;
         }

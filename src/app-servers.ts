@@ -23,20 +23,20 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit(): any {
-    const nodeId = this.configService.get<string>('serverNodeId');
-    this.sil = new InstanceLog();
-    this.sil.nodeId = nodeId;
-    this.sil.startedAt = new Date(this.startupTs);
-    const gi = this.getGitInfo();
-    this.sil.gitBranch = gi.branch;
-    this.sil.gitSha = gi.abbreviatedSha;
-    this.sil.gitCommitAt = gi.committerDate;
+    // const nodeId = this.configService.get<string>('serverNodeId');
+    // this.sil = new InstanceLog();
+    // this.sil.nodeId = nodeId;
+    // this.sil.startedAt = new Date(this.startupTs);
+    // const gi = this.getGitInfo();
+    // this.sil.gitBranch = gi.branch;
+    // this.sil.gitSha = gi.abbreviatedSha;
+    // this.sil.gitCommitAt = gi.committerDate;
   }
 
   async onModuleDestroy() {
-    this.sil.stoppedAt = new Date();
-    this.sil.stopStyle = 'n';
-    await InstanceLog.save(this.sil).catch((e) => this.logger.error(e));
+    // this.sil.stoppedAt = new Date();
+    // this.sil.stopStyle = 'n';
+    // await InstanceLog.save(this.sil).catch((e) => this.logger.error(e));
   }
 
   getGitInfo() {
@@ -51,9 +51,9 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log(serverProfile);
 
-    this.sil.profileName = profileName;
-    this.sil.profile = serverProfile;
-    InstanceLog.save(this.sil).catch(onErr);
+    // this.sil.profileName = profileName;
+    // this.sil.profile = serverProfile;
+    // InstanceLog.save(this.sil).catch(onErr);
 
     const { [ServerRole.Worker]: workerProfile } = serverProfile;
     if (workerProfile) {

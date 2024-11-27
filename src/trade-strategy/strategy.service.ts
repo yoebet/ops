@@ -14,11 +14,15 @@ import { StrategyEnvMockTrade } from '@/trade-strategy/env/strategy-env-mock-tra
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import { MockOrderTracingService } from '@/trade-strategy/mock-order-tracing.service';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
-import { StrategyAlgo, StrategyJobData } from '@/trade-strategy/strategy.types';
+import {
+  OppCheckerAlgo,
+  StrategyAlgo,
+  StrategyJobData,
+} from '@/trade-strategy/strategy.types';
 import { createNewDealIfNone } from '@/trade-strategy/strategy.utils';
 import {
-  WorkerMaxStalledCount,
   WorkerConcurrency,
+  WorkerMaxStalledCount,
   WorkerStalledInterval,
 } from '@/trade-strategy/strategy.constants';
 import { MINUTE_MS, wait } from '@/common/utils/utils';
@@ -27,7 +31,7 @@ import { IntegratedStrategy } from '@/trade-strategy/strategy/integrated-strateg
 @Injectable()
 export class StrategyService implements OnModuleInit {
   private strategyJobFacades = new Map<
-    StrategyAlgo,
+    string,
     JobFacade<StrategyJobData, string>
   >();
 
@@ -46,17 +50,27 @@ export class StrategyService implements OnModuleInit {
 
   onModuleInit(): any {
     for (const code of Object.values(StrategyAlgo)) {
-      const facade = this.jobsService.defineJob<StrategyJobData, string>({
-        queueName: `strategy/${code}`,
-        processJob: this.runStrategyJob.bind(this),
-        workerOptions: {
-          maxStalledCount: WorkerMaxStalledCount,
-          stalledInterval: WorkerStalledInterval,
-          concurrency: WorkerConcurrency,
-        },
-      });
-      this.strategyJobFacades.set(code, facade);
+      for (const oca of Object.values(OppCheckerAlgo)) {
+        const queueName = this.genStrategyQueueName(code, oca);
+        const facade = this.jobsService.defineJob<StrategyJobData, string>({
+          queueName,
+          processJob: this.runStrategyJob.bind(this),
+          workerOptions: {
+            maxStalledCount: WorkerMaxStalledCount,
+            stalledInterval: WorkerStalledInterval,
+            concurrency: WorkerConcurrency,
+          },
+        });
+        this.strategyJobFacades.set(queueName, facade);
+      }
     }
+  }
+
+  private genStrategyQueueName(
+    code: StrategyAlgo,
+    oca: OppCheckerAlgo,
+  ): string {
+    return `strategy/${code}/${oca}`;
   }
 
   private prepareEnv(
@@ -98,10 +112,12 @@ export class StrategyService implements OnModuleInit {
     strategy: Strategy,
     job?: Job<StrategyJobData>,
   ): Promise<string> {
+    const { algoCode, openAlgo, closeAlgo, openDealSide } = strategy;
     const env = this.prepareEnv(strategy, job);
-    const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
+    const qn = this.genStrategyQueueName(algoCode, openAlgo);
+    const jobFacade = this.strategyJobFacades.get(qn);
     if (!jobFacade) {
-      throw new Error(`jobFacade ${strategy.algoCode} not found`);
+      throw new Error(`jobFacade ${algoCode} not found`);
     }
     const queue = jobFacade.getQueue();
     const service = this;
@@ -110,16 +126,16 @@ export class StrategyService implements OnModuleInit {
       queuePaused: queue.isPaused.bind(queue),
       summitNewDealJob: () => service.doSummitJob(strategy),
     };
-    const logContext = `${strategy.algoCode}/${strategy.id}`;
+    const logContext = `${openAlgo}~${closeAlgo}/${openDealSide}/${strategy.id}`;
     const logger = this.logger.subLogger(logContext);
 
     let runner: BaseRunner;
-    switch (strategy.algoCode) {
-      case strategy.algoCode:
+    switch (algoCode) {
+      case StrategyAlgo.INT:
         runner = new IntegratedStrategy(strategy, env, jobEnv, logger);
         break;
       default:
-        throw new Error(`unknown strategy ${strategy.algoCode}`);
+        throw new Error(`unknown strategy ${algoCode}`);
     }
 
     await wait(Math.round(10 * 1000 * Math.random()));
@@ -128,7 +144,9 @@ export class StrategyService implements OnModuleInit {
   }
 
   protected async doSummitJob(strategy: Strategy) {
-    const jobFacade = this.strategyJobFacades.get(strategy.algoCode);
+    const { algoCode, openAlgo } = strategy;
+    const qn = this.genStrategyQueueName(algoCode, openAlgo);
+    const jobFacade = this.strategyJobFacades.get(qn);
     if (!jobFacade) {
       throw new Error(`jobFacade ${strategy.algoCode} not found`);
     }

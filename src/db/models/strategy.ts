@@ -22,10 +22,10 @@ export class Strategy extends ExSymbolBase {
   name: string;
 
   @Column({ nullable: true })
-  openCheckerAlgo?: OppCheckerAlgo;
+  openAlgo?: OppCheckerAlgo;
 
   @Column({ nullable: true })
-  closeCheckerAlgo?: OppCheckerAlgo;
+  closeAlgo?: OppCheckerAlgo;
 
   @Column({ nullable: true })
   openDealSide?: TradeSide | 'both';

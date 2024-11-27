@@ -154,13 +154,3 @@ export interface IntegratedStrategyParams extends CommonStrategyParams {
   open?: CheckOpportunityParams;
   close?: CheckOpportunityParams;
 }
-
-export interface MVStrategyParams {
-  open: MVCheckerParams;
-  close?: MVCheckerParams;
-}
-
-export interface BRStrategyParams {
-  open: BRCheckerParams;
-  close: MVCheckerParams;
-}
