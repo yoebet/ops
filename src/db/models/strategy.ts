@@ -9,7 +9,6 @@ import {
   OppCheckerAlgo,
   StrategyAlgo,
 } from '@/trade-strategy/strategy.types';
-import { TradeSide } from '@/data-service/models/base';
 
 @Entity()
 // @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
@@ -28,7 +27,7 @@ export class Strategy extends ExSymbolBase {
   closeAlgo?: OppCheckerAlgo;
 
   @Column({ nullable: true })
-  openDealSide?: TradeSide | 'both';
+  openDealSide?: ConsiderSide;
 
   // @Column()
   // userId: number;

@@ -97,19 +97,10 @@ export interface JumpCheckerParams {
 }
 
 export interface StopLossParams {
-  limitPriceDiffPercent?: number;
+  priceDiffPercent?: number;
 }
 
 // strategies:
-
-export interface CommonStrategyParams {
-  // open?: any;
-  // close?: any;
-  stopLoss?: StopLossParams;
-  lossCoolDownInterval?: string;
-  minCloseInterval?: string;
-  maxCloseInterval?: string;
-}
 
 export interface OpportunityCheckerMV extends MVCheckerParams {
   algo: OppCheckerAlgo.MV;
@@ -138,7 +129,14 @@ export type CheckOpportunityParams =
   | OpportunityCheckerLS
   | OpportunityCheckerJP;
 
-export interface IntegratedStrategyParams extends CommonStrategyParams {
-  open?: CheckOpportunityParams;
-  close?: CheckOpportunityParams;
+export interface CommonStrategyParams<ORP, CRP = ORP> {
+  open?: ORP;
+  close?: CRP;
+  stopLoss?: StopLossParams;
+  lossCoolDownInterval?: string;
+  minCloseInterval?: string;
+  maxCloseInterval?: string;
 }
+
+export type IntegratedStrategyParams =
+  CommonStrategyParams<CheckOpportunityParams>;

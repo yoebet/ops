@@ -110,7 +110,7 @@ describe('strategy creating', () => {
         st.quoteAmount = 100;
         st.params = {
           stopLoss: {
-            limitPriceDiffPercent: 1,
+            priceDiffPercent: 1,
           },
           lossCoolDownInterval: '4h',
           minCloseInterval: '15m',

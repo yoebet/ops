@@ -21,7 +21,7 @@ export class ExAssetSnapshot extends BaseModel {
   @Column()
   accountType: ExAccountType;
 
-  @Column('decimal', { nullable: true })
+  @Column('numeric', { nullable: true })
   totalEqUsd?: number;
 
   coinAssets?: ExAssetSnapshotCoin[];

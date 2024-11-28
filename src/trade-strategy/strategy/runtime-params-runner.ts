@@ -18,12 +18,9 @@ import { StrategyDeal } from '@/db/models/strategy-deal';
 
 export abstract class RuntimeParamsRunner<
   ORP = any,
-  CRP = any,
+  CRP = ORP,
 > extends BaseRunner {
-  protected _runtimeParams: CommonStrategyParams & {
-    open: ORP;
-    close: CRP;
-  };
+  protected _runtimeParams: CommonStrategyParams<ORP, CRP>;
 
   protected constructor(
     protected strategy: Strategy,
@@ -34,14 +31,14 @@ export abstract class RuntimeParamsRunner<
     super(strategy, env, jobEnv, logger);
   }
 
-  protected get strategyParams(): CommonStrategyParams {
+  protected get strategyParams(): CommonStrategyParams<ORP, CRP> {
     if (!this.strategy.params) {
       this.strategy.params = {};
     }
     return this.strategy.params;
   }
 
-  protected getRuntimeParams(): CommonStrategyParams & any {
+  protected getRuntimeParams(): CommonStrategyParams<ORP, CRP> {
     if (!this._runtimeParams) {
       this._runtimeParams = _.merge({}, this.strategyParams) as any;
     }
@@ -160,7 +157,7 @@ export abstract class RuntimeParamsRunner<
     const slSide = this.inverseSide(lastOrder.side);
     const rps = this.getRuntimeParams();
     const stopLossParams: StopLossParams = rps.stopLoss;
-    const priceDiffPercent = stopLossParams?.limitPriceDiffPercent;
+    const priceDiffPercent = stopLossParams?.priceDiffPercent;
     if (!priceDiffPercent) {
       return undefined;
     }

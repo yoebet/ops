@@ -1,6 +1,5 @@
 import { RuntimeParamsRunner } from '@/trade-strategy/strategy/runtime-params-runner';
 import {
-  IntegratedStrategyParams,
   OppCheckerAlgo,
   CheckOpportunityParams,
   TradeOpportunity,
@@ -14,9 +13,7 @@ import { checkJumpOpp } from '@/trade-strategy/opportunity/jump';
 import { checkMVOpp } from '@/trade-strategy/opportunity/move';
 import { checkLongStillOpp } from '@/trade-strategy/opportunity/long-still';
 
-export class IntegratedStrategy extends RuntimeParamsRunner {
-  protected _runtimeParams: IntegratedStrategyParams & any;
-
+export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityParams> {
   constructor(
     protected strategy: Strategy,
     protected env: StrategyEnv,
@@ -27,7 +24,7 @@ export class IntegratedStrategy extends RuntimeParamsRunner {
   }
 
   protected async checkAndWaitToOpenDeal(): Promise<TradeOpportunity> {
-    const params: CheckOpportunityParams = this.getOpenRuntimeParams();
+    const params = this.getOpenRuntimeParams();
     const orderTag = 'open';
     const side = this.strategy.openDealSide;
     switch (params.algo) {
@@ -52,7 +49,7 @@ export class IntegratedStrategy extends RuntimeParamsRunner {
       return undefined;
     }
 
-    const params: CheckOpportunityParams = this.getCloseRuntimeParams();
+    const params = this.getCloseRuntimeParams();
     const orderTag = 'close';
     const side = this.inverseSide(lastOrder.side);
     switch (params.algo) {

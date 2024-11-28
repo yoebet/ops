@@ -2,6 +2,7 @@ import { Column, Entity, Index, Unique } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 import { ExTradeType } from '@/db/models/exchange-types';
+import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
 export enum OrderStatus {
   notSummited = 'notSummited',
@@ -147,6 +148,29 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
 
   @Column('jsonb', { select: false, nullable: true })
   rawOrder?: any;
+
+  @AfterLoad()
+  onLoaded() {
+    const numFields: (keyof ExOrder)[] = [
+      'limitPrice',
+      'baseSize',
+      'quoteAmount',
+      'tpTriggerPrice',
+      'tpOrderPrice',
+      'slTriggerPrice',
+      'slOrderPrice',
+      'moveDrawbackPercent',
+      'moveActivePrice',
+      'execPrice',
+      'execSize',
+      'execAmount',
+    ];
+    for (const key of numFields) {
+      if (this[key] != null) {
+        (this as any)[key] = +this[key];
+      }
+    }
+  }
 
   static orderFinished(status: OrderStatus): boolean {
     return ![
