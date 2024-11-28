@@ -58,12 +58,14 @@ export interface MVCheckerParams {
   startingPrice?: number;
   activePercent?: number;
   drawbackPercent: number;
+  // cancelCheckOnDeviatePercent?: number;
 }
 
 export interface PriceDiffParams {
   waitForTriggerPercent?: number;
   priceDiffPercent?: number;
   startingPrice?: number;
+  // cancelOrderOnDeviatePercent?: number;
 }
 
 export interface BRCheckerParams {

@@ -205,25 +205,29 @@ export abstract class BaseRunner {
       throw new ExitSignal('queue paused');
     }
 
-    const st = await Strategy.findOne({
-      select: ['id', 'active'],
-      where: { id: this.strategy.id },
-    });
-    if (!st || !st.active) {
-      throw new ExitSignal('not active');
-    }
-    if (st.currentDealId) {
-      const deal = await StrategyDeal.findOne({
-        select: ['id', 'status'],
-        where: { id: st.currentDealId },
-      });
-      if (deal?.status !== 'open') {
-        // been canceled or closed
-        st.currentDeal = await StrategyDeal.findOneBy({
-          id: st.currentDealId,
-        });
-      }
-    }
+    // this.jobEnv.thisJob.updateProgress()
+    // this.jobEnv.thisJob.progress
+    // this.jobEnv.thisJob.getState()
+    // TODO: job attribute:
+    // const st = await Strategy.findOne({
+    //   select: ['id', 'active'],
+    //   where: { id: this.strategy.id },
+    // });
+    // if (!st || !st.active) {
+    //   throw new ExitSignal('not active');
+    // }
+    // if (st.currentDealId) {
+    //   const deal = await StrategyDeal.findOne({
+    //     select: ['id', 'status'],
+    //     where: { id: st.currentDealId },
+    //   });
+    //   if (deal?.status !== 'open') {
+    //     // been canceled or closed
+    //     st.currentDeal = await StrategyDeal.findOneBy({
+    //       id: st.currentDealId,
+    //     });
+    //   }
+    // }
   }
 
   protected async repeatToComplete<T = any>(

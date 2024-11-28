@@ -33,12 +33,6 @@ export class StrategyDeal extends ExSymbolBase {
   @Column()
   status: 'open' | 'closed' | 'canceled';
 
-  @Column('jsonb', { select: false, nullable: true })
-  params?: any;
-
-  @Column('jsonb', { select: false, nullable: true })
-  execInfo?: any;
-
   @Column({ nullable: true })
   paperTrade?: boolean;
 

@@ -1,8 +1,11 @@
 import { BaseModel } from '@/db/models/base-model';
 import { Column, Entity, Index } from 'typeorm';
 import { ExTradeType } from '@/db/models/exchange-types';
-import { OppCheckerAlgo, StrategyAlgo } from '@/trade-strategy/strategy.types';
-import { TradeSide } from '@/data-service/models/base';
+import {
+  ConsiderSide,
+  OppCheckerAlgo,
+  StrategyAlgo,
+} from '@/trade-strategy/strategy.types';
 
 @Entity()
 export class StrategyTemplate extends BaseModel {
@@ -12,7 +15,6 @@ export class StrategyTemplate extends BaseModel {
   name: string;
 
   @Column()
-  @Index()
   code: StrategyAlgo;
 
   @Column({ nullable: true })
@@ -22,7 +24,7 @@ export class StrategyTemplate extends BaseModel {
   closeAlgo?: OppCheckerAlgo;
 
   @Column({ nullable: true })
-  openDealSide?: TradeSide | 'both';
+  openDealSide?: ConsiderSide;
 
   @Column({ nullable: true })
   tradeType?: ExTradeType;
