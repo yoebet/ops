@@ -650,7 +650,7 @@ export abstract class BaseRunner {
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = true;
     order.tpslType = params.tpslType;
-    order.moveDrawbackRatio = drawbackPercent / 100;
+    order.moveDrawbackPercent = drawbackPercent;
     if (activePrice) {
       order.moveActivePrice = activePrice;
     }

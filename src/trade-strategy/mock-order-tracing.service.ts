@@ -1,10 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import * as Rx from 'rxjs';
-import {
-  PlaceOrderParams,
-  PlaceTpslOrderParams,
-} from '@/exchange/exchange-service.types';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';
 import {
@@ -22,6 +18,7 @@ import { TradeSide } from '@/data-service/models/base';
 import { AppLogger } from '@/common/app-logger';
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import {
+  OppCheckerAlgo,
   StrategyAlgo,
   TraceOrderJobData,
 } from '@/trade-strategy/strategy.types';
@@ -38,7 +35,7 @@ import {
 @Injectable()
 export class MockOrderTracingService implements OnModuleInit {
   protected traceOrderJobFacades = new Map<
-    StrategyAlgo,
+    string,
     JobFacade<TraceOrderJobData, ExOrder>
   >();
 
@@ -51,35 +48,151 @@ export class MockOrderTracingService implements OnModuleInit {
 
   onModuleInit(): any {
     for (const code of Object.values(StrategyAlgo)) {
-      const facade = this.jobsService.defineJob<TraceOrderJobData, any>({
-        queueName: `trace-order/${code}`,
-        processJob: this.traceAndFillOrder.bind(this),
-        workerOptions: {
-          maxStalledCount: WorkerMaxStalledCount,
-          stalledInterval: WorkerStalledInterval,
-          concurrency: WorkerConcurrency,
-        },
-      });
-      this.traceOrderJobFacades.set(code, facade);
+      for (const oca of Object.values(OppCheckerAlgo)) {
+        const queueName = this.genOrderTracingQueueName(code, oca);
+        const facade = this.jobsService.defineJob<TraceOrderJobData, any>({
+          queueName,
+          processJob: this.traceAndFillOrderJob.bind(this),
+          workerOptions: {
+            maxStalledCount: WorkerMaxStalledCount,
+            stalledInterval: WorkerStalledInterval,
+            concurrency: WorkerConcurrency,
+          },
+        });
+        this.traceOrderJobFacades.set(queueName, facade);
+      }
     }
   }
 
-  async addOrderTracingJob(
-    strategy: Strategy,
-    params: PlaceOrderParams,
-  ): Promise<void> {
-    const strategyId = strategy.id;
-    const jobFacade = this.traceOrderJobFacades.get(strategy.algoCode);
+  private genOrderTracingQueueName(
+    code: StrategyAlgo,
+    oca: OppCheckerAlgo,
+  ): string {
+    return `order/${code}/${oca}`;
+  }
+
+  async traceAndFillOrderJob(
+    job: Job<TraceOrderJobData>,
+  ): Promise<ExOrder | undefined> {
+    const { orderId } = job.data;
+    const order = await ExOrder.findOneBy({ id: orderId });
+    return this.traceAndFillOrder(order, job);
+  }
+
+  async traceAndFillOrder(
+    order: ExOrder,
+    job?: Job<TraceOrderJobData>,
+  ): Promise<ExOrder | undefined> {
+    // const strategy = await Strategy.findOneBy({ id: strategyId });
+    const tradeSide = order.side as TradeSide;
+    await this.logJob(job, order, `start tracing ...`);
+
+    const cancelCallback = async () => {
+      const order2 = await ExOrder.findOne({
+        select: ['id', 'status'],
+        where: { id: order.id },
+      });
+      if (!order2) {
+        return true;
+      }
+      return !ExOrder.orderToWait(order2.status);
+    };
+
+    if (await cancelCallback()) {
+      return undefined;
+    }
+
+    if (!order.tpslType) {
+      const price = order.limitPrice;
+      if (!price) {
+        return undefined;
+      }
+      const hitPrice = await this.waitForPrice(
+        job,
+        order,
+        price,
+        tradeSide === 'buy' ? 'down' : 'up',
+        cancelCallback,
+      );
+      if (hitPrice) {
+        // fill
+        fillOrderSize(order, order);
+        order.status = OrderStatus.filled;
+        await order.save();
+        return order;
+      }
+      return undefined;
+    }
+    if (order.algoOrder) {
+      let hitPrice: number;
+      let trigger: string;
+      if (order.tpslType === 'tp') {
+        hitPrice = await this.waitTp(job, order, cancelCallback);
+      } else if (order.tpslType === 'sl') {
+        hitPrice = await this.waitSl(job, order, cancelCallback);
+      } else if (order.tpslType === 'tpsl') {
+        [hitPrice, trigger] = (await Promise.race([
+          this.waitTp(job, order, cancelCallback).then((p) => [p, 'tp']),
+          this.waitSl(job, order, cancelCallback).then((p) => [p, 'sl']),
+        ])) as [number, string];
+        // TODO:
+      } else if (order.tpslType === 'move') {
+        const { moveDrawbackPercent, moveActivePrice } = order;
+        const activePrice = moveActivePrice ? moveActivePrice : undefined;
+        hitPrice = await this.traceMovingTpsl(
+          job,
+          order,
+          tradeSide,
+          +moveDrawbackPercent,
+          +activePrice,
+          cancelCallback,
+        );
+      }
+      if (hitPrice) {
+        // fill
+        fillOrderSize(order, order, hitPrice);
+        order.status = OrderStatus.filled;
+        await order.save();
+        return order;
+      }
+      return undefined;
+    }
+    // attach order TODO:
+    // let hitPrice: number;
+    // let trigger: string;
+    // if (order.tpslType === 'tp') {
+    //   hitPrice = await this.waitTp(order, cancelCallback);
+    // } else if (order.tpslType === 'sl') {
+    //   hitPrice = await this.waitTp(order, cancelCallback);
+    // } else if (order.tpslType === 'tpsl') {
+    //   [hitPrice, trigger] = (await Promise.race([
+    //     this.waitTp(order, cancelCallback).then((p) => [p, 'tp']),
+    //     this.waitSl(order, cancelCallback).then((p) => [p, 'sl']),
+    //   ])) as [number, string];
+    // }
+    // tpslClientOrderId
+    return undefined;
+  }
+
+  async addOrderTracingJob(order: ExOrder): Promise<void> {
+    const strategy = await Strategy.findOne({
+      select: ['id', 'algoCode', 'openAlgo'],
+      where: { id: order.strategyId },
+    });
+    const queueName = this.genOrderTracingQueueName(
+      strategy.algoCode,
+      strategy.openAlgo,
+    );
+    const jobFacade = this.traceOrderJobFacades.get(queueName);
     if (!jobFacade) {
-      throw new Error(`jobFacade ${strategy.algoCode} not found`);
+      throw new Error(`jobFacade ${queueName} not found`);
     }
     await jobFacade.addTask(
       {
-        strategyId,
-        params,
+        orderId: order.id,
       },
       {
-        jobId: `o/${params.clientOrderId}`,
+        jobId: `o/${order.clientOrderId}`,
         attempts: 10,
         backoff: MINUTE_MS,
       },
@@ -88,18 +201,18 @@ export class MockOrderTracingService implements OnModuleInit {
 
   async traceMovingTpsl(
     job: Job<TraceOrderJobData>,
-    strategy: Strategy,
+    order: ExOrder,
     side: TradeSide,
-    drawbackRatio: number,
+    drawbackPercent: number,
     activePrice: number | undefined,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const { ex, symbol } = strategy;
+    const { ex, symbol } = order;
     const direction = side === 'buy' ? 'down' : 'up';
     if (activePrice) {
       activePrice = await this.waitForPrice(
         job,
-        strategy,
+        order,
         activePrice,
         direction,
         cancelCallback,
@@ -111,6 +224,7 @@ export class MockOrderTracingService implements OnModuleInit {
       ex,
       symbol,
     );
+    const drawbackRatio = drawbackPercent / 100;
     const spr = 1 + drawbackRatio;
     const bpr = 1 - drawbackRatio;
     let price;
@@ -122,6 +236,7 @@ export class MockOrderTracingService implements OnModuleInit {
       const pop = placeOrderPrice.toPrecision(6);
       await this.logJob(
         job,
+        order,
         `${sentinel} ~ ${price} ~ ${pop}, ${diffPercent.toFixed(4)}%`,
         `subs-RtPrice`,
       ).catch((e) => this.logger.error(e));
@@ -156,6 +271,7 @@ export class MockOrderTracingService implements OnModuleInit {
 
     await this.logJob(
       job,
+      order,
       `reach: ${placeOrderPrice.toPrecision(6)}`,
       `subs-RtPrice`,
     );
@@ -164,160 +280,34 @@ export class MockOrderTracingService implements OnModuleInit {
   }
 
   protected async logJob(
-    job: Job<TraceOrderJobData>,
+    job: Job<TraceOrderJobData> | undefined,
+    order: ExOrder,
     message: string,
     context?: string,
   ): Promise<void> {
-    const { params, strategyId } = job.data;
     if (context) {
       message = `${context}: ${message}`;
     }
-    const mc = `[strategy: ${strategyId}, order: ${params.clientOrderId}]`;
+    const { id } = order;
+    const mc = `trace order: ${id}`;
     this.logger.log(message, mc);
-    message = `${mc} ${message}`;
-    await job
-      .log(`${new Date().toISOString()} ${message}`)
-      .catch((err: Error) => {
-        this.logger.error(err);
-      });
-  }
-
-  async traceAndFillOrder(
-    job: Job<TraceOrderJobData>,
-  ): Promise<ExOrder | undefined> {
-    const { params, strategyId } = job.data;
-    const strategy = await Strategy.findOneBy({ id: strategyId });
-    const tradeSide = params.side as TradeSide;
-    await this.logJob(job, `start tracing ...`);
-
-    const cancelCallback = async () => {
-      const order = await ExOrder.findOne({
-        select: ['id', 'status'],
-        where: {
-          clientOrderId: params.clientOrderId,
-          strategyId: strategy.id,
-          paperTrade: true,
-        },
-      });
-      if (!order) {
-        return true;
-      }
-      return !ExOrder.orderToWait(order.status);
-    };
-
-    // const reportStatusFn: (context: string) => StatusReporter = (
-    //   context: string,
-    // ) => {
-    //   return async (status: string, subContext?: string) => {
-    //     const c = subContext ? `${context}/${subContext}` : context;
-    //     // await job.updateProgress({ [c]: status });
-    //     const msg = `[${c}] ${status}`;
-    //     this.logger.log(msg);
-    //     await job.log(`${new Date().toISOString()} ${msg}`);
-    //   };
-    // };
-
-    if (!(await cancelCallback())) {
-      return undefined;
-    }
-
-    if (!params.tpslType) {
-      const price = +params.price;
-      if (!price) {
-        return undefined;
-      }
-      const hitPrice = await this.waitForPrice(
-        job,
-        strategy,
-        price,
-        tradeSide === 'buy' ? 'down' : 'up',
-        cancelCallback,
-      );
-      if (hitPrice) {
-        const order = await ExOrder.findOneBy({
-          clientOrderId: params.clientOrderId,
-          strategyId: strategy.id,
-          paperTrade: true,
+    if (job) {
+      await job
+        .log(`${new Date().toISOString()} ${message}`)
+        .catch((err: Error) => {
+          this.logger.error(err);
         });
-        // fill
-        fillOrderSize(order, params);
-        order.status = OrderStatus.filled;
-        await order.save();
-        return order;
-      }
-      return undefined;
     }
-    if (params.algoOrder) {
-      let hitPrice: number;
-      let trigger: string;
-      if (params.tpslType === 'tp') {
-        hitPrice = await this.waitTp(job, strategy, params, cancelCallback);
-      } else if (params.tpslType === 'sl') {
-        hitPrice = await this.waitSl(job, strategy, params, cancelCallback);
-      } else if (params.tpslType === 'tpsl') {
-        [hitPrice, trigger] = (await Promise.race([
-          this.waitTp(job, strategy, params, cancelCallback).then((p) => [
-            p,
-            'tp',
-          ]),
-          this.waitSl(job, strategy, params, cancelCallback).then((p) => [
-            p,
-            'sl',
-          ]),
-        ])) as [number, string];
-        // TODO:
-      } else if (params.tpslType === 'move') {
-        const { moveDrawbackRatio, moveActivePrice } =
-          params as PlaceTpslOrderParams;
-        const activePrice = moveActivePrice ? +moveActivePrice : undefined;
-        hitPrice = await this.traceMovingTpsl(
-          job,
-          strategy,
-          tradeSide,
-          +moveDrawbackRatio,
-          activePrice,
-          cancelCallback,
-        );
-      }
-      if (hitPrice) {
-        const order = await ExOrder.findOneBy({
-          clientOrderId: params.clientOrderId,
-          strategyId: strategy.id,
-          paperTrade: true,
-        });
-        // fill
-        fillOrderSize(order, params, hitPrice);
-        order.status = OrderStatus.filled;
-        await order.save();
-        return order;
-      }
-      return undefined;
-    }
-    // attach order TODO:
-    // let hitPrice: number;
-    // let trigger: string;
-    // if (params.tpslType === 'tp') {
-    //   hitPrice = await this.waitTp(params, cancelCallback);
-    // } else if (params.tpslType === 'sl') {
-    //   hitPrice = await this.waitTp(params, cancelCallback);
-    // } else if (params.tpslType === 'tpsl') {
-    //   [hitPrice, trigger] = (await Promise.race([
-    //     this.waitTp(params, cancelCallback).then((p) => [p, 'tp']),
-    //     this.waitSl(params, cancelCallback).then((p) => [p, 'sl']),
-    //   ])) as [number, string];
-    // }
-    // tpslClientOrderId
-    return undefined;
   }
 
   protected async waitForPrice(
     job: Job<TraceOrderJobData>,
-    strategy: Strategy,
+    order: ExOrder,
     targetPrice: number,
     direction: 'up' | 'down',
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const { ex, symbol } = strategy;
+    const { ex, symbol } = order;
 
     while (true) {
       const lastPrice = await this.publicDataService.getLastPrice(ex, symbol);
@@ -353,7 +343,7 @@ export class MockOrderTracingService implements OnModuleInit {
             upperBound: targetPrice,
           };
         }
-        await this.logJob(job, `${diffInfo}, watch`, logContext);
+        await this.logJob(job, order, `${diffInfo}, watch`, logContext);
         watchRtPriceParams.timeoutSeconds = 10 * 60;
         const watchResult = await this.publicWsService.watchRtPrice(
           ex,
@@ -376,22 +366,27 @@ export class MockOrderTracingService implements OnModuleInit {
         // await reportStatus(`${diffInfo}, wait 10s`, logContext);
         await wait(10 * 1000);
       } else if (diffPercentAbs < 2) {
-        await this.logJob(job, `${diffInfo}, wait 1m`, logContext);
+        await this.logJob(job, order, `${diffInfo}, wait 1m`, logContext);
         await wait(MINUTE_MS);
       } else if (diffPercentAbs < 5) {
-        await this.logJob(job, `${diffInfo}, wait 5m`, logContext);
+        await this.logJob(job, order, `${diffInfo}, wait 5m`, logContext);
         await wait(5 * MINUTE_MS);
       } else if (diffPercentAbs < 10) {
-        await this.logJob(job, `${diffInfo}, wait 30m`, logContext);
+        await this.logJob(job, order, `${diffInfo}, wait 30m`, logContext);
         await wait(30 * MINUTE_MS);
       } else {
-        await this.logJob(job, `${diffInfo}, wait 2h`, logContext);
+        await this.logJob(job, order, `${diffInfo}, wait 2h`, logContext);
         await wait(2 * HOUR_MS);
       }
 
       const cancel = await cancelCallback();
       if (cancel) {
-        await this.logJob(job, `exit due to cancel callback`, logContext);
+        await this.logJob(
+          job,
+          order,
+          `exit due to cancel callback`,
+          logContext,
+        );
         return undefined;
       }
     }
@@ -399,24 +394,23 @@ export class MockOrderTracingService implements OnModuleInit {
 
   protected async waitTp(
     job,
-    strategy: Strategy,
-    params: PlaceOrderParams,
+    order: ExOrder,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const direction = params.side === 'buy' ? 'up' : 'down';
-    if (params.tpTriggerPrice) {
+    const direction = order.side === 'buy' ? 'up' : 'down';
+    if (order.tpTriggerPrice) {
       await this.waitForPrice(
         job,
-        strategy,
-        +params.tpTriggerPrice,
+        order,
+        order.tpTriggerPrice,
         direction,
         cancelCallback,
       );
     }
     return this.waitForPrice(
       job,
-      strategy,
-      +params.tpOrderPrice,
+      order,
+      order.tpOrderPrice,
       direction,
       cancelCallback,
     );
@@ -424,24 +418,23 @@ export class MockOrderTracingService implements OnModuleInit {
 
   protected async waitSl(
     job,
-    strategy: Strategy,
-    params: PlaceOrderParams,
+    order: ExOrder,
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
-    const direction = params.side === 'buy' ? 'down' : 'up';
-    if (params.slTriggerPrice) {
+    const direction = order.side === 'buy' ? 'down' : 'up';
+    if (order.slTriggerPrice) {
       await this.waitForPrice(
         job,
-        strategy,
-        +params.slTriggerPrice,
+        order,
+        order.slTriggerPrice,
         direction,
         cancelCallback,
       );
     }
     return this.waitForPrice(
       job,
-      strategy,
-      +params.slOrderPrice,
+      order,
+      order.slOrderPrice,
       direction,
       cancelCallback,
     );

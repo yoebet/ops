@@ -113,7 +113,7 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   slOrderPrice?: number; // 委托价格为-1时，执行市价止损
 
   @Column('numeric', { nullable: true })
-  moveDrawbackRatio?: number;
+  moveDrawbackPercent?: number;
 
   @Column('numeric', { nullable: true })
   moveActivePrice?: number;

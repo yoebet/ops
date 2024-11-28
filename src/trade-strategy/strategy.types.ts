@@ -46,8 +46,9 @@ export interface StrategyJobData {
 }
 
 export interface TraceOrderJobData {
-  strategyId: number;
-  params: PlaceOrderParams;
+  // strategyId: number;
+  orderId: number;
+  // params: PlaceOrderParams;
 }
 
 // checkers

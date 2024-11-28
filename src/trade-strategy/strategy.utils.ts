@@ -1,24 +1,21 @@
-import { ExOrderResp } from '@/db/models/ex-order';
-import { PlaceOrderParams } from '@/exchange/exchange-service.types';
+import { ExOrder, ExOrderResp } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { HumanizerOptions } from 'humanize-duration';
 
 export function fillOrderSize(
-  order: ExOrderResp,
-  params: PlaceOrderParams,
+  target: ExOrderResp,
+  order: ExOrder,
   price?: number,
 ) {
-  price = price || +params.price;
-  const execSize = params.baseSize
-    ? +params.baseSize
-    : +params.quoteAmount / price;
-  const execAmount = params.quoteAmount
-    ? +params.quoteAmount
-    : +params.baseSize * price;
-  order.execPrice = price;
-  order.execSize = execSize;
-  order.execAmount = execAmount;
+  price = price || order.limitPrice;
+  const execSize = order.baseSize ? order.baseSize : order.quoteAmount / price;
+  const execAmount = order.quoteAmount
+    ? order.quoteAmount
+    : order.baseSize * price;
+  target.execPrice = price;
+  target.execSize = execSize;
+  target.execAmount = execAmount;
 }
 
 export async function createNewDealIfNone(strategy: Strategy) {
