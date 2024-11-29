@@ -36,7 +36,9 @@ describe('backtest strategy creating', () => {
     strategy.userExAccountId = 1;
     strategy.tradeType = tradeType;
     strategy.paperTrade = true;
-    strategy.active = true;
+    strategy.active = false;
+    strategy.dataFrom = '2024-07-02';
+    strategy.dataTo = '2024-07-31';
     await strategy.save();
     console.log(strategy.id);
   }

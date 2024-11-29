@@ -1,53 +1,64 @@
 import * as _ from 'lodash';
 import * as humanizeDuration from 'humanize-duration';
 import { AppLogger } from '@/common/app-logger';
-import { Strategy } from '@/db/models/strategy';
-import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
-import { StrategyDeal } from '@/db/models/strategy-deal';
+import { StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { TradeSide } from '@/data-service/models/base';
-import { ExOrder, OrderStatus } from '@/db/models/ex-order';
+import { OrderStatus } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { MINUTE_MS, round, wait } from '@/common/utils/utils';
-import {
-  TradeOpportunity,
-  ExitSignal,
-  MVCheckerParams,
-} from '@/trade-strategy/strategy.types';
-import {
-  createNewDealIfNone,
-  durationHumanizerOptions,
-} from '@/trade-strategy/strategy.utils';
-import { ReportStatusInterval } from '@/trade-strategy/strategy.constants';
+import { ExitSignal, MVCheckerParams } from '@/trade-strategy/strategy.types';
+import { durationHumanizerOptions } from '@/trade-strategy/strategy.utils';
+import { BacktestStrategy } from '@/db/models/backtest-strategy';
+import { BacktestDeal } from '@/db/models/backtest-deal';
+import { BacktestOrder } from '@/db/models/backtest-order';
 import {
   PlaceOrderParams,
-  PlaceOrderReturns,
   PlaceTpslOrderParams,
 } from '@/exchange/exchange-service.types';
 import { ExTradeType } from '@/db/models/exchange-types';
+import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
+import { DateTime } from 'luxon';
+import { TimeLevel } from '@/db/models/time-level';
+import { KlineDataService } from '@/data-service/kline-data.service';
 
-export abstract class BaseRunner {
+export interface BacktestTradeOpportunity {
+  orderTag?: string;
+  side: TradeSide;
+  orderPrice: number;
+  order?: BacktestOrder;
+  params?: PlaceOrderParams;
+}
+
+async function createNewDealIfNone(strategy: BacktestStrategy) {
+  if (strategy.currentDealId) {
+    return;
+  }
+  const currentDeal = BacktestDeal.newStrategyDeal(strategy);
+  await currentDeal.save();
+  strategy.currentDealId = currentDeal.id;
+  strategy.currentDeal = currentDeal;
+  await strategy.save();
+}
+
+export abstract class BaseBacktestRunner {
   protected durationHumanizer = humanizeDuration.humanizer(
     durationHumanizerOptions,
   );
 
+  protected klineData: BacktestKlineData;
+
   protected constructor(
-    protected readonly strategy: Strategy,
-    protected env: StrategyEnv,
+    protected readonly strategy: BacktestStrategy,
+    protected klineDataService: KlineDataService,
     protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,
   ) {}
 
   // return exit reason
   async run(): Promise<string> {
-    let runOneDeal = false;
-
-    const job = this.jobEnv.thisJob;
-    if (job && job.data.runOneDeal) {
-      runOneDeal = true;
-    }
     const strategy = this.strategy;
 
-    this.logger.log(`run strategy #${strategy.id} ...`);
+    this.logger.log(`run strategy back-test #${strategy.id} ...`);
     // await this.reportJobStatus('top', `run strategy #${strategy.id} ...`);
 
     if (!strategy.active) {
@@ -55,121 +66,39 @@ export abstract class BaseRunner {
       return 'not active';
     }
 
+    const { dataFrom, dataTo } = strategy;
+
+    const startDateTime = this.parseDateTime(dataFrom);
+    const endDateTime = this.parseDateTime(dataTo);
+
+    this.klineData = new BacktestKlineData(
+      this.klineDataService,
+      strategy.ex,
+      strategy.symbol,
+      TimeLevel.TL1mTo1d,
+      startDateTime,
+      endDateTime,
+      // 10,
+      // 10,
+    );
+
     this.setupStrategyParams();
 
     await this.logJob(JSON.stringify(strategy.params, null, 2), 'params');
 
-    while (true) {
-      try {
-        if (!strategy.active) {
-          await this.logJob(`strategy is not active, exit ...`);
-          return 'not active';
-        }
+    await this.loadOrCreateDeal();
 
-        await this.checkCommands();
+    await this.backtest();
+  }
 
-        await this.loadOrCreateDeal();
-
-        await this.repeatToComplete(this.checkAndWaitPendingOrder.bind(this), {
-          context: 'wait-pending-order',
-        });
-
-        if (!strategy.currentDealId) {
-          // deal closed due to order being filled
-          await this.createNewDeal();
-          if (runOneDeal) {
-            await this.jobEnv.summitNewDealJob();
-            return 'summit new';
-          }
-        }
-
-        const opp = await this.repeatToComplete<TradeOpportunity | undefined>(
-          this.checkAndWaitOpportunity.bind(this),
-          { context: 'wait-opportunity' },
-        );
-        if (opp) {
-          const sg = await Strategy.existsBy({ id: strategy.id, active: true });
-          if (!sg) {
-            await this.logJob(`is no active when about to place order.`);
-            return 'not active';
-          }
-          await this.placeOrder(opp);
-        }
-        if (!strategy.currentDealId) {
-          // deal closed due to order being filled
-          await this.createNewDeal();
-          if (runOneDeal) {
-            await this.jobEnv.summitNewDealJob();
-            return 'summit new';
-          }
-        }
-      } catch (e) {
-        if (e instanceof ExitSignal) {
-          return e.message;
-        }
-        this.logger.error(e);
-        await this.logJob(e.message);
-        await wait(MINUTE_MS);
-      }
-    }
+  protected parseDateTime(dateStr: string): DateTime {
+    const pat = 'yyyy-MM-dd';
+    return DateTime.fromFormat(dateStr, pat, { zone: 'UTC' });
   }
 
   protected setupStrategyParams() {}
 
-  protected abstract checkAndWaitOpportunity(): Promise<
-    TradeOpportunity | undefined
-  >;
-
-  protected async placeOrder(oppo: TradeOpportunity): Promise<void> {
-    const { order, params } = oppo;
-    if (order && params) {
-      await order.save();
-      await this.doPlaceOrder(order, params);
-    }
-  }
-
-  protected async doPlaceOrder(
-    order: ExOrder,
-    params: PlaceOrderParams | PlaceTpslOrderParams,
-  ) {
-    const apiKey = await this.env.ensureApiKey();
-    const exService = this.env.getTradeService();
-
-    const currentDeal = this.strategy.currentDeal;
-    try {
-      await this.logJob(`place order(${order.clientOrderId}) ...`);
-
-      let result: PlaceOrderReturns;
-      if (order.tpslType) {
-        result = await exService.placeTpslOrder(apiKey, params);
-      } else {
-        result = await exService.placeOrder(apiKey, params);
-      }
-
-      ExOrder.setProps(order, result.orderResp);
-      order.rawOrderParams = result.rawParams;
-      await order.save();
-
-      if (order.status === OrderStatus.filled) {
-        currentDeal.lastOrder = order;
-        currentDeal.lastOrderId = order.id;
-        await currentDeal.save();
-        await this.logJob(`order filled`);
-        await this.onOrderFilled();
-      } else if (ExOrder.orderToWait(order.status)) {
-        currentDeal.pendingOrder = order;
-        currentDeal.pendingOrderId = order.id;
-        await currentDeal.save();
-      } else {
-        await this.logJob(`place order failed: ${order.status}`);
-      }
-    } catch (e) {
-      this.logger.error(e);
-      order.status = OrderStatus.summitFailed;
-      await order.save();
-      await this.logJob(`summit order failed`);
-    }
-  }
+  protected abstract backtest(): Promise<void>;
 
   protected async logJob(message: string, context?: string): Promise<void> {
     if (context) {
@@ -199,103 +128,15 @@ export abstract class BaseRunner {
     }
   }
 
-  protected async checkCommands() {
-    const paused = await this.jobEnv.queuePaused();
-    if (paused) {
-      throw new ExitSignal('queue paused');
-    }
-
-    // this.jobEnv.thisJob.updateProgress()
-    // this.jobEnv.thisJob.progress
-    // this.jobEnv.thisJob.getState()
-    // TODO: job attribute:
-    // const st = await Strategy.findOne({
-    //   select: ['id', 'active'],
-    //   where: { id: this.strategy.id },
-    // });
-    // if (!st || !st.active) {
-    //   throw new ExitSignal('not active');
-    // }
-    // if (st.currentDealId) {
-    //   const deal = await StrategyDeal.findOne({
-    //     select: ['id', 'status'],
-    //     where: { id: st.currentDealId },
-    //   });
-    //   if (deal?.status !== 'open') {
-    //     // been canceled or closed
-    //     st.currentDeal = await StrategyDeal.findOneBy({
-    //       id: st.currentDealId,
-    //     });
-    //   }
-    // }
-  }
-
-  protected async repeatToComplete<T = any>(
-    action: () => Promise<T | undefined>,
-    options: {
-      context: string;
-      maxTry?: number;
-      maxWait?: number;
-      waitOnFailed?: number;
-    },
-  ): Promise<T | undefined> {
-    const strategy = this.strategy;
-    let tried = 0;
-    let waited = 0;
-    while (true) {
-      tried++;
-      const start = Date.now();
-      const hd = setInterval(() => {
-        const ms = Date.now() - start;
-        const duration = this.durationHumanizer(ms, { round: true });
-        const msg = `try #${tried}, been waiting ${duration}.`;
-        this.logJob(msg, options.context);
-      }, ReportStatusInterval);
-      try {
-        const result = await action();
-        if (result) {
-          return result;
-        }
-        await this.checkCommands();
-      } catch (e) {
-        if (e instanceof ExitSignal) {
-          throw e;
-        }
-        this.logger.error(e);
-        await this.logJob(e.message, options.context);
-        if (options.maxTry && tried >= options.maxTry) {
-          return undefined;
-        }
-        const toWait = options.waitOnFailed || MINUTE_MS;
-        if (options.maxWait && waited + toWait >= options.maxWait) {
-          return undefined;
-        }
-        const duration = this.durationHumanizer(toWait, { round: true });
-        await this.logJob(`to wait ${duration}.`, options.context);
-        await wait(toWait);
-        waited += toWait;
-        if (!strategy.active) {
-          await this.logJob(
-            `strategy is not active, exit ...`,
-            options.context,
-          );
-          return undefined;
-        }
-      } finally {
-        clearInterval(hd);
-      }
-    }
-  }
-
   protected async createNewDeal() {
     await createNewDealIfNone(this.strategy);
   }
 
   protected async loadOrCreateDeal() {
     const strategy = this.strategy;
-    let currentDeal: StrategyDeal;
+    let currentDeal: BacktestDeal;
     if (strategy.currentDealId) {
-      currentDeal = await StrategyDeal.findOneBy({
+      currentDeal = await BacktestDeal.findOneBy({
         id: strategy.currentDealId,
       });
       strategy.currentDeal = currentDeal;
@@ -311,7 +152,7 @@ export abstract class BaseRunner {
       }
       const { lastOrderId, pendingOrderId } = currentDeal;
       if (lastOrderId) {
-        currentDeal.lastOrder = await ExOrder.findOneBy({
+        currentDeal.lastOrder = await BacktestOrder.findOneBy({
           id: lastOrderId,
         });
         if (!currentDeal.lastOrder) {
@@ -319,7 +160,7 @@ export abstract class BaseRunner {
         }
       }
       if (currentDeal.pendingOrderId) {
-        currentDeal.pendingOrder = await ExOrder.findOneBy({
+        currentDeal.pendingOrder = await BacktestOrder.findOneBy({
           id: pendingOrderId,
         });
         if (!currentDeal.pendingOrder) {
@@ -333,10 +174,10 @@ export abstract class BaseRunner {
     }
   }
 
-  protected async closeDeal(deal: StrategyDeal) {
+  protected async closeDeal(deal: BacktestDeal) {
     await this.logJob(`close deal ...`);
 
-    const orders = await ExOrder.find({
+    const orders = await BacktestOrder.find({
       select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
       where: { dealId: deal.id, status: OrderStatus.filled },
     });
@@ -369,60 +210,7 @@ export abstract class BaseRunner {
     await this.logJob(`deal closed.`);
   }
 
-  protected async checkAndWaitPendingOrder(): Promise<boolean> {
-    const currentDeal = this.strategy.currentDeal;
-    if (!currentDeal?.pendingOrder) {
-      return true;
-    }
-    if (ExOrder.orderFinished(currentDeal.pendingOrder.status)) {
-      currentDeal.lastOrder = currentDeal.pendingOrder;
-      await currentDeal.save();
-    } else {
-      const pendingOrder = currentDeal.pendingOrder;
-      if (pendingOrder.status === OrderStatus.notSummited) {
-        // discard
-        currentDeal.pendingOrder = undefined;
-        currentDeal.pendingOrderId = undefined;
-        await currentDeal.save();
-        return true;
-      }
-      // check is market price
-      const waitSeconds = pendingOrder.priceType === 'market' ? 8 : 10 * 60;
-      const order = await this.env.waitForOrder(pendingOrder, waitSeconds);
-      if (order) {
-        // finished
-        if (order.status === OrderStatus.filled) {
-          currentDeal.lastOrder = order;
-          currentDeal.lastOrderId = order.id;
-          await this.logJob(`order filled`);
-        }
-        await currentDeal.save();
-      } else {
-        // timeout
-        await this.logJob(`waitForOrder - timeout`);
-        await this.env.trySynchronizeOrder(pendingOrder);
-        if (ExOrder.orderFinished(pendingOrder.status)) {
-          currentDeal.lastOrder = pendingOrder;
-          currentDeal.pendingOrder = undefined;
-          currentDeal.pendingOrderId = undefined;
-          await currentDeal.save();
-          await this.logJob(`synchronize-order - filled`);
-        } else {
-          // TODO:
-          await this.logJob(`synchronize-order - not filled`);
-          return false;
-        }
-      }
-    }
-    currentDeal.pendingOrder = undefined;
-    currentDeal.pendingOrderId = undefined;
-
-    await this.onOrderFilled();
-
-    return true;
-  }
-
-  protected shouldCloseDeal(currentDeal: StrategyDeal): boolean {
+  protected shouldCloseDeal(currentDeal: BacktestDeal): boolean {
     return !currentDeal.pendingOrderId && !!currentDeal.lastOrder;
   }
 
@@ -461,9 +249,9 @@ export abstract class BaseRunner {
     return `${code}${id}${ms.substring(1, 10)}${tag}`;
   }
 
-  protected newOrderByStrategy(): ExOrder {
+  protected newOrderByStrategy(): BacktestOrder {
     const strategy = this.strategy;
-    const exOrder = new ExOrder();
+    const exOrder = new BacktestOrder();
     exOrder.ex = strategy.ex;
     exOrder.market = strategy.market;
     exOrder.baseCoin = strategy.baseCoin;
@@ -477,7 +265,9 @@ export abstract class BaseRunner {
     return exOrder;
   }
 
-  protected async buildMarketOrder(oppo: TradeOpportunity): Promise<void> {
+  protected async buildMarketOrder(
+    oppo: BacktestTradeOpportunity,
+  ): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
@@ -522,7 +312,9 @@ export abstract class BaseRunner {
     oppo.params = params;
   }
 
-  protected async buildLimitOrder(oppo: TradeOpportunity): Promise<void> {
+  protected async buildLimitOrder(
+    oppo: BacktestTradeOpportunity,
+  ): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
 
     const unifiedSymbol = exSymbol.unifiedSymbol;
@@ -571,7 +363,7 @@ export abstract class BaseRunner {
   }
 
   protected async buildMarketOrLimitOrder(
-    oppo: TradeOpportunity,
+    oppo: BacktestTradeOpportunity,
   ): Promise<void> {
     if (oppo.order) {
       return this.buildLimitOrder(oppo);
@@ -580,7 +372,7 @@ export abstract class BaseRunner {
   }
 
   protected async buildMoveTpslOrder(
-    oppo: TradeOpportunity,
+    oppo: BacktestTradeOpportunity,
     rps: MVCheckerParams,
   ): Promise<void> {
     const exSymbol = await this.ensureExchangeSymbol();
@@ -589,16 +381,13 @@ export abstract class BaseRunner {
     const strategy = this.strategy;
 
     const { activePercent, drawbackPercent } = rps;
-    let placeOrderPrice = oppo.orderPrice;
+    const placeOrderPrice = oppo.orderPrice;
     const tradeSide = oppo.side;
 
     let activePrice: number;
 
     if (activePercent) {
       const activeRatio = activePercent / 100;
-      if (!placeOrderPrice) {
-        placeOrderPrice = await this.env.getLastPrice();
-      }
       if (tradeSide === TradeSide.buy) {
         activePrice = placeOrderPrice * (1 - activeRatio);
       } else {
@@ -612,9 +401,6 @@ export abstract class BaseRunner {
       if (activePrice) {
         size = quoteAmount / activePrice;
       } else {
-        if (!placeOrderPrice) {
-          placeOrderPrice = await this.env.getLastPrice();
-        }
         size = quoteAmount / placeOrderPrice;
       }
     }

@@ -9,7 +9,7 @@ import { DateTime, DateTimeOptions } from 'luxon';
 
 jest.setTimeout(60_000);
 
-export const DateTimeOpts: DateTimeOptions = { zone: 'UTC' };
+const DateTimeOpts: DateTimeOptions = { zone: 'UTC' };
 
 describe('backtest kline data', () => {
   let klineDataService: KlineDataService;
