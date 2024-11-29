@@ -49,7 +49,7 @@ export class Holder<T extends Timed> {
   }
 
   stripBefore(ts: number) {
-    const i = this.data.findIndex((v) => v.ts > ts);
+    const i = this.data.findIndex((v) => v.ts >= ts);
     if (i === -1) {
       this.data = [];
       return;

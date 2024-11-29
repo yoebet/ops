@@ -20,6 +20,8 @@ export class TimeLevel {
     },
   );
 
+  static TL1mTo1d = TimeLevel.ALL.slice(0, -2);
+
   static evalIntervalSeconds(interval: string): number {
     const u = interval.charAt(interval.length - 1);
     const n = +interval.substring(0, interval.length - 1);

@@ -240,7 +240,7 @@ export class KlineDataService implements OnModuleInit {
                  where ${this.timeCondition(parameter)}
                    and ex = '${ex}'
                    and symbol = '${symbol}'
-                 order by time, symbol, ex
+                 order by time
                  limit ${getLimit(parameter.limit)}`;
 
     const kls = await this.queryBySql(sql);
