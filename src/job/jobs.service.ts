@@ -81,6 +81,14 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
     this.setupBoard();
   }
 
+  async startWorker() {
+    this.logger.log(`:::: start ...`);
+    for (const qj of this.queueWorkerMap.values()) {
+      await this.runQueue(qj);
+    }
+    this.workerStarted = true;
+  }
+
   defineJob<D, R>(spec: JobSpec<D, R>): JobFacade<D, R> {
     const queueName = spec.queueName;
     const queue = new Queue(queueName, {
@@ -151,14 +159,6 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
         this.logger.error(`${job.id} has failed: ${err.message}`, qj.queueName);
       }
     });
-  }
-
-  async startWorker(_profile?: TaskScope) {
-    this.logger.log(`:::: start ...`);
-    for (const qj of this.queueWorkerMap.values()) {
-      await this.runQueue(qj);
-    }
-    this.workerStarted = true;
   }
 
   setupBoard() {

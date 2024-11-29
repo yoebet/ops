@@ -61,8 +61,11 @@ export class HistoryDataLoaderService implements OnModuleInit {
     logger.setContext('data-loader');
   }
 
-  onModuleInit() {
-    this.logger.log('define jobs ...');
+  onModuleInit() {}
+
+  async start() {
+    this.logger.log(`:::: start ...`);
+
     for (const ex of Object.values(ExchangeCode)) {
       const queueName = this.getQueueName(ex);
       this.defineLoaderJob(queueName);
@@ -95,10 +98,6 @@ export class HistoryDataLoaderService implements OnModuleInit {
       jobFacade = this.defineLoaderJob(queueName);
     }
     return jobFacade;
-  }
-
-  async start(_profile: TaskScope) {
-    this.logger.log(`:::: start ...`);
   }
 
   private newDataTask(

@@ -79,10 +79,10 @@ export abstract class RuntimeParamsRunner<
       const elapsed = Date.now() - lastOrderTs;
       const oppositeSide = this.inverseSide(lastOrder.side);
       if (rps.minCloseInterval) {
-        const minCloseIntervalSeconds = TimeLevel.evalIntervalSeconds(
+        const minCloseSeconds = TimeLevel.evalIntervalSeconds(
           rps.minCloseInterval,
         );
-        if (elapsed < minCloseIntervalSeconds * 1000) {
+        if (elapsed < minCloseSeconds * 1000) {
           await this.waitOnce(elapsed);
           return undefined;
         }

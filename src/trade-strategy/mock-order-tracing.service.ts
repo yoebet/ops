@@ -46,7 +46,11 @@ export class MockOrderTracingService implements OnModuleInit {
     protected logger: AppLogger,
   ) {}
 
-  onModuleInit(): any {
+  onModuleInit(): any {}
+
+  start() {
+    this.logger.log(`:::: start ...`);
+
     for (const code of Object.values(StrategyAlgo)) {
       for (const oca of Object.values(OppCheckerAlgo)) {
         const queueName = this.genOrderTracingQueueName(code, oca);

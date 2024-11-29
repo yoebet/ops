@@ -48,7 +48,11 @@ export class StrategyService implements OnModuleInit {
     logger.setContext('Strategy');
   }
 
-  onModuleInit(): any {
+  onModuleInit(): any {}
+
+  start() {
+    this.logger.log(`:::: start ...`);
+
     for (const code of Object.values(StrategyAlgo)) {
       for (const oca of Object.values(OppCheckerAlgo)) {
         const queueName = this.genStrategyQueueName(code, oca);
@@ -64,6 +68,8 @@ export class StrategyService implements OnModuleInit {
         this.strategyJobFacades.set(queueName, facade);
       }
     }
+
+    this.mockOrderTracingService.start();
   }
 
   private genStrategyQueueName(

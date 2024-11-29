@@ -26,3 +26,5 @@ export interface Kline extends Omit<FtKline, 'ts'>, ES {
   p_cp?: number;
   p_ap?: number;
 }
+
+export declare type BacktestKline = FtKline & Kline;

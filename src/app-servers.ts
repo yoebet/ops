@@ -6,6 +6,9 @@ import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
 import { InstanceLog } from '@/db/models/instance-log';
 import { JobsService } from '@/job/jobs.service';
+import { StrategyService } from '@/trade-strategy/strategy.service';
+import { BacktestService } from '@/trade-strategy/backtest/backtest.service';
+import { HistoryDataLoaderService } from '@/data-loader/history-data-loader.service';
 
 @Injectable()
 export class AppServers implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +20,9 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
   constructor(
     protected configService: ConfigService<Config>,
     protected jobsService: JobsService,
+    protected strategyService: StrategyService,
+    protected backtestService: BacktestService,
+    protected historyDataLoaderService: HistoryDataLoaderService,
     private logger: AppLogger,
   ) {
     logger.setContext('app-servers');
@@ -55,9 +61,22 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
     // this.sil.profile = serverProfile;
     // InstanceLog.save(this.sil).catch(onErr);
 
-    const { [ServerRole.Worker]: workerProfile } = serverProfile;
-    if (workerProfile) {
-      this.jobsService.startWorker(workerProfile).catch(onErr);
+    if (
+      serverProfile.Worker ||
+      serverProfile.StrategyWorker ||
+      serverProfile.BacktestWorker ||
+      serverProfile.ExDataLoaderWorker
+    ) {
+      if (serverProfile.StrategyWorker) {
+        this.strategyService.start();
+      }
+      if (serverProfile.BacktestWorker) {
+        this.backtestService.start();
+      }
+      if (serverProfile.ExDataLoaderWorker) {
+        this.historyDataLoaderService.start();
+      }
+      this.jobsService.startWorker().catch(onErr);
     }
   }
 }

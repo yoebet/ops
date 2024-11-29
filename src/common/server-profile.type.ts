@@ -1,6 +1,9 @@
 import { ExchangeCode } from '@/db/models/exchange-types';
 
 export enum ServerRole {
+  StrategyWorker = 'StrategyWorker',
+  BacktestWorker = 'BacktestWorker',
+  ExDataLoaderWorker = 'ExDataLoaderWorker',
   Worker = 'Worker',
   Admin = 'Admin',
 }
@@ -10,8 +13,8 @@ export interface TaskScope {
   baseCoins?: string[];
 }
 
-export interface ServerProfile {
+export type ServerProfile = {
+  [t in ServerRole]?: TaskScope;
+} & {
   httpPort?: number;
-  [ServerRole.Worker]?: TaskScope;
-  [ServerRole.Admin]?: TaskScope;
-}
+};

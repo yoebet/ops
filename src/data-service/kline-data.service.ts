@@ -5,7 +5,7 @@ import { DB_SCHEMA } from '@/env';
 import { AppLogger } from '@/common/app-logger';
 import { tsToISO8601 } from '@/common/utils/utils';
 import { ES } from '@/data-service/models/base';
-import { Kline } from '@/data-service/models/kline';
+import { BacktestKline, FtKline, Kline } from '@/data-service/models/kline';
 
 export function getLimit(limit?: number): number {
   return typeof limit === 'number' ? Math.min(limit, 100_000) : 1000;
@@ -143,7 +143,7 @@ export class KlineDataService implements OnModuleInit {
     const { tsFrom, tsTo } = parameter;
     const timeTo = tsTo || Date.now() + 1000;
     const fCond = `time >= '${tsToISO8601(tsFrom)}'`;
-    const tCond = tsTo ? `and time < '${tsToISO8601(timeTo)}'` : '';
+    const tCond = tsTo ? `and time <= '${tsToISO8601(timeTo)}'` : '';
     return `${fCond} ${tCond}`;
   }
 
@@ -171,7 +171,7 @@ export class KlineDataService implements OnModuleInit {
     limit?: number;
   }): Promise<Kline[]> {
     if (!parameter.limit) {
-      parameter.limit = 10000;
+      parameter.limit = 1440;
     }
     const { symbols, interval } = parameter;
 
@@ -205,5 +205,53 @@ export class KlineDataService implements OnModuleInit {
                  limit ${getLimit(parameter.limit)}`;
 
     return this.queryBySql(sql);
+  }
+
+  async queryKLinesForBacktest(
+    parameter: {
+      tsFrom: number;
+      tsTo: number;
+      interval: string;
+      limit?: number;
+    } & ES,
+  ): Promise<BacktestKline[]> {
+    if (!parameter.limit) {
+      parameter.limit = 120;
+    }
+    const { ex, symbol, interval } = parameter;
+
+    const nvs = [
+      'open',
+      'high',
+      'low',
+      'close',
+      'size',
+      'amount',
+      'p_ch',
+      'p_avg',
+      'p_cp',
+      'p_ap',
+    ];
+
+    const sql = `select time,
+                        interval,
+                        ${nvs.join(',')}
+                 from ${this.getKLineTable(interval)}
+                 where ${this.timeCondition(parameter)}
+                   and ex = '${ex}'
+                   and symbol = '${symbol}'
+                 order by time, symbol, ex
+                 limit ${getLimit(parameter.limit)}`;
+
+    const kls = await this.queryBySql(sql);
+    kls.forEach((k: BacktestKline) => {
+      k.ts = k.time.getTime();
+      for (const f of nvs) {
+        if (k[f] != null) {
+          k[f] = +k[f];
+        }
+      }
+    });
+    return kls;
   }
 }

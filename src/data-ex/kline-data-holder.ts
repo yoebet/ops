@@ -1,4 +1,4 @@
-import { ExKline } from '@/exchange/exchange-service.types';
+import { FtKline } from '@/data-service/models/kline';
 
 export interface Timed {
   ts: number;
@@ -35,6 +35,27 @@ export class Holder<T extends Timed> {
     const first = data[0];
     const last = data[data.length - 1];
     return { min: first.ts, max: last.ts };
+  }
+
+  containsTs(ts: number): boolean {
+    const firstTs = this.getFirstTs();
+    if (!firstTs) return false;
+    const lastTs = this.getLastTs();
+    return ts >= firstTs && ts <= lastTs;
+  }
+
+  containsRange(tsFrom: number, tsTo: number): boolean {
+    return this.containsTs(tsFrom) && this.containsTs(tsTo);
+  }
+
+  stripBefore(ts: number) {
+    const i = this.data.findIndex((v) => v.ts > ts);
+    if (i === -1) {
+      this.data = [];
+      return;
+    } else if (i > 0) {
+      this.data = this.data.slice(i);
+    }
   }
 
   keepLatest(count: number) {
@@ -101,6 +122,10 @@ export class Holder<T extends Timed> {
     this.data = data;
   }
 
+  clear() {
+    this.data = [];
+  }
+
   append(data: T[], options: { sort?: boolean; duplicated?: boolean } = {}) {
     if (options.sort) {
       this.sort(data);
@@ -136,4 +161,4 @@ export class Holder<T extends Timed> {
   }
 }
 
-export class KlinesHolder extends Holder<ExKline> {}
+export class KlinesHolder extends Holder<FtKline> {}
