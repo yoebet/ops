@@ -16,7 +16,7 @@ import {
   PlaceTpslOrderParams,
 } from '@/exchange/exchange-service.types';
 import { ExTradeType } from '@/db/models/exchange-types';
-import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
+import { BacktestKlineLevelsData } from '@/trade-strategy/backtest/backtest-kline-levels-data';
 import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
@@ -45,7 +45,7 @@ export abstract class BaseBacktestRunner {
     durationHumanizerOptions,
   );
 
-  protected klineData: BacktestKlineData;
+  protected klineData: BacktestKlineLevelsData;
 
   protected constructor(
     protected readonly strategy: BacktestStrategy,
@@ -66,22 +66,6 @@ export abstract class BaseBacktestRunner {
       return 'not active';
     }
 
-    const { dataFrom, dataTo } = strategy;
-
-    const startDateTime = this.parseDateTime(dataFrom);
-    const endDateTime = this.parseDateTime(dataTo);
-
-    this.klineData = new BacktestKlineData(
-      this.klineDataService,
-      strategy.ex,
-      strategy.symbol,
-      TimeLevel.TL1mTo1d,
-      startDateTime,
-      endDateTime,
-      // 10,
-      // 10,
-    );
-
     this.setupStrategyParams();
 
     await this.logJob(JSON.stringify(strategy.params, null, 2), 'params');
@@ -96,7 +80,24 @@ export abstract class BaseBacktestRunner {
     return DateTime.fromFormat(dateStr, pat, { zone: 'UTC' });
   }
 
-  protected setupStrategyParams() {}
+  protected setupStrategyParams() {
+    const strategy = this.strategy;
+    const { dataFrom, dataTo } = strategy;
+
+    const startDateTime = this.parseDateTime(dataFrom);
+    const endDateTime = this.parseDateTime(dataTo);
+
+    this.klineData = new BacktestKlineLevelsData(
+      this.klineDataService,
+      strategy.ex,
+      strategy.symbol,
+      TimeLevel.TL1mTo1d,
+      startDateTime,
+      endDateTime,
+      // 10,
+      // 10,
+    );
+  }
 
   protected abstract backtest(): Promise<void>;
 

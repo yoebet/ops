@@ -98,8 +98,6 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
 
   return {
     avgAmount,
-    // amountFluc: fluctuationPercent(avgAmount, minAmount, maxAmount),
-    // priceFluc: fluctuationPercent(avgPrice, minPrice, maxPrice),
     minPrice,
     maxPrice,
     avgPrice,

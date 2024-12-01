@@ -3,7 +3,7 @@ import { SystemConfigModule } from '@/common-services/system-config.module';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { MarketDataModule } from '@/data-service/market-data.module';
-import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
+import { BacktestKlineLevelsData } from '@/trade-strategy/backtest/backtest-kline-levels-data';
 import { TimeLevel } from '@/db/models/time-level';
 import { DateTime, DateTimeOptions } from 'luxon';
 import { MINUTE_MS } from '@/common/utils/utils';
@@ -14,30 +14,30 @@ const DateTimeOpts: DateTimeOptions = { zone: 'UTC' };
 
 describe('backtest kline data', () => {
   let klineDataService: KlineDataService;
+  let kld: BacktestKlineLevelsData;
+
+  const symbol = 'BTC/USDT';
+  const ex = ExchangeCode.binance;
+
+  const startDateTime = DateTime.fromFormat(
+    '2024-07-02',
+    'yyyy-MM-dd',
+    DateTimeOpts,
+  );
+  const endDateTime = DateTime.fromFormat(
+    '2024-07-03',
+    'yyyy-MM-dd',
+    DateTimeOpts,
+  );
+
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [SystemConfigModule, MarketDataModule],
     }).compile();
     await moduleRef.init();
     klineDataService = moduleRef.get(KlineDataService);
-  });
 
-  it('kline-data', async () => {
-    const symbol = 'BTC/USDT';
-    const ex = ExchangeCode.binance;
-
-    const startDateTime = DateTime.fromFormat(
-      '2024-07-02',
-      'yyyy-MM-dd',
-      DateTimeOpts,
-    );
-    const endDateTime = DateTime.fromFormat(
-      '2024-07-03',
-      'yyyy-MM-dd',
-      DateTimeOpts,
-    );
-
-    const kld = new BacktestKlineData(
+    kld = new BacktestKlineLevelsData(
       klineDataService,
       ex,
       symbol,
@@ -47,7 +47,9 @@ describe('backtest kline data', () => {
       10,
       10,
     );
+  });
 
+  it('kline-data', async () => {
     // const prevKls = await kld.getKlinesTillNow('1m', 5);
     // console.log(prevKls);
     // kld.resetHighestLevel();
@@ -66,6 +68,24 @@ describe('backtest kline data', () => {
       }
       const moved = kld.moveOrRollTime();
       if (!moved) {
+        break;
+      }
+    }
+  });
+
+  it('kline-data - roll lewest', async () => {
+    while (true) {
+      const { kline: kl, hasNext } = await kld.getLowestKlineAndMoveOn();
+      const { timeCursor, interval } = kld.getCurrentLevel();
+      const h = `${interval} ::`;
+      if (kl) {
+        console.log(`${h} ${kl.time.toISOString()} ${kl.open}`);
+      } else {
+        console.log(`${h} missing`);
+      }
+      const tss = timeCursor.toISO();
+      console.log(`cursor: ${tss}`);
+      if (!hasNext) {
         break;
       }
     }
