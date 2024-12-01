@@ -12,6 +12,7 @@ interface TimeLevelHolder extends TimeLevel {
   lower?: TimeLevelHolder;
   higher?: TimeLevelHolder;
   holder?: StKlinesHolder;
+  timeCursor?: DateTime;
 }
 
 export class BacktestKlineData {
@@ -20,7 +21,8 @@ export class BacktestKlineData {
   private readonly highestLevel: TimeLevelHolder;
 
   private currentLevel: TimeLevelHolder;
-  private timeCursor: DateTime;
+
+  // private timeCursor: DateTime;
 
   constructor(
     private klineDataService: KlineDataService,
@@ -29,13 +31,14 @@ export class BacktestKlineData {
     private timeLevels: TimeLevel[],
     private backtestTimeFrom: DateTime,
     private backtestTimeTo: DateTime,
-    private preFetchCount = 60,
+    private fetchCount = 60,
     private keepOldCount = 60,
   ) {
     timeLevels.sort((a, b) => a.intervalSeconds - b.intervalSeconds);
     const tlns: TimeLevelHolder[] = timeLevels.map((tl) => ({
       ...tl,
       intervalMs: tl.intervalSeconds * 1000,
+      timeCursor: backtestTimeFrom,
     }));
     this.lowestLevel = tlns[0];
     this.highestLevel = tlns[tlns.length - 1];
@@ -47,28 +50,52 @@ export class BacktestKlineData {
       }
       lower = tln;
     }
-    this.currentLevel = this.highestLevel;
-    this.timeCursor = backtestTimeFrom;
     this.timeLevelHolders = tlns;
+    this.currentLevel = this.highestLevel;
   }
 
-  rollHighestTimeInterval(): boolean {
-    const time = this.timeCursor.plus({
-      second: this.highestLevel.intervalSeconds,
+  getCurrentLevel(): TimeLevel & { timeCursor?: DateTime } {
+    return this.currentLevel;
+  }
+
+  isLowestLevel(): boolean {
+    return this.currentLevel === this.lowestLevel;
+  }
+
+  isTopLevel(): boolean {
+    return this.currentLevel === this.highestLevel;
+  }
+
+  rollTimeInterval(): boolean {
+    const cl = this.currentLevel;
+    const time = cl.timeCursor.plus({
+      second: cl.intervalSeconds,
     });
     const ts = time.toMillis();
+    if (cl.higher) {
+      const higherEnd = cl.higher.timeCursor.toMillis() + cl.higher.intervalMs;
+      if (ts >= higherEnd) {
+        return false;
+      }
+    }
     if (ts > this.backtestTimeTo.toMillis()) {
       return false;
     }
-    this.timeCursor = time;
-    for (const { holder, intervalMs } of this.timeLevelHolders) {
-      if (!holder) {
+    cl.timeCursor = time;
+    const lowerLevels = this.timeLevelHolders.filter(
+      (l) => l.intervalSeconds < cl.intervalSeconds,
+    );
+    lowerLevels.forEach((l) => {
+      l.timeCursor = cl.timeCursor;
+    });
+    for (const ll of [...lowerLevels, cl]) {
+      if (!ll.holder) {
         continue;
       }
-      if (holder.containsTs(ts)) {
-        holder.stripBefore(ts - this.keepOldCount * intervalMs);
+      if (ll.holder.containsTs(ts)) {
+        ll.holder.stripBefore(ts - this.keepOldCount * ll.intervalMs);
       } else {
-        holder.clear();
+        ll.holder.clear();
       }
     }
     return true;
@@ -86,13 +113,40 @@ export class BacktestKlineData {
     return true;
   }
 
-  // moveUpLevel(): boolean {
-  //   if (!this.currentLevel.higher) {
-  //     return false;
-  //   }
-  //   this.currentLevel = this.currentLevel.higher;
-  //   return true;
-  // }
+  moveUpLevel(): boolean {
+    if (!this.currentLevel.higher) {
+      return false;
+    }
+    this.currentLevel = this.currentLevel.higher;
+    return true;
+  }
+
+  moveOrRollTime(moveDown = true): boolean {
+    if (moveDown) {
+      const down = this.moveDownLevel();
+      if (down) {
+        return true;
+      }
+    }
+    const roll = this.rollTimeInterval();
+    if (roll) {
+      return true;
+    }
+    while (true) {
+      const up = this.moveUpLevel();
+      if (!up) {
+        return false;
+      }
+      const roll = this.rollTimeInterval();
+      if (roll) {
+        return true;
+      }
+    }
+  }
+
+  moveOver(): boolean {
+    return this.moveOrRollTime(false);
+  }
 
   protected async fetchKlines(params: {
     tsFrom: number;
@@ -107,9 +161,15 @@ export class BacktestKlineData {
     });
   }
 
-  async getKlines(): Promise<BacktestKline[]> {
-    const tsFrom = this.timeCursor.toMillis();
-    const { intervalSeconds, interval, intervalMs } = this.currentLevel;
+  async getKlinesInUpperLevel(): Promise<BacktestKline[]> {
+    const {
+      interval,
+      intervalSeconds,
+      intervalMs,
+      timeCursor,
+      higher: higherLevel,
+    } = this.currentLevel;
+    const tsFrom = timeCursor.toMillis();
     let holder = this.currentLevel.holder;
     if (!holder) {
       holder = new StKlinesHolder();
@@ -117,7 +177,6 @@ export class BacktestKlineData {
     } else {
       holder.stripBefore(tsFrom - this.keepOldCount * intervalMs);
     }
-    const higherLevel = this.currentLevel.higher;
     const seconds = higherLevel?.intervalSeconds || intervalSeconds;
     const intervalTimesToHigher = higherLevel
       ? higherLevel.intervalSeconds / intervalSeconds
@@ -128,7 +187,7 @@ export class BacktestKlineData {
       return holder.getByRange(tsFrom, tsTo);
     }
 
-    const preFetchTo = tsFrom + (this.preFetchCount - 1) * intervalMs;
+    const preFetchTo = tsFrom + (this.fetchCount - 1) * intervalMs;
     const fetchTo = Math.max(tsTo, preFetchTo);
     let fetchFrom = tsFrom;
 
@@ -146,11 +205,52 @@ export class BacktestKlineData {
       interval,
       tsFrom: fetchFrom,
       tsTo: fetchTo,
-      limit: this.preFetchCount,
+      limit: this.fetchCount,
     });
     holder.append(kls);
 
     return holder.getByRange(tsFrom, tsTo);
+  }
+
+  async getKline(): Promise<BacktestKline> {
+    const { interval, intervalMs, timeCursor } = this.currentLevel;
+    const tsFrom = timeCursor.toMillis();
+    let holder = this.currentLevel.holder;
+    if (!holder) {
+      holder = new StKlinesHolder();
+      this.currentLevel.holder = holder;
+    } else {
+      holder.stripBefore(tsFrom - this.keepOldCount * intervalMs);
+    }
+
+    if (holder.containsTs(tsFrom)) {
+      const kls = holder.getByRange(tsFrom, tsFrom + intervalMs - 1);
+      return kls.length > 0 ? kls[0] : undefined;
+    }
+
+    const fetchTo = tsFrom + (this.fetchCount - 1) * intervalMs;
+    let fetchFrom = tsFrom;
+
+    const lastTs = holder.getLastTs();
+    if (!holder.containsTs(tsFrom)) {
+      if (lastTs && Date.now() - lastTs <= (this.fetchCount / 2) * intervalMs) {
+        fetchFrom = lastTs + intervalMs;
+      } else {
+        holder.clear();
+      }
+    } else {
+      fetchFrom = lastTs + intervalMs;
+    }
+    const newKls = await this.fetchKlines({
+      interval,
+      tsFrom: fetchFrom,
+      tsTo: fetchTo,
+      limit: this.fetchCount,
+    });
+    holder.append(newKls);
+
+    const kls = holder.getByRange(tsFrom, tsFrom + intervalMs - 1);
+    return kls.length > 0 ? kls[0] : undefined;
   }
 
   async getKlinesTillNow(
@@ -169,7 +269,7 @@ export class BacktestKlineData {
       this.currentLevel.holder = holder;
     }
 
-    const tsTo = this.timeCursor.toMillis();
+    const tsTo = tlh.timeCursor.toMillis();
     const tsFrom = tsTo - (count - 1) * intervalMs;
 
     if (holder.containsRange(tsFrom, tsTo)) {

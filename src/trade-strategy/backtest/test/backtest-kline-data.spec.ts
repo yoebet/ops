@@ -6,8 +6,9 @@ import { MarketDataModule } from '@/data-service/market-data.module';
 import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
 import { TimeLevel } from '@/db/models/time-level';
 import { DateTime, DateTimeOptions } from 'luxon';
+import { MINUTE_MS } from '@/common/utils/utils';
 
-jest.setTimeout(60_000);
+jest.setTimeout(60 * MINUTE_MS);
 
 const DateTimeOpts: DateTimeOptions = { zone: 'UTC' };
 
@@ -31,7 +32,7 @@ describe('backtest kline data', () => {
       DateTimeOpts,
     );
     const endDateTime = DateTime.fromFormat(
-      '2024-07-31',
+      '2024-07-03',
       'yyyy-MM-dd',
       DateTimeOpts,
     );
@@ -40,20 +41,31 @@ describe('backtest kline data', () => {
       klineDataService,
       ex,
       symbol,
-      TimeLevel.TL1mTo1d,
+      TimeLevel.TL1mTo1d.slice(3),
       startDateTime,
       endDateTime,
       10,
       10,
     );
 
-    kld.resetHighestLevel();
-    const prevKls = await kld.getKlinesTillNow('1m', 5);
-    console.log(prevKls);
+    // const prevKls = await kld.getKlinesTillNow('1m', 5);
+    // console.log(prevKls);
+    // kld.resetHighestLevel();
     while (true) {
-      const kls = await kld.getKlines();
-      console.log(kls);
-      if (!kld.moveDownLevel()) {
+      // const kls = await kld.getKlinesInUpperLevel();
+      // console.log(
+      //   kls.map((kl) => `${kl.time.toISOString()} ${kl.interval} ${kl.open}`),
+      // );
+      const tl = kld.getCurrentLevel();
+      console.log(`${tl.timeCursor.toISOTime()} ${tl.interval}`);
+      const kl = await kld.getKline();
+      if (kl) {
+        console.log(`${kl.time.toISOString()} ${kl.open}`);
+      } else {
+        console.log(`- missing`);
+      }
+      const moved = kld.moveOrRollTime();
+      if (!moved) {
         break;
       }
     }
