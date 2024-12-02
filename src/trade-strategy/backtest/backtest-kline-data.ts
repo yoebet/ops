@@ -22,10 +22,34 @@ export class BacktestKlineData {
     this.holder = new StKlinesHolder();
   }
 
+  getTimeCursor() {
+    return this.timeCursor;
+  }
+
+  getTimeTs() {
+    return this.timeCursor.toMillis();
+  }
+
+  protected checkStrip() {
+    const ts = this.getTimeTs();
+    const holder = this.holder;
+    if (holder.containsTs(ts)) {
+      holder.stripBefore(ts - this.keepOldCount * this.timeLevel.intervalMs);
+    } else {
+      holder.clear();
+    }
+  }
+
   rollTimeInterval(): void {
     this.timeCursor = this.timeCursor.plus({
       second: this.timeLevel.intervalSeconds,
     });
+    this.checkStrip();
+  }
+
+  resetTimeCursor(tc: DateTime): void {
+    this.timeCursor = tc;
+    this.checkStrip();
   }
 
   protected async fetchKlines(params: {
@@ -42,8 +66,7 @@ export class BacktestKlineData {
   }
 
   async getKline(): Promise<BacktestKline> {
-    const { interval, intervalSeconds } = this.timeLevel;
-    const intervalMs = intervalSeconds * 1000;
+    const { interval, intervalMs } = this.timeLevel;
     const tsFrom = this.timeCursor.toMillis();
     const holder = this.holder;
     holder.stripBefore(tsFrom - this.keepOldCount * intervalMs);
@@ -82,14 +105,12 @@ export class BacktestKlineData {
     interval: string,
     count: number,
   ): Promise<BacktestKline[]> {
-    const { intervalSeconds } = this.timeLevel;
-    const intervalMs = intervalSeconds * 1000;
-
-    const holder = this.holder;
+    const { intervalMs } = this.timeLevel;
 
     const tsTo = this.timeCursor.toMillis();
     const tsFrom = tsTo - (count - 1) * intervalMs;
 
+    const holder = this.holder;
     if (holder.containsRange(tsFrom, tsTo)) {
       return holder.getByRange(tsFrom, tsTo);
     }
