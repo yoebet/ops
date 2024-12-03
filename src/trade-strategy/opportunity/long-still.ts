@@ -12,9 +12,10 @@ import {
   evalTargetPrice,
   KlineAgg,
 } from '@/trade-strategy/opportunity/helper';
+import { AppLogger } from '@/common/app-logger';
 
-function checkStill(
-  this: BaseRunner,
+export function checkStill(
+  this: { logger: AppLogger },
   contrastAgg: KlineAgg,
   latestAgg: KlineAgg,
   amountTimes: number,

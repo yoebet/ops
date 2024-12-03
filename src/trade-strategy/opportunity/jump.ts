@@ -13,9 +13,10 @@ import {
   KlineAgg,
 } from '@/trade-strategy/opportunity/helper';
 import { ExKline } from '@/exchange/exchange-service.types';
+import { AppLogger } from '@/common/app-logger';
 
-function checkJump(
-  this: BaseRunner,
+export function checkJump(
+  this: { logger: AppLogger },
   jumpKlines: ExKline[],
   stopKlines: ExKline[],
   contrastAgg: KlineAgg,
@@ -39,8 +40,11 @@ function checkJump(
   if (!lpc || !cpc) {
     return false;
   }
+  const lpcs = lpc.toPrecision(6);
+  const cpcs = lpc.toPrecision(6);
+  const times = (lpc / cpc).toFixed(2);
   this.logger.debug(
-    `[${context}] priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)} ~ ${priceChangeTimes}`,
+    `[${context}] priceChange: ${lpcs} ~ ${cpcs}, times: ${times} ~ ${priceChangeTimes}`,
   );
   return lpc >= cpc * priceChangeTimes;
 }

@@ -12,9 +12,10 @@ import {
   evalTargetPrice,
   KlineAgg,
 } from '@/trade-strategy/opportunity/helper';
+import { AppLogger } from '@/common/app-logger';
 
-function checkBurst(
-  this: BaseRunner,
+export function checkBurst(
+  this: { logger: AppLogger },
   contrastAgg: KlineAgg,
   latestAgg: KlineAgg,
   amountTimes: number,
@@ -28,11 +29,17 @@ function checkBurst(
   if (!laa || !caa || !lpc || !cpc) {
     return false;
   }
+  const laas = laa.toFixed(0);
+  const caas = caa.toFixed(0);
+  const atimes = (laa / caa).toFixed(2);
+  const lpcs = lpc.toPrecision(6);
+  const cpcs = cpc.toPrecision(6);
+  const ctimes = (lpc / cpc).toFixed(2);
   this.logger.debug(
-    `[${context}] avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)} ~ ${amountTimes}`,
+    `[${context}] avgAmount: ${laas} ~ ${caas}, times: ${atimes} ~ ${amountTimes}`,
   );
   this.logger.debug(
-    `[${context}] priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)} ~ ${priceChangeTimes}`,
+    `[${context}] priceChange: ${lpcs} ~ ${cpcs}, times: ${ctimes} ~ ${priceChangeTimes}`,
   );
   return laa >= caa * amountTimes && lpc >= cpc * priceChangeTimes;
 }

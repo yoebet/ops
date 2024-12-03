@@ -78,6 +78,7 @@ export interface BRCheckerParams {
   selfAmountTimes: number;
   selfPriceChangeTimes: number;
   limitPriceDiffPercent?: number;
+  baselineSymbol?: string;
 }
 
 export interface LSCheckerParams {

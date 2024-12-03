@@ -5,28 +5,25 @@ import { StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { TradeSide } from '@/data-service/models/base';
 import { OrderStatus } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { MINUTE_MS, round, wait } from '@/common/utils/utils';
-import { ExitSignal, MVCheckerParams } from '@/trade-strategy/strategy.types';
+import { MVCheckerParams } from '@/trade-strategy/strategy.types';
 import { durationHumanizerOptions } from '@/trade-strategy/strategy.utils';
 import { BacktestStrategy } from '@/db/models/backtest-strategy';
 import { BacktestDeal } from '@/db/models/backtest-deal';
 import { BacktestOrder } from '@/db/models/backtest-order';
-import {
-  PlaceOrderParams,
-  PlaceTpslOrderParams,
-} from '@/exchange/exchange-service.types';
-import { ExTradeType } from '@/db/models/exchange-types';
 import { BacktestKlineLevelsData } from '@/trade-strategy/backtest/backtest-kline-levels-data';
 import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
 
-export interface BacktestTradeOpportunity {
+export interface BacktestTradeOppo {
   orderTag?: string;
   side: TradeSide;
-  orderPrice: number;
+  orderPrice?: number;
+  orderTime?: Date;
   order?: BacktestOrder;
-  params?: PlaceOrderParams;
+  // params?: PlaceOrderParams;
+  moveOn: boolean;
+  reachTimeLimit?: boolean;
 }
 
 async function createNewDealIfNone(strategy: BacktestStrategy) {
@@ -266,43 +263,20 @@ export abstract class BaseBacktestRunner {
     return exOrder;
   }
 
-  protected async buildMarketOrder(
-    oppo: BacktestTradeOpportunity,
-  ): Promise<void> {
-    const exSymbol = await this.ensureExchangeSymbol();
-
-    const unifiedSymbol = exSymbol.unifiedSymbol;
+  protected async buildMarketOrder(oppo: BacktestTradeOppo): Promise<void> {
     const strategy = this.strategy;
     const tradeSide = oppo.side;
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
-    const params: PlaceOrderParams = {
-      side: tradeSide,
-      symbol: strategy.rawSymbol,
-      priceType: 'market',
-      clientOrderId,
-      algoOrder: false,
-    };
-
-    if (strategy.tradeType === ExTradeType.margin) {
-      params.marginMode = 'cross';
-      params.marginCoin = unifiedSymbol.quote;
-    }
-
     const size = strategy.baseSize;
     const quoteAmount = strategy.quoteAmount || 200;
-    if (size) {
-      params.baseSize = round(size, exSymbol.baseSizeDigits);
-    } else {
-      params.quoteAmount = quoteAmount.toFixed(2);
-    }
 
     const order = this.newOrderByStrategy();
     order.tag = oppo.orderTag;
     order.side = tradeSide;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
-    order.priceType = params.priceType;
+    order.priceType = 'market';
     if (size) {
       order.baseSize = size;
     }
@@ -310,33 +284,14 @@ export abstract class BaseBacktestRunner {
     order.algoOrder = false;
 
     oppo.order = order;
-    oppo.params = params;
   }
 
-  protected async buildLimitOrder(
-    oppo: BacktestTradeOpportunity,
-  ): Promise<void> {
-    const exSymbol = await this.ensureExchangeSymbol();
-
-    const unifiedSymbol = exSymbol.unifiedSymbol;
+  protected async buildLimitOrder(oppo: BacktestTradeOppo): Promise<void> {
     const strategy = this.strategy;
     const tradeSide = oppo.side;
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
     const orderPrice = oppo.orderPrice;
-
-    const params: PlaceOrderParams = {
-      side: tradeSide,
-      symbol: strategy.rawSymbol,
-      priceType: 'limit',
-      clientOrderId,
-      algoOrder: false,
-    };
-
-    if (strategy.tradeType === ExTradeType.margin) {
-      params.marginMode = 'cross';
-      params.marginCoin = unifiedSymbol.quote;
-    }
 
     let size = strategy.baseSize;
     const quoteAmount = strategy.quoteAmount || 200;
@@ -351,7 +306,7 @@ export abstract class BaseBacktestRunner {
     order.side = tradeSide;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
-    order.priceType = params.priceType;
+    order.priceType = 'limit';
     order.limitPrice = orderPrice;
     if (size) {
       order.baseSize = size;
@@ -360,11 +315,10 @@ export abstract class BaseBacktestRunner {
     order.algoOrder = false;
 
     oppo.order = order;
-    oppo.params = params;
   }
 
   protected async buildMarketOrLimitOrder(
-    oppo: BacktestTradeOpportunity,
+    oppo: BacktestTradeOppo,
   ): Promise<void> {
     if (oppo.order) {
       return this.buildLimitOrder(oppo);
@@ -373,12 +327,9 @@ export abstract class BaseBacktestRunner {
   }
 
   protected async buildMoveTpslOrder(
-    oppo: BacktestTradeOpportunity,
+    oppo: BacktestTradeOppo,
     rps: MVCheckerParams,
   ): Promise<void> {
-    const exSymbol = await this.ensureExchangeSymbol();
-
-    const unifiedSymbol = exSymbol.unifiedSymbol;
     const strategy = this.strategy;
 
     const { activePercent, drawbackPercent } = rps;
@@ -408,45 +359,23 @@ export abstract class BaseBacktestRunner {
 
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
-    const params: PlaceTpslOrderParams = {
-      side: tradeSide,
-      symbol: strategy.rawSymbol,
-      priceType: 'limit',
-      clientOrderId,
-      algoOrder: true,
-    };
-
-    if (strategy.tradeType === ExTradeType.margin) {
-      params.marginMode = 'cross';
-      params.marginCoin = unifiedSymbol.quote;
-    }
-
-    params.tpslType = 'move';
-    params.baseSize = round(size, exSymbol.baseSizeDigits);
-    params.moveDrawbackRatio = (drawbackPercent / 100).toFixed(4);
-    if (activePrice) {
-      const priceDigits = exSymbol.priceDigits;
-      params.moveActivePrice = round(activePrice, priceDigits);
-    }
-
     const order = this.newOrderByStrategy();
     order.tag = oppo.orderTag;
     order.side = tradeSide;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
-    order.priceType = params.priceType;
+    order.priceType = 'limit';
     if (size) {
       order.baseSize = size;
     }
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = true;
-    order.tpslType = params.tpslType;
+    order.tpslType = 'move';
     order.moveDrawbackPercent = drawbackPercent;
     if (activePrice) {
       order.moveActivePrice = activePrice;
     }
 
     oppo.order = order;
-    oppo.params = params;
   }
 }

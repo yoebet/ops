@@ -111,6 +111,20 @@ export class BacktestKlineLevelsData {
     this.currentLevel = tlh;
   }
 
+  getCurrentTimeCursor(interval?: string): DateTime {
+    let tlh: TimeLevelHolder;
+    if (interval) {
+      tlh = this.timeLevelHolders.find((l) => l.interval === interval);
+      if (!tlh) {
+        throw new Error(`no interval: ${interval}`);
+      }
+    } else {
+      tlh = this.lowestLevel;
+    }
+
+    return tlh.holder.getTimeCursor();
+  }
+
   moveDownLevel(): boolean {
     if (!this.currentLevel.lower) {
       return false;

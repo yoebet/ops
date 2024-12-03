@@ -7,6 +7,7 @@ import { BacktestKlineLevelsData } from '@/trade-strategy/backtest/backtest-klin
 import { TimeLevel } from '@/db/models/time-level';
 import { DateTime, DateTimeOptions } from 'luxon';
 import { MINUTE_MS } from '@/common/utils/utils';
+import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
 
 jest.setTimeout(60 * MINUTE_MS);
 
@@ -49,6 +50,29 @@ describe('backtest kline data', () => {
     );
   });
 
+  it('kline-data 0', async () => {
+    const kld = new BacktestKlineData(
+      klineDataService,
+      ex,
+      symbol,
+      TimeLevel.TL1mTo1d.slice(-1)[0],
+      startDateTime,
+      10,
+      10,
+    );
+
+    const timeTo = endDateTime.toMillis();
+
+    while (true) {
+      const kl = await kld.getKline();
+      console.log(`${kl.time.toISOString()} ${kl.open}`);
+      kld.rollTimeInterval();
+      if (kld.getTimeTs() > timeTo) {
+        break;
+      }
+    }
+  });
+
   it('kline-data', async () => {
     // const prevKls = await kld.getKlinesTillNow('1m', 5);
     // console.log(prevKls);
@@ -59,12 +83,12 @@ describe('backtest kline data', () => {
       //   kls.map((kl) => `${kl.time.toISOString()} ${kl.interval} ${kl.open}`),
       // );
       const tl = kld.getCurrentLevel();
-      console.log(`${tl.timeCursor.toISOTime()} ${tl.interval}`);
+      const h = `${tl.interval} ::`;
       const kl = await kld.getKline();
       if (kl) {
-        console.log(`${kl.time.toISOString()} ${kl.open}`);
+        console.log(`${h} ${kl.time.toISOString()} ${kl.open}`);
       } else {
-        console.log(`- missing`);
+        console.log(`${h} - missing`);
       }
       const moved = kld.moveOrRollTime();
       if (!moved) {
@@ -73,18 +97,18 @@ describe('backtest kline data', () => {
     }
   });
 
-  it('kline-data - roll lewest', async () => {
+  it('kline-data - roll lowest', async () => {
     while (true) {
       const { kline: kl, hasNext } = await kld.getLowestKlineAndMoveOn();
-      const { timeCursor, interval } = kld.getCurrentLevel();
+      const { interval } = kld.getCurrentLevel();
       const h = `${interval} ::`;
       if (kl) {
         console.log(`${h} ${kl.time.toISOString()} ${kl.open}`);
       } else {
         console.log(`${h} missing`);
       }
-      const tss = timeCursor.toISO();
-      console.log(`cursor: ${tss}`);
+      // const tss = timeCursor.toISO();
+      // console.log(`cursor: ${tss}`);
       if (!hasNext) {
         break;
       }

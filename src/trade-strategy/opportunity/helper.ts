@@ -35,15 +35,15 @@ export function evalWatchLevel(diffPercentAbs: number): WatchLevel {
 }
 
 export interface KlineAgg {
-  // size: number;
-  // amount: number;
+  size: number;
+  amount: number;
   avgAmount: number;
   // minAmount: number;
   // maxAmount: number;
   // amountFluc: number;
   avgPrice: number;
-  minPrice: number;
-  maxPrice: number;
+  // minPrice: number;
+  // maxPrice: number;
   // priceFluc: number;
   // priceChange: number;
   // minPriceChange: number;
@@ -58,10 +58,10 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
   let amount = 0;
   let minAmount = null;
   let maxAmount = 0;
-  let minPrice = null;
-  let maxPrice = 0;
-  let minPriceChange = null;
-  let maxPriceChange = 0;
+  // let minPrice = null;
+  // let maxPrice = 0;
+  // let minPriceChange = null;
+  // let maxPriceChange = 0;
   for (const k of klines) {
     if (!k.size) {
       continue;
@@ -74,19 +74,19 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
     if (maxAmount < k.amount) {
       maxAmount = k.amount;
     }
-    if (minPrice === null || minPrice > k.low) {
-      minPrice = k.low;
-    }
-    if (maxPrice < k.high) {
-      maxPrice = k.high;
-    }
-    const pc = Math.abs(k.close - k.open);
-    if (minPriceChange === null || minPriceChange > pc) {
-      minPriceChange = pc;
-    }
-    if (maxPriceChange < pc) {
-      maxPriceChange = pc;
-    }
+    // if (minPrice === null || minPrice > k.low) {
+    //   minPrice = k.low;
+    // }
+    // if (maxPrice < k.high) {
+    //   maxPrice = k.high;
+    // }
+    // const pc = Math.abs(k.close - k.open);
+    // if (minPriceChange === null || minPriceChange > pc) {
+    //   minPriceChange = pc;
+    // }
+    // if (maxPriceChange < pc) {
+    //   maxPriceChange = pc;
+    // }
   }
   if (!size) {
     return undefined;
@@ -97,9 +97,11 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
   const avgPriceChange = priceChange / klines.length;
 
   return {
+    size,
+    amount,
     avgAmount,
-    minPrice,
-    maxPrice,
+    // minPrice,
+    // maxPrice,
     avgPrice,
     avgPriceChange,
   };

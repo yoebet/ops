@@ -11,11 +11,14 @@ export class TimeLevel {
   // @Column()
   intervalSeconds: number;
 
+  intervalMs: number;
+
   static ALL = ['1m', '5m', '15m', '1h', '4h', '1d', '1w', '1o'].map(
     (interval) => {
       const tl = new TimeLevel();
       tl.interval = interval;
       tl.intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
+      tl.intervalMs = tl.intervalSeconds * 1000;
       return tl;
     },
   );

@@ -30,6 +30,10 @@ export class BacktestKlineData {
     return this.timeCursor.toMillis();
   }
 
+  getSymbol() {
+    return this.symbol;
+  }
+
   protected checkStrip() {
     const ts = this.getTimeTs();
     const holder = this.holder;
