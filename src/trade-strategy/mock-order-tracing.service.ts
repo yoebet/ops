@@ -233,11 +233,11 @@ export class MockOrderTracingService implements OnModuleInit {
     const bpr = 1 - drawbackRatio;
     let price;
     let sentinel = activePrice;
-    let placeOrderPrice: number | undefined = undefined;
+    let orderPrice: number | undefined = undefined;
 
     const reportStatusHandler = setInterval(async () => {
-      const diffPercent = evalDiffPercent(price, placeOrderPrice);
-      const pop = placeOrderPrice.toPrecision(6);
+      const diffPercent = evalDiffPercent(price, orderPrice);
+      const pop = orderPrice.toPrecision(6);
       await this.logJob(
         job,
         order,
@@ -252,15 +252,15 @@ export class MockOrderTracingService implements OnModuleInit {
         if (side === TradeSide.buy) {
           if (price < sentinel) {
             sentinel = price;
-            placeOrderPrice = sentinel * spr;
-          } else if (price >= placeOrderPrice) {
+            orderPrice = sentinel * spr;
+          } else if (price >= orderPrice) {
             return true;
           }
         } else {
           if (price > sentinel) {
             sentinel = price;
-            placeOrderPrice = sentinel * bpr;
-          } else if (price <= placeOrderPrice) {
+            orderPrice = sentinel * bpr;
+          } else if (price <= orderPrice) {
             return true;
           }
         }
@@ -276,11 +276,11 @@ export class MockOrderTracingService implements OnModuleInit {
     await this.logJob(
       job,
       order,
-      `reach: ${placeOrderPrice.toPrecision(6)}`,
+      `reach: ${orderPrice.toPrecision(6)}`,
       `subs-RtPrice`,
     );
 
-    return placeOrderPrice;
+    return orderPrice;
   }
 
   protected async logJob(

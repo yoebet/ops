@@ -6,6 +6,7 @@ import { BaseBacktestRunner } from '@/trade-strategy/backtest/runner/base-backte
 import { BacktestStrategy } from '@/db/models/backtest-strategy';
 import { BacktestDeal } from '@/db/models/backtest-deal';
 import { KlineDataService } from '@/data-service/kline-data.service';
+import { OrderTag } from '@/db/models/ex-order';
 
 export abstract class RuntimeParamsBacktest<
   ORP = any,
@@ -47,11 +48,11 @@ export abstract class RuntimeParamsBacktest<
   }
 
   protected getOpenRuntimeParams(): ORP {
-    return this.getRuntimeParamsOf('open');
+    return this.getRuntimeParamsOf(OrderTag.open);
   }
 
   protected getCloseRuntimeParams(): CRP {
-    return this.getRuntimeParamsOf('close');
+    return this.getRuntimeParamsOf(OrderTag.close);
   }
 
   protected async closeDeal(deal: BacktestDeal): Promise<void> {

@@ -200,7 +200,7 @@ export async function waitForPrice(
     const lastPrice = await this.env.getLastPrice();
 
     if (!targetPrice) {
-      await this.logJob('no `placeOrderPrice`, place order now');
+      await this.logJob('no `orderPrice`, place order now');
       return lastPrice;
     }
 
@@ -242,4 +242,24 @@ export async function waitForPrice(
 
     await this.checkCommands();
   }
+}
+
+export async function checkPriceReached(
+  this: BaseRunner,
+  side: TradeSide,
+  targetPrice: number,
+): Promise<boolean> {
+  const lastPrice = await this.env.getLastPrice();
+  if (side === TradeSide.buy) {
+    if (lastPrice <= targetPrice) {
+      await this.logJob(`reach, to buy`);
+      return true;
+    }
+  } else {
+    if (lastPrice >= targetPrice) {
+      await this.logJob(`reach, to sell`);
+      return true;
+    }
+  }
+  return false;
 }

@@ -1,6 +1,6 @@
 import { PlaceOrderParams } from '@/exchange/exchange-service.types';
 import { TradeSide } from '@/data-service/models/base';
-import { ExOrder } from '@/db/models/ex-order';
+import { ExOrder, OrderTag } from '@/db/models/ex-order';
 
 export enum StrategyAlgo {
   INT = 'INT',
@@ -21,7 +21,7 @@ export declare type ConsiderSide = TradeSide | 'both';
 export class ExitSignal extends Error {}
 
 export interface TradeOpportunity {
-  orderTag?: string;
+  orderTag?: OrderTag;
   side: TradeSide;
   orderPrice?: number;
   order?: ExOrder;

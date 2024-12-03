@@ -13,6 +13,7 @@ import {
   KlineAgg,
 } from '@/trade-strategy/opportunity/helper';
 import { AppLogger } from '@/common/app-logger';
+import { OrderTag } from '@/db/models/ex-order';
 
 export function checkStill(
   this: { logger: AppLogger },
@@ -41,7 +42,7 @@ export async function checkLongStillOpp(
   this: BaseRunner,
   params: LSCheckerParams,
   considerSide: ConsiderSide,
-  orderTag?: string,
+  orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
   const {
     interval,

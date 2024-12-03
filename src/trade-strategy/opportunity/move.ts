@@ -9,6 +9,7 @@ import {
   evalTargetPrice,
   waitForPrice,
 } from '@/trade-strategy/opportunity/helper';
+import { OrderTag } from '@/db/models/ex-order';
 
 export async function checkMVOpp(
   this: BaseRunner,
@@ -29,7 +30,7 @@ async function checkMVOneSide(
   this: BaseRunner,
   rtParams: MVCheckerParams,
   side: TradeSide,
-  orderTag?: string,
+  orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
   let basePointPrice: number;
   const { startingPrice, waitForPercent } = rtParams;

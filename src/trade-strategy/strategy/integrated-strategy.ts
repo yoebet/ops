@@ -12,6 +12,7 @@ import { waitToPlaceLimitOrder } from '@/trade-strategy/opportunity/fixed';
 import { checkJumpOpp } from '@/trade-strategy/opportunity/jump';
 import { checkMVOpp } from '@/trade-strategy/opportunity/move';
 import { checkLongStillOpp } from '@/trade-strategy/opportunity/long-still';
+import { OrderTag } from '@/db/models/ex-order';
 
 export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityParams> {
   constructor(
@@ -25,7 +26,7 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
 
   protected async checkAndWaitToOpenDeal(): Promise<TradeOpportunity> {
     const params = this.getOpenRuntimeParams();
-    const orderTag = 'open';
+    const orderTag = OrderTag.open;
     const side = this.strategy.openDealSide;
     switch (params.algo) {
       case OppCheckerAlgo.BR:
@@ -50,7 +51,7 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
     }
 
     const params = this.getCloseRuntimeParams();
-    const orderTag = 'close';
+    const orderTag = OrderTag.close;
     const side = this.inverseSide(lastOrder.side);
     switch (params.algo) {
       case OppCheckerAlgo.BR:

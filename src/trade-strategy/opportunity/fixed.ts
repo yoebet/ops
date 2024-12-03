@@ -9,12 +9,13 @@ import {
 } from '@/trade-strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
+import { OrderTag } from '@/db/models/ex-order';
 
 export async function waitToPlaceLimitOrder(
   this: BaseRunner,
   rps: PriceDiffParams,
   side: ConsiderSide,
-  orderTag?: string,
+  orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
   if (!rps.startingPrice) {
     rps.startingPrice = await this.env.getLastPrice();
@@ -34,7 +35,7 @@ async function waitToPlaceOrderOneSide(
   this: BaseRunner,
   rps: PriceDiffParams,
   side: TradeSide,
-  orderTag?: string,
+  orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
   let basePointPrice = rps.startingPrice;
   if (rps.waitForTriggerPercent) {

@@ -4,6 +4,13 @@ import { TradeSide } from '@/data-service/models/base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
+export enum OrderTag {
+  open = 'open',
+  close = 'close',
+  stoploss = 'stoploss',
+  forceclose = 'forceclose',
+}
+
 export enum OrderStatus {
   notSummited = 'notSummited',
   summitFailed = 'summitFailed',
@@ -56,7 +63,7 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   dealId?: number;
 
   @Column({ nullable: true })
-  tag?: string;
+  tag?: OrderTag;
 
   @Column()
   side: TradeSide;

@@ -62,6 +62,11 @@ export class BacktestKlineLevelsData {
     return this.currentLevel;
   }
 
+  getIntervalEndTs(): number {
+    const cl = this.currentLevel;
+    return cl.holder.getTimeTs() + cl.intervalMs;
+  }
+
   isLowestLevel(): boolean {
     return this.currentLevel === this.lowestLevel;
   }

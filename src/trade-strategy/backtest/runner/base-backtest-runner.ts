@@ -3,7 +3,7 @@ import * as humanizeDuration from 'humanize-duration';
 import { AppLogger } from '@/common/app-logger';
 import { StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { TradeSide } from '@/data-service/models/base';
-import { OrderStatus } from '@/db/models/ex-order';
+import { OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { MVCheckerParams } from '@/trade-strategy/strategy.types';
 import { durationHumanizerOptions } from '@/trade-strategy/strategy.utils';
@@ -16,7 +16,7 @@ import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
 
 export interface BacktestTradeOppo {
-  orderTag?: string;
+  orderTag?: OrderTag;
   side: TradeSide;
   orderPrice?: number;
   orderTime?: Date;

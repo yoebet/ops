@@ -11,10 +11,12 @@ import {
 import { TimeLevel } from '@/db/models/time-level';
 import { MINUTE_MS, wait } from '@/common/utils/utils';
 import {
+  checkPriceReached,
   evalTargetPrice,
   waitForPrice,
 } from '@/trade-strategy/opportunity/helper';
 import { StrategyDeal } from '@/db/models/strategy-deal';
+import { ExOrder, OrderTag } from '@/db/models/ex-order';
 
 export abstract class RuntimeParamsRunner<
   ORP = any,
@@ -56,11 +58,11 @@ export abstract class RuntimeParamsRunner<
   }
 
   protected getOpenRuntimeParams(): ORP {
-    return this.getRuntimeParamsOf('open');
+    return this.getRuntimeParamsOf(OrderTag.open);
   }
 
   protected getCloseRuntimeParams(): CRP {
-    return this.getRuntimeParamsOf('close');
+    return this.getRuntimeParamsOf(OrderTag.close);
   }
 
   protected async closeDeal(deal: StrategyDeal): Promise<void> {
@@ -91,7 +93,7 @@ export abstract class RuntimeParamsRunner<
         const seconds = TimeLevel.evalIntervalSeconds(rps.maxCloseInterval);
         if (elapsed > seconds * 1000) {
           const oppo: TradeOpportunity = {
-            orderTag: 'force-close',
+            orderTag: OrderTag.forceclose,
             side: oppositeSide,
           };
           await this.buildMarketOrder(oppo);
@@ -171,7 +173,7 @@ export abstract class RuntimeParamsRunner<
     const _price = await waitForPrice.call(this, slSide, slPrice);
 
     const oppo: TradeOpportunity = {
-      orderTag: 'stop-loss',
+      orderTag: OrderTag.stoploss,
       side: slSide,
     };
     await this.buildMarketOrder(oppo);
@@ -179,6 +181,34 @@ export abstract class RuntimeParamsRunner<
     await this.doPlaceOrder(oppo.order, oppo.params);
 
     return undefined;
+  }
+
+  protected async shouldCancelOrder(pendingOrder: ExOrder): Promise<boolean> {
+    if (pendingOrder.tag !== OrderTag.close) {
+      return false;
+    }
+
+    const currentDeal = this.strategy.currentDeal;
+    if (!currentDeal) {
+      return false;
+    }
+    const lastOrder = currentDeal.lastOrder;
+    if (lastOrder.tag === OrderTag.close) {
+      return true;
+    }
+    const slSide = this.inverseSide(lastOrder.side);
+    const rps = this.getRuntimeParams();
+    const stopLossParams: StopLossParams = rps.stopLoss;
+    const priceDiffPercent = stopLossParams?.priceDiffPercent;
+    if (!priceDiffPercent) {
+      return false;
+    }
+    const slPrice = evalTargetPrice(
+      lastOrder.execPrice,
+      priceDiffPercent,
+      slSide,
+    );
+    return await checkPriceReached.call(this, slSide, slPrice);
   }
 
   protected async placeOrder(oppo: TradeOpportunity): Promise<void> {

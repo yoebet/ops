@@ -1,7 +1,6 @@
 import {
   CheckOpportunityParams,
   OppCheckerAlgo,
-  TradeOpportunity,
 } from '@/trade-strategy/strategy.types';
 import { StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
@@ -9,14 +8,15 @@ import { BacktestStrategy } from '@/db/models/backtest-strategy';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { RuntimeParamsBacktest } from '@/trade-strategy/backtest/runner/runtime-params-backtest';
 import { BacktestOrder } from '@/db/models/backtest-order';
-import { BacktestKline } from '@/data-service/models/kline';
 import { BacktestKlineLevelsData } from '@/trade-strategy/backtest/backtest-kline-levels-data';
 import { TimeLevel } from '@/db/models/time-level';
 import { BacktestTradeOppo } from '@/trade-strategy/backtest/runner/base-backtest-runner';
 import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
 import { checkBurstContinuous } from '@/trade-strategy/backtest/opportunity/burst';
-import { ExOrderResp, OrderStatus } from '@/db/models/ex-order';
+import { ExOrderResp, OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { fillOrderSize } from '@/trade-strategy/strategy.utils';
+import { evalTargetPrice } from '@/trade-strategy/opportunity/helper';
+import { TradeSide } from '@/data-service/models/base';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -84,7 +84,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     const strategy = this.strategy;
     const currentDeal = strategy.currentDeal;
     const lastOrder = currentDeal?.lastOrder;
-    const orderTag = lastOrder ? 'close' : 'open';
+    const orderTag = lastOrder ? OrderTag.open : OrderTag.close;
     const side = lastOrder
       ? this.inverseSide(lastOrder.side)
       : strategy.openDealSide;
@@ -137,50 +137,132 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     order: BacktestOrder,
   ): Promise<boolean> {
     if (!order.algoOrder) {
-      while (true) {
-        const kl = await kld.getKline();
-        if (!kl) {
-          const moved = kld.moveOrRollTime();
-          if (moved) {
-            continue;
-          } else {
-            return false;
-          }
-        }
-        const tl = kld.getCurrentLevel();
-        this.logger.log(`${tl.interval} ${kl.time.toISOString()} ${kl.open}`);
-
-        const orderPrice = order.limitPrice!;
-        if (orderPrice >= kl.low && orderPrice <= kl.high) {
-          if (kld.moveDownLevel()) {
-            continue;
-          }
-          const exOrderId = this.newOrderId();
-          const orderResp: ExOrderResp = {
-            exOrderId,
-            status: OrderStatus.filled,
-            // rawOrder: {},
-          };
-          fillOrderSize(orderResp, order, orderPrice);
-
-          await order.save();
-          const currentDeal = this.strategy.currentDeal;
-          currentDeal.lastOrder = order;
-          currentDeal.lastOrderId = order.id;
-          await currentDeal.save();
-          await this.onOrderFilled();
-        }
-        const moved = kld.moveOrRollTime(false);
-        if (!moved) {
-          return false;
-        }
+      const orderPrice = order.limitPrice!;
+      const reachPrice = await this.moveOnToPrice(kld, orderPrice);
+      if (!reachPrice) {
+        return false;
       }
+      const kl = await kld.getKline();
+
+      await this.fillOrder(order, orderPrice, new Date(kld.getIntervalEndTs()));
+
+      return kld.moveOrRollTime(false);
     } else {
       if (order.tpslType === 'move') {
         const { moveActivePrice, moveDrawbackPercent } = order;
+        if (moveActivePrice) {
+          const reachPrice = await this.moveOnToPrice(kld, moveActivePrice);
+          if (!reachPrice) {
+            return false;
+          }
+        }
+        const kl = await kld.getKline();
+        const activePrice = moveActivePrice || kl.close;
+
+        const drawbackRatio = moveDrawbackPercent / 100;
+        const spr = 1 + drawbackRatio;
+        const bpr = 1 - drawbackRatio;
+        let sentinel = activePrice;
+        const isBuy = order.side === TradeSide.buy;
+        let orderPrice = sentinel * (isBuy ? spr : bpr);
+
+        while (true) {
+          const kl = await kld.getKline();
+          if (!kl) {
+            const moved = kld.moveOrRollTime();
+            if (moved) {
+              continue;
+            } else {
+              return false;
+            }
+          }
+          const tl = kld.getCurrentLevel();
+          this.logger.log(`${tl.interval} ${kl.time.toISOString()} ${kl.open}`);
+
+          let toFill = false;
+          if (isBuy) {
+            if (kl.low < sentinel) {
+              sentinel = kl.low;
+              orderPrice = sentinel * spr;
+            } else if (kl.high >= orderPrice) {
+              toFill = true;
+            }
+          } else {
+            if (kl.high > sentinel) {
+              sentinel = kl.high;
+              orderPrice = sentinel * bpr;
+            } else if (kl.low <= orderPrice) {
+              toFill = true;
+            }
+          }
+          if (toFill) {
+            if (!kld.isLowestLevel()) {
+              kld.moveDownLevel();
+              continue;
+            }
+            await this.fillOrder(
+              order,
+              orderPrice,
+              new Date(kld.getIntervalEndTs()),
+            );
+          }
+          const moved = kld.moveOrRollTime(false);
+          if (!moved) {
+            return false;
+          }
+        }
       }
     }
     return true;
+  }
+
+  protected async fillOrder(
+    order: BacktestOrder,
+    orderPrice: number,
+    orderTime: Date,
+  ) {
+    const exOrderId = this.newOrderId();
+    const orderResp: ExOrderResp = {
+      exOrderId,
+      status: OrderStatus.filled,
+      exUpdatedAt: orderTime,
+      // rawOrder: {},
+    };
+    fillOrderSize(orderResp, order, orderPrice);
+
+    await order.save();
+    const currentDeal = this.strategy.currentDeal;
+    currentDeal.lastOrder = order;
+    currentDeal.lastOrderId = order.id;
+    await currentDeal.save();
+    await this.onOrderFilled();
+  }
+
+  protected async moveOnToPrice(kld: BacktestKlineLevelsData, price: number) {
+    while (true) {
+      const kl = await kld.getKline();
+      if (!kl) {
+        const moved = kld.moveOrRollTime();
+        if (moved) {
+          continue;
+        } else {
+          return false;
+        }
+      }
+      const tl = kld.getCurrentLevel();
+      this.logger.log(`${tl.interval} ${kl.time.toISOString()} ${kl.open}`);
+
+      if (price >= kl.low && price <= kl.high) {
+        if (kld.moveDownLevel()) {
+          continue;
+        }
+        return true;
+      }
+      const moved = kld.moveOrRollTime(false);
+      if (!moved) {
+        return false;
+      }
+    }
   }
 
   protected newOrderId() {
@@ -193,13 +275,14 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     if (!order) {
       return;
     }
-    const strategy = this.strategy;
-    const currentDeal = strategy.currentDeal;
+    const currentDeal = this.strategy.currentDeal;
     const exOrderId = this.newOrderId();
     if (order.priceType === 'market') {
       const orderResp: ExOrderResp = {
         exOrderId,
         status: OrderStatus.filled,
+        exCreatedAt: oppo.orderTime,
+        exUpdatedAt: oppo.orderTime,
         rawOrder: {},
       };
       fillOrderSize(orderResp, order, oppo.orderPrice);

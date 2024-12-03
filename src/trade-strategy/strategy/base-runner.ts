@@ -5,13 +5,13 @@ import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/trade-strategy/env/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
-import { ExOrder, OrderStatus } from '@/db/models/ex-order';
+import { ExOrder, OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { MINUTE_MS, round, wait } from '@/common/utils/utils';
 import {
-  TradeOpportunity,
   ExitSignal,
   MVCheckerParams,
+  TradeOpportunity,
 } from '@/trade-strategy/strategy.types';
 import {
   createNewDealIfNone,
@@ -370,7 +370,8 @@ export abstract class BaseRunner {
   }
 
   protected async checkAndWaitPendingOrder(): Promise<boolean> {
-    const currentDeal = this.strategy.currentDeal;
+    const strategy = this.strategy;
+    const currentDeal = strategy.currentDeal;
     if (!currentDeal?.pendingOrder) {
       return true;
     }
@@ -408,7 +409,14 @@ export abstract class BaseRunner {
           await currentDeal.save();
           await this.logJob(`synchronize-order - filled`);
         } else {
-          // TODO:
+          if (await this.shouldCancelOrder(pendingOrder)) {
+            await this.env.ensureApiKey();
+            const exService = this.env.getTradeService();
+            await exService.cancelOrder(strategy.apiKey, {
+              symbol: strategy.symbol,
+              orderId: pendingOrder.exOrderId,
+            });
+          }
           await this.logJob(`synchronize-order - not filled`);
           return false;
         }
@@ -420,6 +428,10 @@ export abstract class BaseRunner {
     await this.onOrderFilled();
 
     return true;
+  }
+
+  protected async shouldCancelOrder(pendingOrder: ExOrder): Promise<boolean> {
+    return false;
   }
 
   protected shouldCloseDeal(currentDeal: StrategyDeal): boolean {

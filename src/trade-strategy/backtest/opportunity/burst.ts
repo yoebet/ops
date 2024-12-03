@@ -12,6 +12,7 @@ import {
 import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
 import { checkBurst } from '@/trade-strategy/opportunity/burst';
 import { TradeSide } from '@/data-service/models/base';
+import { OrderTag } from '@/db/models/ex-order';
 
 function rollAgg(kls: BacktestKline[]) {
   const len = kls.length;
@@ -46,7 +47,7 @@ export async function checkBurstContinuous(
   considerSide: ConsiderSide,
   baselineKld: BacktestKlineData,
   kld: BacktestKlineLevelsData,
-  orderTag?: string,
+  orderTag?: OrderTag,
   tsTo?: number,
 ): Promise<BacktestTradeOppo | undefined> {
   const {
@@ -126,7 +127,7 @@ export async function checkBurstContinuous(
               orderTag,
               side,
               orderPrice,
-              orderTime: new Date(lastKl.ts),
+              orderTime: new Date(kld.getIntervalEndTs()),
               moveOn: true,
             };
             await this.buildMarketOrLimitOrder(oppo);

@@ -13,6 +13,7 @@ import {
   KlineAgg,
 } from '@/trade-strategy/opportunity/helper';
 import { AppLogger } from '@/common/app-logger';
+import { OrderTag } from '@/db/models/ex-order';
 
 export function checkBurst(
   this: { logger: AppLogger },
@@ -48,7 +49,7 @@ export async function checkBurstOpp(
   this: BaseRunner,
   params: BRCheckerParams,
   considerSide: ConsiderSide,
-  orderTag?: string,
+  orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
   const {
     interval,
