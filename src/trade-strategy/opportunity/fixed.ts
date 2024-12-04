@@ -38,8 +38,8 @@ async function waitToPlaceOrderOneSide(
   orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
   let basePointPrice = rps.startingPrice;
-  if (rps.waitForTriggerPercent) {
-    const wfp = rps.waitForTriggerPercent;
+  if (rps.waitForPercent) {
+    const wfp = rps.waitForPercent;
     if (wfp) {
       basePointPrice = evalTargetPrice(rps.startingPrice, wfp, side);
       await this.logJob(`target-price: ${basePointPrice.toPrecision(6)}`);

@@ -76,7 +76,7 @@ describe('strategy creating', () => {
     rps[OppCheckerAlgo.BR] = brp;
     const fpp: OpportunityCheckerFP = {
       algo: OppCheckerAlgo.FP,
-      waitForTriggerPercent: 0.1,
+      waitForPercent: 0.1,
       priceDiffPercent: 1,
     };
     rps[OppCheckerAlgo.FP] = fpp;

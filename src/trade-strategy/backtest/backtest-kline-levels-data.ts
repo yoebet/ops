@@ -223,7 +223,7 @@ export class BacktestKlineLevelsData {
     }
   }
 
-  moveOnTime(ts: number) {
+  moveOnToTime(ts: number) {
     for (const tl of this.timeLevelHolders) {
       if (ts < tl.holder.getTimeTs()) {
         this.currentLevel = tl;

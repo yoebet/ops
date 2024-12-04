@@ -62,7 +62,7 @@ export interface MVCheckerParams {
 }
 
 export interface PriceDiffParams {
-  waitForTriggerPercent?: number;
+  waitForPercent?: number;
   priceDiffPercent?: number;
   startingPrice?: number;
   // cancelOrderOnDeviatePercent?: number;

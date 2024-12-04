@@ -17,7 +17,7 @@ import { KlineDataService } from '@/data-service/kline-data.service';
 
 export interface BacktestTradeOppo {
   orderTag?: OrderTag;
-  side: TradeSide;
+  side?: TradeSide;
   orderPrice?: number;
   orderTime?: Date;
   order?: BacktestOrder;
