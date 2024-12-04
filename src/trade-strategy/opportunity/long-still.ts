@@ -60,13 +60,15 @@ export async function checkLongStillOpp(
     interval,
     limit: periods,
   });
-  const selfContrastAgg = evalKlineAgg(selfKls.slice(0, contrastPeriods));
-  const selfLatestAgg = evalKlineAgg(selfKls.slice(latestFrom));
+  const ckls = selfKls.slice(0, contrastPeriods);
+  const lkls = selfKls.slice(latestFrom);
+  const contrastAgg = evalKlineAgg(ckls);
+  const latestAgg = evalKlineAgg(lkls);
   if (
     !checkStill.call(
       this,
-      selfContrastAgg,
-      selfLatestAgg,
+      contrastAgg,
+      latestAgg,
       amountTimes,
       priceChangeTimes,
     )
@@ -77,9 +79,7 @@ export async function checkLongStillOpp(
   }
 
   const side =
-    selfLatestAgg.avgPrice > selfContrastAgg.avgPrice
-      ? TradeSide.sell
-      : TradeSide.buy;
+    latestAgg.avgPrice > contrastAgg.avgPrice ? TradeSide.sell : TradeSide.buy;
   if (considerSide !== 'both' && side !== considerSide) {
     return undefined;
   }

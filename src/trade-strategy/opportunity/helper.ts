@@ -13,6 +13,7 @@ import {
 } from '@/common/utils/utils';
 import { BaseRunner } from '@/trade-strategy/strategy/base-runner';
 import { ExKline } from '@/exchange/exchange-service.types';
+import { FtKline } from '@/data-service/models/kline';
 
 export function evalWatchLevel(diffPercentAbs: number): WatchLevel {
   let watchLevel: WatchLevel;
@@ -262,4 +263,31 @@ export async function checkPriceReached(
     }
   }
   return false;
+}
+
+export function rollAgg(kls: FtKline[]) {
+  const len = kls.length;
+  let agg = evalKlineAgg(kls);
+  return {
+    agg,
+    next: (newKl: FtKline) => {
+      const lastFirst = kls[0];
+      kls.push(newKl);
+      kls = kls.slice(1);
+      const newFirst = kls[0];
+      const amount = agg.amount - lastFirst.amount + newKl.amount;
+      const size = agg.size - lastFirst.size + newKl.size;
+      const avgPrice = amount / size;
+      const priceChange = Math.abs(newKl.close - newFirst.open);
+      const avgPriceChange = priceChange / len;
+      agg = {
+        size,
+        amount,
+        avgAmount: amount / len,
+        avgPrice,
+        avgPriceChange,
+      };
+      return agg;
+    },
+  };
 }

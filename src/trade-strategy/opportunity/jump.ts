@@ -23,7 +23,6 @@ export function checkJump(
   contrastAgg: KlineAgg,
   latestAgg: KlineAgg,
   priceChangeTimes: number,
-  context?: string,
 ): boolean {
   const jl = jumpKlines.length;
   const jumpLast = jumpKlines[jl - 1];
@@ -45,7 +44,7 @@ export function checkJump(
   const cpcs = lpc.toPrecision(6);
   const times = (lpc / cpc).toFixed(2);
   this.logger.debug(
-    `[${context}] priceChange: ${lpcs} ~ ${cpcs}, times: ${times} ~ ${priceChangeTimes}`,
+    `priceChange: ${lpcs} ~ ${cpcs}, times: ${times} ~ ${priceChangeTimes}`,
   );
   return lpc >= cpc * priceChangeTimes;
 }
@@ -60,14 +59,23 @@ export async function checkJumpOpp(
 
   const intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
 
+  const periods = jumpPeriods + stopPeriods;
   const selfKls = await this.env.getLatestKlines({
     interval,
-    limit: jumpPeriods + stopPeriods,
+    limit: periods,
   });
   const jumpKlines = selfKls.slice(0, jumpPeriods);
   const stopKlines = selfKls.slice(jumpPeriods);
   const jumpAgg = evalKlineAgg(jumpKlines);
   const stopAgg = evalKlineAgg(stopKlines);
+
+  const side =
+    stopAgg.avgPrice < jumpAgg.avgPrice ? TradeSide.buy : TradeSide.sell;
+  if (considerSide !== 'both' && side !== considerSide) {
+    await this.logJob(`not the side, wait ${interval}`);
+    await wait(intervalSeconds * 1000);
+    return undefined;
+  }
   if (
     !checkJump.call(
       this,
@@ -76,18 +84,11 @@ export async function checkJumpOpp(
       jumpAgg,
       stopAgg,
       priceChangeTimes,
-      'jump',
     )
   ) {
     const waitPeriods = 0.5;
     await this.logJob(`quiet, wait ${waitPeriods}*${interval}`);
     await wait(waitPeriods * intervalSeconds * 1000);
-    return undefined;
-  }
-
-  const side =
-    stopAgg.avgPrice < jumpAgg.avgPrice ? TradeSide.buy : TradeSide.sell;
-  if (considerSide !== 'both' && side !== considerSide) {
     return undefined;
   }
 

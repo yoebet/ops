@@ -1,5 +1,4 @@
 import { BRCheckerParams, ConsiderSide } from '@/trade-strategy/strategy.types';
-import { BacktestKline } from '@/data-service/models/kline';
 import {
   BacktestTradeOppo,
   BaseBacktestRunner,
@@ -8,48 +7,25 @@ import { BacktestKlineLevelsData } from '@/trade-strategy/backtest/backtest-klin
 import {
   evalKlineAgg,
   evalTargetPrice,
+  rollAgg,
 } from '@/trade-strategy/opportunity/helper';
 import { BacktestKlineData } from '@/trade-strategy/backtest/backtest-kline-data';
 import { checkBurst } from '@/trade-strategy/opportunity/burst';
 import { TradeSide } from '@/data-service/models/base';
 import { OrderTag } from '@/db/models/ex-order';
 
-function rollAgg(kls: BacktestKline[]) {
-  const len = kls.length;
-  let agg = evalKlineAgg(kls);
-  return {
-    agg,
-    next: (newKl: BacktestKline) => {
-      const lastFirst = kls[0];
-      kls.push(newKl);
-      kls = kls.slice(1);
-      const newFirst = kls[0];
-      const amount = agg.amount - lastFirst.amount + newKl.amount;
-      const size = agg.size - lastFirst.size + newKl.size;
-      const avgPrice = amount / size;
-      const priceChange = Math.abs(newKl.close - newFirst.open);
-      const avgPriceChange = priceChange / len;
-      agg = {
-        size,
-        amount,
-        avgAmount: amount / len,
-        avgPrice,
-        avgPriceChange,
-      };
-      return agg;
-    },
-  };
-}
-
 export async function checkBurstContinuous(
   this: BaseBacktestRunner,
   params: BRCheckerParams,
-  considerSide: ConsiderSide,
   baselineKld: BacktestKlineData,
-  kld: BacktestKlineLevelsData,
-  orderTag?: OrderTag,
-  tsTo?: number,
+  options: {
+    kld: BacktestKlineLevelsData;
+    considerSide: ConsiderSide;
+    orderTag?: OrderTag;
+    tsTo?: number;
+  },
 ): Promise<BacktestTradeOppo | undefined> {
+  const { kld, considerSide, orderTag, tsTo } = options;
   const {
     interval,
     periods,
@@ -62,11 +38,11 @@ export async function checkBurstContinuous(
     limitPriceDiffPercent,
   } = params;
 
-  kld.resetLevel(params.interval);
   const latestFrom = periods - checkPeriods;
 
+  kld.resetLevel(interval);
   let selfKls = await kld.getKlinesTillNow(interval, periods);
-  let { kline: kl, hasNext } = await kld.getLowestKlineAndMoveOn();
+  let kl = await kld.getKline();
 
   const ckls = selfKls.slice(0, contrastPeriods);
   const lkls = selfKls.slice(latestFrom);
@@ -75,7 +51,7 @@ export async function checkBurstContinuous(
   let selfContrastAgg = selfContrastRoller.agg;
   let selfLatestAgg = selfLatestRoller.agg;
 
-  selfKls = selfKls.slice(contrastPeriods + 1);
+  let hasNext = true;
 
   while (hasNext) {
     const side =
@@ -132,21 +108,21 @@ export async function checkBurstContinuous(
             };
             await this.buildMarketOrLimitOrder(oppo);
 
-            const nkl = await kld.getLowestKlineAndMoveOn();
+            const nkl = await kld.getKlineAndMoveOn(interval);
             oppo.moveOn = nkl.hasNext;
             return oppo;
           }
         }
       }
     }
-    const nkl = await kld.getLowestKlineAndMoveOn();
+    const nkl = await kld.getKlineAndMoveOn(interval);
     hasNext = nkl.hasNext;
     if (!hasNext) {
       return undefined;
     }
     if (tsTo) {
-      if (kld.getCurrentTimeCursor().toMillis() >= tsTo) {
-        const oppo: BacktestTradeOppo = {
+      if (kld.getCurrentTs() >= tsTo) {
+        return {
           orderTag,
           side,
           // orderPrice,
@@ -158,8 +134,8 @@ export async function checkBurstContinuous(
     }
     kl = nkl.kline;
     selfKls.push(kl);
-    selfContrastAgg = selfContrastRoller.next(selfKls[0]);
     selfKls = selfKls.slice(1);
+    selfContrastAgg = selfContrastRoller.next(selfKls[contrastPeriods]);
     selfLatestAgg = selfLatestRoller.next(kl);
   }
 

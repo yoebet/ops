@@ -320,7 +320,7 @@ export abstract class BaseBacktestRunner {
   protected async buildMarketOrLimitOrder(
     oppo: BacktestTradeOppo,
   ): Promise<void> {
-    if (oppo.order) {
+    if (oppo.orderPrice) {
       return this.buildLimitOrder(oppo);
     }
     return this.buildMarketOrder(oppo);

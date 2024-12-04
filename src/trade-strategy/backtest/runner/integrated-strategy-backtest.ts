@@ -17,6 +17,8 @@ import { ExOrderResp, OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { fillOrderSize } from '@/trade-strategy/strategy.utils';
 import { evalTargetPrice } from '@/trade-strategy/opportunity/helper';
 import { TradeSide } from '@/data-service/models/base';
+import { checkLongStillContinuous } from '@/trade-strategy/backtest/opportunity/long-still';
+import { checkJumpContinuous } from '@/trade-strategy/backtest/opportunity/jump';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -92,6 +94,14 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       ? this.getCloseRuntimeParams()
       : this.getOpenRuntimeParams();
     // const rps = this.getRuntimeParams();
+
+    const checkOptions = {
+      kld,
+      considerSide: side,
+      orderTag,
+      tsTo,
+    };
+    let oppo: BacktestTradeOppo;
     switch (params.algo) {
       case OppCheckerAlgo.BR:
         const ckld = new BacktestKlineData(
@@ -99,29 +109,42 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
           strategy.ex,
           params.baselineSymbol || 'BTC/USDT',
           TimeLevel.TL1mTo1d.find((tl) => tl.interval === params.interval),
-          this.klineData.getCurrentTimeCursor(params.interval),
+          this.klineData.getCurrentTime(params.interval),
         );
-        const oppo: BacktestTradeOppo = await checkBurstContinuous.call(
+        oppo = await checkBurstContinuous.call(
           this,
           params,
-          side,
           ckld,
-          kld,
-          orderTag,
-          tsTo,
+          checkOptions,
         );
         if (!oppo) {
           return false;
         }
-        if (!oppo.reachTimeLimit) {
+        if (oppo.reachTimeLimit) {
           return true;
         }
         await this.placeOrder(oppo);
         return oppo.moveOn;
       case OppCheckerAlgo.LS:
-        break;
+        oppo = await checkLongStillContinuous.call(this, params, checkOptions);
+        if (!oppo) {
+          return false;
+        }
+        if (oppo.reachTimeLimit) {
+          return true;
+        }
+        await this.placeOrder(oppo);
+        return oppo.moveOn;
       case OppCheckerAlgo.JP:
-        break;
+        oppo = await checkJumpContinuous.call(this, params, checkOptions);
+        if (!oppo) {
+          return false;
+        }
+        if (oppo.reachTimeLimit) {
+          return true;
+        }
+        await this.placeOrder(oppo);
+        return oppo.moveOn;
       case OppCheckerAlgo.MV:
         break;
       case OppCheckerAlgo.FP:

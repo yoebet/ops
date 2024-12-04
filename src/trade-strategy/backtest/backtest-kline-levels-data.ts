@@ -116,7 +116,7 @@ export class BacktestKlineLevelsData {
     this.currentLevel = tlh;
   }
 
-  getCurrentTimeCursor(interval?: string): DateTime {
+  getCurrentTime(interval?: string): DateTime {
     let tlh: TimeLevelHolder;
     if (interval) {
       tlh = this.timeLevelHolders.find((l) => l.interval === interval);
@@ -128,6 +128,10 @@ export class BacktestKlineLevelsData {
     }
 
     return tlh.holder.getTimeCursor();
+  }
+
+  getCurrentTs(interval?: string): number {
+    return this.getCurrentTime(interval).toMillis();
   }
 
   moveDownLevel(): boolean {
@@ -179,9 +183,7 @@ export class BacktestKlineLevelsData {
   }> {
     this.resetLowestLevel();
     const kline = await this.getKline();
-    let hasNext: boolean;
-
-    hasNext = this.rollTimeInterval();
+    let hasNext = this.rollTimeInterval();
     if (hasNext) {
       return { kline, hasNext };
     }
@@ -193,6 +195,29 @@ export class BacktestKlineLevelsData {
       hasNext = this.rollTimeInterval();
       if (hasNext) {
         this.resetLowestLevel();
+        return { kline, hasNext };
+      }
+    }
+  }
+
+  async getKlineAndMoveOn(interval: string): Promise<{
+    kline: BacktestKline;
+    hasNext: boolean;
+  }> {
+    this.resetLevel(interval);
+    const kline = await this.getKline();
+    let hasNext = this.rollTimeInterval();
+    if (hasNext) {
+      return { kline, hasNext };
+    }
+    while (true) {
+      const up = this.moveUpLevel();
+      if (!up) {
+        return { kline, hasNext: false };
+      }
+      hasNext = this.rollTimeInterval();
+      if (hasNext) {
+        this.resetLevel(interval);
         return { kline, hasNext };
       }
     }
