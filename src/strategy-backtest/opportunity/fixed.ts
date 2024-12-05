@@ -32,7 +32,7 @@ export async function checkLimitOrderContinuous(
   while (true) {
     const kl = await kld.getKline();
     if (!kl) {
-      const moved = kld.moveOrRollTime();
+      const moved = kld.moveOn();
       if (moved) {
         continue;
       } else {

@@ -15,7 +15,7 @@ export abstract class RuntimeParamsBacktest<
   protected _runtimeParams: CommonStrategyParams<ORP, CRP>;
 
   protected constructor(
-    protected strategy: BacktestStrategy,
+    protected readonly strategy: BacktestStrategy,
     protected klineDataService: KlineDataService,
     protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,

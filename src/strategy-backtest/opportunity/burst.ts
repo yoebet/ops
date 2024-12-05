@@ -42,6 +42,9 @@ export async function checkBurstContinuous(
 
   kld.resetLevel(interval);
   let selfKls = await kld.getKlinesTillNow(interval, periods);
+  if (selfKls.length < periods) {
+    return undefined;
+  }
   let kl = await kld.getKline();
 
   const ckls = selfKls.slice(0, contrastPeriods);
@@ -51,9 +54,8 @@ export async function checkBurstContinuous(
   let selfContrastAgg = selfContrastRoller.agg;
   let selfLatestAgg = selfLatestRoller.agg;
 
-  let hasNext = true;
-
-  while (hasNext) {
+  while (true) {
+    this.logger.log(`${kl.interval} ${kl.time.toISOString()}`);
     const side =
       selfLatestAgg.avgPrice > selfContrastAgg.avgPrice
         ? TradeSide.buy
@@ -69,54 +71,53 @@ export async function checkBurstContinuous(
           'self',
         )
       ) {
+        let match = false;
         if (this.strategy.symbol !== baselineKld.getSymbol()) {
+          match = true;
+        } else {
           const baselineKls = await baselineKld.getKlinesTillNow(
             interval,
             periods,
           );
-          const blContrastAgg = evalKlineAgg(
-            baselineKls.slice(0, contrastPeriods),
+          const bckls = baselineKls.slice(0, contrastPeriods);
+          const blkls = baselineKls.slice(latestFrom);
+          const blContrastAgg = evalKlineAgg(bckls);
+          const blLatestAgg = evalKlineAgg(blkls);
+          match = !checkBurst.call(
+            this,
+            blContrastAgg,
+            blLatestAgg,
+            baselineAmountTimes,
+            baselinePriceChangeTimes,
+            'baseline',
           );
-          const blLatestAgg = evalKlineAgg(baselineKls.slice(latestFrom));
-          if (
-            !checkBurst.call(
-              this,
-              blContrastAgg,
-              blLatestAgg,
-              baselineAmountTimes,
-              baselinePriceChangeTimes,
-              'baseline',
-            )
-          ) {
-            const lastKl = selfKls[selfKls.length - 1];
-            let orderPrice: number = undefined;
-            if (limitPriceDiffPercent) {
-              const lastPrice = lastKl.close;
-              orderPrice = evalTargetPrice(
-                lastPrice,
-                limitPriceDiffPercent,
-                side,
-              );
-            }
-
-            const oppo: BacktestTradeOppo = {
-              orderTag,
-              side,
+        }
+        if (match) {
+          const lastKl = selfKls[selfKls.length - 1];
+          let orderPrice = lastKl.close;
+          if (limitPriceDiffPercent) {
+            orderPrice = evalTargetPrice(
               orderPrice,
-              orderTime: new Date(kld.getIntervalEndTs()),
-              moveOn: true,
-            };
-            await this.buildMarketOrLimitOrder(oppo);
-
-            const nkl = await kld.getKlineAndMoveOn(interval);
-            oppo.moveOn = nkl.hasNext;
-            return oppo;
+              limitPriceDiffPercent,
+              side,
+            );
           }
+
+          const oppo: BacktestTradeOppo = {
+            orderTag,
+            side,
+            orderPrice,
+            orderTime: new Date(kld.getIntervalEndTs()),
+            moveOn: true,
+          };
+          await this.buildMarketOrder(oppo);
+
+          oppo.moveOn = kld.moveOverLevel(interval);
+          return oppo;
         }
       }
     }
-    const nkl = await kld.getKlineAndMoveOn(interval);
-    hasNext = nkl.hasNext;
+    const hasNext = kld.moveOverLevel(interval);
     if (!hasNext) {
       return undefined;
     }
@@ -132,12 +133,10 @@ export async function checkBurstContinuous(
         };
       }
     }
-    kl = nkl.kline;
+    kl = await kld.getKline();
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     selfContrastAgg = selfContrastRoller.next(selfKls[contrastPeriods]);
     selfLatestAgg = selfLatestRoller.next(kl);
   }
-
-  return undefined;
 }

@@ -31,6 +31,9 @@ export async function checkJumpContinuous(
   kld.resetLevel(interval);
   const periods = jumpPeriods + stopPeriods;
   let selfKls = await kld.getKlinesTillNow(interval, periods);
+  if (selfKls.length < periods) {
+    return undefined;
+  }
   let kl = await kld.getKline();
 
   let jumpKlines = selfKls.slice(0, jumpPeriods);
@@ -40,8 +43,7 @@ export async function checkJumpContinuous(
   let contrastAgg = contrastRoller.agg;
   let latestAgg = latestRoller.agg;
 
-  let hasNext = true;
-  while (hasNext) {
+  while (true) {
     const side =
       latestAgg.avgPrice > contrastAgg.avgPrice
         ? TradeSide.buy
@@ -73,13 +75,11 @@ export async function checkJumpContinuous(
         };
         await this.buildMarketOrLimitOrder(oppo);
 
-        const nkl = await kld.getKlineAndMoveOn(interval);
-        oppo.moveOn = nkl.hasNext;
+        oppo.moveOn = kld.moveOverLevel(interval);
         return oppo;
       }
     }
-    const nkl = await kld.getKlineAndMoveOn(interval);
-    hasNext = nkl.hasNext;
+    const hasNext = kld.moveOverLevel(interval);
     if (!hasNext) {
       return undefined;
     }
@@ -95,7 +95,7 @@ export async function checkJumpContinuous(
         };
       }
     }
-    kl = nkl.kline;
+    kl = await kld.getKline();
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     jumpKlines = selfKls.slice(0, jumpPeriods);
@@ -103,6 +103,4 @@ export async function checkJumpContinuous(
     contrastAgg = contrastRoller.next(selfKls[jumpPeriods]);
     latestAgg = latestRoller.next(kl);
   }
-
-  return undefined;
 }

@@ -90,7 +90,7 @@ describe('backtest kline data', () => {
       } else {
         console.log(`${h} - missing`);
       }
-      const moved = kld.moveOrRollTime();
+      const moved = kld.moveOn();
       if (!moved) {
         break;
       }
@@ -99,7 +99,11 @@ describe('backtest kline data', () => {
 
   it('kline-data - roll lowest', async () => {
     while (true) {
-      const { kline: kl, hasNext } = await kld.getLowestKlineAndMoveOn();
+      const hasNext = kld.moveOnLowestLevel();
+      if (!hasNext) {
+        break;
+      }
+      const kl = await kld.getKline();
       const { interval } = kld.getCurrentLevel();
       const h = `${interval} ::`;
       if (kl) {

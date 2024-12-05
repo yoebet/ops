@@ -81,4 +81,10 @@ describe('backtest strategy creating', () => {
       await createStrategyFromTemplate(st, exchangeSymbol, tradeType);
     }
   });
+
+  it('clear current deal', async () => {
+    const strategy = await BacktestStrategy.findOneBy({ id: 10 });
+    strategy.currentDealId = null;
+    await strategy.save();
+  });
 });

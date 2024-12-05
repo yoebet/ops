@@ -34,6 +34,9 @@ export async function checkLongStillContinuous(
 
   kld.resetLevel(interval);
   let selfKls = await kld.getKlinesTillNow(interval, periods);
+  if (selfKls.length < periods) {
+    return undefined;
+  }
   let kl = await kld.getKline();
 
   const ckls = selfKls.slice(0, contrastPeriods);
@@ -43,8 +46,7 @@ export async function checkLongStillContinuous(
   let contrastAgg = contrastRoller.agg;
   let latestAgg = latestRoller.agg;
 
-  let hasNext = true;
-  while (hasNext) {
+  while (true) {
     const side =
       latestAgg.avgPrice > contrastAgg.avgPrice
         ? TradeSide.buy
@@ -74,12 +76,10 @@ export async function checkLongStillContinuous(
       };
       await this.buildMarketOrLimitOrder(oppo);
 
-      const nkl = await kld.getKlineAndMoveOn(interval);
-      oppo.moveOn = nkl.hasNext;
+      oppo.moveOn = kld.moveOverLevel(interval);
       return oppo;
     }
-    const nkl = await kld.getKlineAndMoveOn(interval);
-    hasNext = nkl.hasNext;
+    const hasNext = await kld.moveOverLevel(interval);
     if (!hasNext) {
       return undefined;
     }
@@ -95,12 +95,10 @@ export async function checkLongStillContinuous(
         };
       }
     }
-    kl = nkl.kline;
+    kl = await kld.getKline();
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     contrastAgg = contrastRoller.next(selfKls[contrastPeriods]);
     latestAgg = latestRoller.next(kl);
   }
-
-  return undefined;
 }

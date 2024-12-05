@@ -25,7 +25,7 @@ export abstract class RuntimeParamsRunner<
   protected _runtimeParams: CommonStrategyParams<ORP, CRP>;
 
   protected constructor(
-    protected strategy: Strategy,
+    protected readonly strategy: Strategy,
     protected env: StrategyEnv,
     protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,

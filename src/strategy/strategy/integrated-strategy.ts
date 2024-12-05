@@ -16,7 +16,7 @@ import { OrderTag } from '@/db/models/ex-order';
 
 export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityParams> {
   constructor(
-    protected strategy: Strategy,
+    protected readonly strategy: Strategy,
     protected env: StrategyEnv,
     protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,

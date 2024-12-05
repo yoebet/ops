@@ -19,6 +19,7 @@ import { JobsModule } from '@/job/jobs.module';
 import { StrategyModule } from '@/strategy/strategy.module';
 import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.module';
+import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.modul
     HistoryDataLoaderModule,
     ExDataModule,
     StrategyModule,
+    StrategyBacktestModule,
     ExSyncModule,
   ],
   controllers: [AppController, ExchangeController, AdminLoggerController],

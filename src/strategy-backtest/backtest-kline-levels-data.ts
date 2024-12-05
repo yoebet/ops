@@ -150,7 +150,7 @@ export class BacktestKlineLevelsData {
     return true;
   }
 
-  moveOrRollTime(moveDown = true): boolean {
+  moveOn(moveDown = true): boolean {
     if (moveDown) {
       const down = this.moveDownLevel();
       if (down) {
@@ -174,51 +174,43 @@ export class BacktestKlineLevelsData {
   }
 
   moveOver(): boolean {
-    return this.moveOrRollTime(false);
+    return this.moveOn(false);
   }
 
-  async getLowestKlineAndMoveOn(): Promise<{
-    kline: BacktestKline;
-    hasNext: boolean;
-  }> {
-    this.resetLowestLevel();
-    const kline = await this.getKline();
-    let hasNext = this.rollTimeInterval();
-    if (hasNext) {
-      return { kline, hasNext };
-    }
-    while (true) {
-      const up = this.moveUpLevel();
-      if (!up) {
-        return { kline, hasNext: false };
-      }
-      hasNext = this.rollTimeInterval();
-      if (hasNext) {
-        this.resetLowestLevel();
-        return { kline, hasNext };
-      }
-    }
-  }
-
-  async getKlineAndMoveOn(interval: string): Promise<{
-    kline: BacktestKline;
-    hasNext: boolean;
-  }> {
+  moveOverLevel(interval: string): boolean {
     this.resetLevel(interval);
-    const kline = await this.getKline();
     let hasNext = this.rollTimeInterval();
     if (hasNext) {
-      return { kline, hasNext };
+      return true;
     }
     while (true) {
       const up = this.moveUpLevel();
       if (!up) {
-        return { kline, hasNext: false };
+        return false;
       }
       hasNext = this.rollTimeInterval();
       if (hasNext) {
         this.resetLevel(interval);
-        return { kline, hasNext };
+        return true;
+      }
+    }
+  }
+
+  moveOnLowestLevel(): boolean {
+    this.resetLowestLevel();
+    let hasNext = this.rollTimeInterval();
+    if (hasNext) {
+      return true;
+    }
+    while (true) {
+      const up = this.moveUpLevel();
+      if (!up) {
+        return false;
+      }
+      hasNext = this.rollTimeInterval();
+      if (hasNext) {
+        this.resetLowestLevel();
+        return true;
       }
     }
   }

@@ -139,22 +139,23 @@ export abstract class BaseBacktestRunner {
       });
       strategy.currentDeal = currentDeal;
       if (!currentDeal) {
-        strategy.currentDealId = undefined;
+        strategy.currentDealId = null;
       }
     }
+    if (currentDeal && currentDeal.status !== 'open') {
+      currentDeal = null;
+      strategy.currentDeal = null;
+      strategy.currentDealId = null;
+      await strategy.save();
+    }
     if (currentDeal) {
-      if (currentDeal.status !== 'open') {
-        currentDeal = undefined;
-        strategy.currentDeal = undefined;
-        strategy.currentDealId = undefined;
-      }
       const { lastOrderId, pendingOrderId } = currentDeal;
       if (lastOrderId) {
         currentDeal.lastOrder = await BacktestOrder.findOneBy({
           id: lastOrderId,
         });
         if (!currentDeal.lastOrder) {
-          currentDeal.lastOrderId = undefined;
+          currentDeal.lastOrderId = null;
         }
       }
       if (currentDeal.pendingOrderId) {
@@ -162,7 +163,7 @@ export abstract class BaseBacktestRunner {
           id: pendingOrderId,
         });
         if (!currentDeal.pendingOrder) {
-          currentDeal.pendingOrderId = undefined;
+          currentDeal.pendingOrderId = null;
         }
       }
       await currentDeal.save();
@@ -179,33 +180,43 @@ export abstract class BaseBacktestRunner {
       select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
       where: { dealId: deal.id, status: OrderStatus.filled },
     });
-    const cal = (side: TradeSide) => {
-      const sideOrders = orders.filter((o) => o.side === side);
-      if (sideOrders.length === 1) {
-        return [sideOrders[0].execSize, sideOrders[0].execSize];
-      }
-      const size = _.sumBy(sideOrders, 'execSize');
-      const amount = _.sumBy(sideOrders, 'execAmount');
-      const avgPrice = amount / size;
-      return [size, avgPrice];
-    };
-    const [buySize, buyAvgPrice] = cal(TradeSide.buy);
-    const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
-    const settleSize = Math.max(buySize, sellSize);
-    // .. USD
-    deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+    if (orders.length > 0) {
+      const cal = (side: TradeSide) => {
+        const sideOrders = orders.filter((o) => o.side === side);
+        if (sideOrders.length === 1) {
+          return [sideOrders[0].execSize, sideOrders[0].execSize];
+        }
+        const size = _.sumBy(sideOrders, 'execSize');
+        const amount = _.sumBy(sideOrders, 'execAmount');
+        const avgPrice = amount / size;
+        return [size, avgPrice];
+      };
+      const [buySize, buyAvgPrice] = cal(TradeSide.buy);
+      const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
+      const settleSize = Math.max(buySize, sellSize);
+      // .. USD
+      deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+    }
     deal.status = 'closed';
     deal.closedAt = new Date();
     await deal.save();
 
     const strategy = this.strategy;
-    strategy.lastDealId = strategy.currentDealId;
-    strategy.lastDeal = strategy.currentDeal;
-    strategy.currentDealId = undefined;
-    strategy.currentDeal = undefined;
+    if (strategy.currentDealId === deal.id) {
+      strategy.lastDealId = strategy.currentDealId;
+      strategy.lastDeal = strategy.currentDeal;
+      strategy.currentDealId = null;
+      strategy.currentDeal = null;
+    }
     await strategy.save();
 
     await this.logJob(`deal closed.`);
+
+    await this.onDealClosed();
+  }
+
+  protected async onDealClosed() {
+    await this.loadOrCreateDeal();
   }
 
   protected shouldCloseDeal(currentDeal: BacktestDeal): boolean {
@@ -214,7 +225,7 @@ export abstract class BaseBacktestRunner {
 
   protected async onOrderFilled() {
     const currentDeal = this.strategy.currentDeal;
-    if (this.shouldCloseDeal(currentDeal)) {
+    if (!this.shouldCloseDeal(currentDeal)) {
       return;
     }
 

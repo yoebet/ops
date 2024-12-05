@@ -9,6 +9,9 @@ export function fillOrderSize(
   price?: number,
 ) {
   price = price || order.limitPrice;
+  if (!order.baseSize && !price) {
+    throw new Error(`missing price`);
+  }
   const execSize = order.baseSize ? order.baseSize : order.quoteAmount / price;
   const execAmount = order.quoteAmount
     ? order.quoteAmount

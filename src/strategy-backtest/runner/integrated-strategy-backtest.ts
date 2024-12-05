@@ -13,9 +13,8 @@ import { TimeLevel } from '@/db/models/time-level';
 import { BacktestTradeOppo } from '@/strategy-backtest/runner/base-backtest-runner';
 import { BacktestKlineData } from '@/strategy-backtest/backtest-kline-data';
 import { checkBurstContinuous } from '@/strategy-backtest/opportunity/burst';
-import { ExOrderResp, OrderStatus, OrderTag } from '@/db/models/ex-order';
+import { OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { fillOrderSize } from '@/strategy/strategy.utils';
-import { evalTargetPrice } from '@/strategy/opportunity/helper';
 import { TradeSide } from '@/data-service/models/base';
 import { checkLongStillContinuous } from '@/strategy-backtest/opportunity/long-still';
 import { checkJumpContinuous } from '@/strategy-backtest/opportunity/jump';
@@ -24,7 +23,7 @@ import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/fixed
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
-    protected strategy: BacktestStrategy,
+    protected readonly strategy: BacktestStrategy,
     protected klineDataService: KlineDataService,
     protected jobEnv: StrategyJobEnv,
     protected logger: AppLogger,
@@ -65,10 +64,11 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
             tsTo = lastOrderTs + seconds * 1000;
           }
           if (rps.stopLoss?.priceDiffPercent) {
-            return Promise.race([
-              // this.checkAndWaitToStopLoss(),
-              // this.checkAndWaitToCloseDeal(),
-            ]);
+            // TODO:
+            // return Promise.race([
+            //   // this.checkAndWaitToStopLoss(),
+            //   // this.checkAndWaitToCloseDeal(),
+            // ]);
           } else {
             // return this.checkAndWaitToCloseDeal();
           }
@@ -158,7 +158,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
 
       await this.fillOrder(order, orderPrice, new Date(kld.getIntervalEndTs()));
 
-      return kld.moveOrRollTime(false);
+      return kld.moveOn(false);
     } else {
       if (order.tpslType === 'move') {
         const { moveActivePrice, moveDrawbackPercent } = order;
@@ -181,7 +181,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
         while (true) {
           const kl = await kld.getKline();
           if (!kl) {
-            const moved = kld.moveOrRollTime();
+            const moved = kld.moveOn();
             if (moved) {
               continue;
             } else {
@@ -234,13 +234,10 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     orderTime: Date,
   ) {
     const exOrderId = this.newOrderId();
-    const orderResp: ExOrderResp = {
-      exOrderId,
-      status: OrderStatus.filled,
-      exUpdatedAt: orderTime,
-      // rawOrder: {},
-    };
-    fillOrderSize(orderResp, order, orderPrice);
+    fillOrderSize(order, order, orderPrice);
+    order.exOrderId = exOrderId;
+    order.status = OrderStatus.filled;
+    order.exUpdatedAt = orderTime;
 
     await order.save();
     const currentDeal = this.strategy.currentDeal;
@@ -254,7 +251,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     while (true) {
       const kl = await kld.getKline();
       if (!kl) {
-        const moved = kld.moveOrRollTime();
+        const moved = kld.moveOn();
         if (moved) {
           continue;
         } else {
@@ -270,7 +267,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
         }
         return true;
       }
-      const moved = kld.moveOrRollTime(false);
+      const moved = kld.moveOver();
       if (!moved) {
         return false;
       }
@@ -279,7 +276,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
 
   protected newOrderId() {
     const { id, ex } = this.strategy;
-    return `${ex.toLowerCase()}${id}${Math.round(Date.now() / 1000) - 1e9}bt`;
+    return `${ex.toLowerCase()}${id}${Date.now()}bt`;
   }
 
   protected async placeOrder(oppo: BacktestTradeOppo): Promise<void> {
@@ -290,20 +287,19 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     const currentDeal = this.strategy.currentDeal;
     const exOrderId = this.newOrderId();
     if (order.priceType === 'market') {
-      const orderResp: ExOrderResp = {
-        exOrderId,
-        status: OrderStatus.filled,
-        exCreatedAt: oppo.orderTime,
-        exUpdatedAt: oppo.orderTime,
-        rawOrder: {},
-      };
-      fillOrderSize(orderResp, order, oppo.orderPrice);
+      fillOrderSize(order, order, oppo.orderPrice);
+      order.exOrderId = exOrderId;
+      order.status = OrderStatus.filled;
+      order.exCreatedAt = oppo.orderTime;
+      order.exUpdatedAt = oppo.orderTime;
       await order.save();
       currentDeal.lastOrder = order;
       currentDeal.lastOrderId = order.id;
       await currentDeal.save();
       await this.onOrderFilled();
     } else {
+      order.exOrderId = exOrderId;
+      order.status = OrderStatus.pending;
       await order.save();
       currentDeal.pendingOrder = order;
       currentDeal.pendingOrderId = order.id;
