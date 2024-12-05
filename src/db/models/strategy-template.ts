@@ -5,7 +5,7 @@ import {
   ConsiderSide,
   OppCheckerAlgo,
   StrategyAlgo,
-} from '@/trade-strategy/strategy.types';
+} from '@/strategy/strategy.types';
 
 @Entity()
 export class StrategyTemplate extends BaseModel {

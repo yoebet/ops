@@ -8,7 +8,7 @@ import {
   ConsiderSide,
   OppCheckerAlgo,
   StrategyAlgo,
-} from '@/trade-strategy/strategy.types';
+} from '@/strategy/strategy.types';
 
 @Entity()
 // @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])

@@ -16,7 +16,7 @@ import { AdminLoggerController } from '@/controller/admin-logger.controller';
 import { ExDataModule } from '@/data-ex/ex-data.module';
 import { AuthModule } from '@/common-web/auth/auth.module';
 import { JobsModule } from '@/job/jobs.module';
-import { StrategyModule } from '@/trade-strategy/strategy.module';
+import { StrategyModule } from '@/strategy/strategy.module';
 import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.module';
 

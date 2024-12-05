@@ -6,8 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
 import { InstanceLog } from '@/db/models/instance-log';
 import { JobsService } from '@/job/jobs.service';
-import { StrategyService } from '@/trade-strategy/strategy.service';
-import { BacktestService } from '@/trade-strategy/backtest/backtest.service';
+import { StrategyService } from '@/strategy/strategy.service';
+import { BacktestService } from '@/strategy-backtest/backtest.service';
 import { HistoryDataLoaderService } from '@/data-loader/history-data-loader.service';
 
 @Injectable()
