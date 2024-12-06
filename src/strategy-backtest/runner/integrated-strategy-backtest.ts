@@ -20,6 +20,7 @@ import { checkLongStillContinuous } from '@/strategy-backtest/opportunity/long-s
 import { checkJumpContinuous } from '@/strategy-backtest/opportunity/jump';
 import { checkMoveContinuous } from '@/strategy-backtest/opportunity/move';
 import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/tpsl';
+import { DefaultBaselineSymbol } from '@/strategy/strategy.constants';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -104,13 +105,20 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       orderTag,
       tsTo,
     };
+    const oppor: Partial<BacktestTradeOppo> = {
+      orderTag,
+    };
+    if (lastOrder) {
+      oppor.orderSize = lastOrder.execSize;
+      oppor.orderAmount = lastOrder.execAmount;
+    }
     let oppo: BacktestTradeOppo;
     switch (params.algo) {
       case OppCheckerAlgo.BR:
         const ckld = new BacktestKlineData(
           this.klineDataService,
           strategy.ex,
-          params.baselineSymbol || 'BTC/USDT',
+          params.baselineSymbol || DefaultBaselineSymbol,
           TimeLevel.TL1mTo1d.find((tl) => tl.interval === params.interval),
           this.klineData.getCurrentTime(params.interval),
         );
@@ -118,20 +126,41 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
           this,
           params,
           ckld,
+          oppor,
           checkOptions,
         );
         break;
       case OppCheckerAlgo.LS:
-        oppo = await checkLongStillContinuous.call(this, params, checkOptions);
+        oppo = await checkLongStillContinuous.call(
+          this,
+          params,
+          oppor,
+          checkOptions,
+        );
         break;
       case OppCheckerAlgo.JP:
-        oppo = await checkJumpContinuous.call(this, params, checkOptions);
+        oppo = await checkJumpContinuous.call(
+          this,
+          params,
+          oppor,
+          checkOptions,
+        );
         break;
       case OppCheckerAlgo.MV:
-        oppo = await checkMoveContinuous.call(this, params, checkOptions);
+        oppo = await checkMoveContinuous.call(
+          this,
+          params,
+          oppor,
+          checkOptions,
+        );
         break;
       case OppCheckerAlgo.TP:
-        oppo = await checkLimitOrderContinuous.call(this, params, checkOptions);
+        oppo = await checkLimitOrderContinuous.call(
+          this,
+          params,
+          oppor,
+          checkOptions,
+        );
         break;
       default:
         return undefined;
@@ -160,7 +189,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
 
       await this.fillOrder(order, orderPrice, new Date(kld.getIntervalEndTs()));
 
-      return kld.moveOn(false);
+      return kld.moveOver();
     }
 
     if (order.tpslType === 'move') {
@@ -222,6 +251,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
             orderPrice,
             new Date(kld.getIntervalEndTs()),
           );
+          return kld.moveOver();
         }
         const moved = kld.moveOver();
         if (!moved) {
@@ -247,6 +277,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     const currentDeal = this.strategy.currentDeal;
     currentDeal.lastOrder = order;
     currentDeal.lastOrderId = order.id;
+    currentDeal.pendingOrder = null;
+    currentDeal.pendingOrderId = null;
     await currentDeal.save();
     await this.onOrderFilled();
 
@@ -281,20 +313,25 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
   }
 
   protected newOrderId() {
-    const { id, ex } = this.strategy;
-    return `${ex.toLowerCase()}${id}${Date.now()}bt`;
+    const { id } = this.strategy;
+    return `bt${id}${Date.now()}`;
   }
 
   protected async placeOrder(oppo: BacktestTradeOppo): Promise<void> {
-    const { order } = oppo;
+    const { order, orderSize, orderAmount } = oppo;
     if (!order) {
       return;
     }
     const currentDeal = this.strategy.currentDeal;
-    const exOrderId = this.newOrderId();
+    order.exOrderId = this.newOrderId();
+    if (!order.baseSize && orderSize) {
+      order.baseSize = orderSize;
+    }
+    if (!order.quoteAmount && orderAmount) {
+      order.quoteAmount = orderAmount;
+    }
     if (order.priceType === 'market') {
       fillOrderSize(order, order, oppo.orderPrice);
-      order.exOrderId = exOrderId;
       order.status = OrderStatus.filled;
       order.exCreatedAt = oppo.orderTime;
       order.exUpdatedAt = oppo.orderTime;
@@ -304,7 +341,6 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       await currentDeal.save();
       await this.onOrderFilled();
     } else {
-      order.exOrderId = exOrderId;
       order.status = OrderStatus.pending;
       await order.save();
       currentDeal.pendingOrder = order;

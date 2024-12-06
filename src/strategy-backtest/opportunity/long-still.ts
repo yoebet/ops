@@ -4,7 +4,6 @@ import {
 } from '@/strategy-backtest/runner/base-backtest-runner';
 import { ConsiderSide, LSCheckerParams } from '@/strategy/strategy.types';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
-import { OrderTag } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
 import { evalTargetPrice, rollAgg } from '@/strategy/opportunity/helper';
 import { checkStill } from '@/strategy/opportunity/long-still';
@@ -12,14 +11,14 @@ import { checkStill } from '@/strategy/opportunity/long-still';
 export async function checkLongStillContinuous(
   this: BaseBacktestRunner,
   params: LSCheckerParams,
+  oppor: Partial<BacktestTradeOppo>,
   options: {
     kld: BacktestKlineLevelsData;
     considerSide: ConsiderSide;
-    orderTag?: OrderTag;
     tsTo?: number;
   },
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, orderTag, tsTo } = options;
+  const { kld, considerSide, tsTo } = options;
   const {
     interval,
     periods,
@@ -71,16 +70,14 @@ export async function checkLongStillContinuous(
       }
 
       const oppo: BacktestTradeOppo = {
-        orderTag,
+        ...oppor,
         side,
         orderPrice,
         orderTime: new Date(kld.getIntervalEndTs()),
-        moveOn: true,
+        moveOn: kld.moveOverLevel(interval),
         memo: info.join('\n'),
       };
       await this.buildMarketOrder(oppo);
-
-      oppo.moveOn = kld.moveOverLevel(interval);
       return oppo;
     }
     const hasNext = await kld.moveOverLevel(interval);
@@ -90,11 +87,11 @@ export async function checkLongStillContinuous(
     if (tsTo) {
       if (kld.getCurrentTs() >= tsTo) {
         return {
-          orderTag,
+          ...oppor,
           side,
           // orderPrice,
           // orderTime: new Date(lastKl.ts),
-          moveOn: true,
+          moveOn: kld.moveOver(),
           reachTimeLimit: true,
           // memo: info.join('\n'),
         };

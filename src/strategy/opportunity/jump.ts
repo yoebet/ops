@@ -14,7 +14,6 @@ import {
 } from '@/strategy/opportunity/helper';
 import { ExKline } from '@/exchange/exchange-service.types';
 import { AppLogger } from '@/common/app-logger';
-import { OrderTag } from '@/db/models/ex-order';
 
 export function checkJump(
   this: { logger: AppLogger },
@@ -54,7 +53,7 @@ export async function checkJumpOpp(
   this: BaseRunner,
   params: JumpCheckerParams,
   considerSide: ConsiderSide,
-  orderTag?: OrderTag,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   const { interval, jumpPeriods, stopPeriods, priceChangeTimes } = params;
 
@@ -102,7 +101,7 @@ export async function checkJumpOpp(
   }
 
   const oppo: TradeOpportunity = {
-    orderTag,
+    ...oppor,
     side,
     orderPrice,
     memo: info.join('\n'),

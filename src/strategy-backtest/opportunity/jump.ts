@@ -4,7 +4,6 @@ import {
 } from '@/strategy-backtest/runner/base-backtest-runner';
 import { ConsiderSide, JumpCheckerParams } from '@/strategy/strategy.types';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
-import { OrderTag } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
 import { evalTargetPrice, rollAgg } from '@/strategy/opportunity/helper';
 import { checkJump } from '@/strategy/opportunity/jump';
@@ -12,14 +11,14 @@ import { checkJump } from '@/strategy/opportunity/jump';
 export async function checkJumpContinuous(
   this: BaseBacktestRunner,
   params: JumpCheckerParams,
+  oppor: Partial<BacktestTradeOppo>,
   options: {
     kld: BacktestKlineLevelsData;
     considerSide: ConsiderSide;
-    orderTag?: OrderTag;
     tsTo?: number;
   },
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, orderTag, tsTo } = options;
+  const { kld, considerSide, tsTo } = options;
   const {
     interval,
     jumpPeriods,
@@ -69,16 +68,14 @@ export async function checkJumpContinuous(
         }
 
         const oppo: BacktestTradeOppo = {
-          orderTag,
+          ...oppor,
           side,
           orderPrice,
           orderTime: new Date(kld.getIntervalEndTs()),
-          moveOn: true,
+          moveOn: kld.moveOverLevel(interval),
           memo: info.join('\n'),
         };
         await this.buildMarketOrder(oppo);
-
-        oppo.moveOn = kld.moveOverLevel(interval);
         return oppo;
       }
     }
@@ -89,11 +86,11 @@ export async function checkJumpContinuous(
     if (tsTo) {
       if (kld.getCurrentTs() >= tsTo) {
         return {
-          orderTag,
+          ...oppor,
           side,
           // orderPrice,
           // orderTime: new Date(lastKl.ts),
-          moveOn: true,
+          moveOn: kld.moveOver(),
           reachTimeLimit: true,
         };
       }

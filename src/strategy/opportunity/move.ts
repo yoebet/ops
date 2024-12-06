@@ -6,20 +6,19 @@ import {
 import { TradeSide } from '@/data-service/models/base';
 import { BaseRunner } from '@/strategy/strategy/base-runner';
 import { evalTargetPrice, waitForPrice } from '@/strategy/opportunity/helper';
-import { OrderTag } from '@/db/models/ex-order';
 
 export async function checkMVOpp(
   this: BaseRunner,
   rtParams: MVCheckerParams,
   side: ConsiderSide,
-  orderTag?: string,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   if (side !== 'both') {
-    return checkMVOneSide.call(this, rtParams, side, orderTag);
+    return checkMVOneSide.call(this, rtParams, side, oppor);
   }
   return Promise.race([
-    checkMVOneSide.call(this, { ...rtParams }, TradeSide.buy, orderTag),
-    checkMVOneSide.call(this, { ...rtParams }, TradeSide.sell, orderTag),
+    checkMVOneSide.call(this, { ...rtParams }, TradeSide.buy, oppor),
+    checkMVOneSide.call(this, { ...rtParams }, TradeSide.sell, oppor),
   ]);
 }
 
@@ -27,7 +26,7 @@ async function checkMVOneSide(
   this: BaseRunner,
   rtParams: MVCheckerParams,
   side: TradeSide,
-  orderTag?: OrderTag,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   let basePointPrice: number;
   const { startingPrice, waitForPercent } = rtParams;
@@ -41,7 +40,7 @@ async function checkMVOneSide(
     }
   }
 
-  const oppo: TradeOpportunity = { orderTag, side, orderPrice: basePointPrice };
+  const oppo: TradeOpportunity = { ...oppor, side, orderPrice: basePointPrice };
   await this.buildMoveTpslOrder(oppo, rtParams);
   return oppo;
 }

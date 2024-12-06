@@ -4,22 +4,21 @@ import {
 } from '@/strategy-backtest/runner/base-backtest-runner';
 import { ConsiderSide, TpslParams } from '@/strategy/strategy.types';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
-import { OrderTag } from '@/db/models/ex-order';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
 import { TradeSide } from '@/data-service/models/base';
 
 export async function checkLimitOrderContinuous(
   this: BaseBacktestRunner,
   params: TpslParams,
+  oppor: Partial<BacktestTradeOppo>,
   options: {
     kld: BacktestKlineLevelsData;
     considerSide: ConsiderSide;
-    orderTag?: OrderTag;
     tsTo?: number;
   },
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, orderTag, tsTo } = options;
-  const { waitForPercent } = params;
+  const { kld, considerSide, tsTo } = options;
+  const { waitForPercent, startingPrice } = params;
 
   const couldBuy = considerSide === 'both' || considerSide === 'buy';
   const couldSell = considerSide === 'both' || considerSide === 'sell';
@@ -75,11 +74,11 @@ export async function checkLimitOrderContinuous(
 
     if (placeBuyOrder || placeSellOrder) {
       const oppo: BacktestTradeOppo = {
-        orderTag,
+        ...oppor,
         side: placeBuyOrder ? TradeSide.buy : TradeSide.sell,
         orderPrice: placeBuyOrder ? buyPrice : sellPrice,
         orderTime: new Date(kld.getIntervalEndTs()),
-        moveOn: true,
+        moveOn: kld.moveOver(),
       };
       await this.buildLimitOrder(oppo);
       return oppo;
@@ -88,8 +87,8 @@ export async function checkLimitOrderContinuous(
     if (tsTo) {
       if (kld.getCurrentTs() >= tsTo) {
         return {
-          orderTag,
-          moveOn: true,
+          ...oppor,
+          moveOn: kld.moveOver(),
           reachTimeLimit: true,
         };
       }

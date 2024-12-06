@@ -6,7 +6,10 @@ import { TradeSide } from '@/data-service/models/base';
 import { OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import { MVCheckerParams } from '@/strategy/strategy.types';
-import { durationHumanizerOptions } from '@/strategy/strategy.utils';
+import {
+  durationHumanizerOptions,
+  evalOrdersPnl,
+} from '@/strategy/strategy.utils';
 import { BacktestStrategy } from '@/db/models/backtest-strategy';
 import { BacktestDeal } from '@/db/models/backtest-deal';
 import { BacktestOrder } from '@/db/models/backtest-order';
@@ -14,11 +17,14 @@ import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-leve
 import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
+import { DefaultQuoteAmount } from '@/strategy/strategy.constants';
 
 export interface BacktestTradeOppo {
   orderTag?: OrderTag;
   side?: TradeSide;
   orderPrice?: number;
+  orderSize?: number;
+  orderAmount?: number;
   orderTime?: Date;
   order?: BacktestOrder;
   // params?: PlaceOrderParams;
@@ -179,28 +185,7 @@ export abstract class BaseBacktestRunner {
       select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
       where: { dealId: deal.id, status: OrderStatus.filled },
     });
-    if (orders.length > 0) {
-      const cal = (side: TradeSide) => {
-        const sOrders = orders.filter((o) => o.side === side);
-        if (sOrders.length === 0) {
-          return [0, 0];
-        }
-        if (sOrders.length === 1) {
-          return [sOrders[0].execSize, sOrders[0].execSize];
-        }
-        const size = _.sumBy(sOrders, 'execSize');
-        const amount = _.sumBy(sOrders, 'execAmount');
-        const avgPrice = amount / size;
-        return [size, avgPrice];
-      };
-      const [buySize, buyAvgPrice] = cal(TradeSide.buy);
-      const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
-      if (buySize > 0 && sellSize > 0) {
-        const settleSize = Math.max(buySize, sellSize);
-        // .. USD
-        deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
-      }
-    }
+    deal.pnlUsd = evalOrdersPnl(orders);
     deal.status = 'closed';
     deal.closedAt = new Date();
     await deal.save();
@@ -218,7 +203,11 @@ export abstract class BaseBacktestRunner {
   }
 
   protected shouldCloseDeal(currentDeal: BacktestDeal): boolean {
-    return !currentDeal.pendingOrderId && !!currentDeal.lastOrder;
+    return (
+      !currentDeal.pendingOrderId &&
+      currentDeal.lastOrder &&
+      currentDeal.lastOrder.tag !== 'open'
+    );
   }
 
   protected async onOrderFilled() {
@@ -275,19 +264,18 @@ export abstract class BaseBacktestRunner {
     const tradeSide = oppo.side;
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
-    const size = strategy.baseSize;
-    const quoteAmount = strategy.quoteAmount || 200;
-
     const order = this.newOrderByStrategy();
     order.tag = oppo.orderTag;
     order.side = tradeSide;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
     order.priceType = 'market';
-    if (size) {
-      order.baseSize = size;
+    if (tradeSide === TradeSide.buy) {
+      order.quoteAmount =
+        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+    } else {
+      order.baseSize = oppo.orderSize || strategy.baseSize;
     }
-    order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
     order.memo = oppo.memo;
 
@@ -298,16 +286,7 @@ export abstract class BaseBacktestRunner {
     const strategy = this.strategy;
     const tradeSide = oppo.side;
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
-
     const orderPrice = oppo.orderPrice;
-
-    let size = strategy.baseSize;
-    const quoteAmount = strategy.quoteAmount || 200;
-    if (!size) {
-      if (orderPrice) {
-        size = quoteAmount / orderPrice;
-      }
-    }
 
     const order = this.newOrderByStrategy();
     order.tag = oppo.orderTag;
@@ -316,10 +295,12 @@ export abstract class BaseBacktestRunner {
     order.clientOrderId = clientOrderId;
     order.priceType = 'limit';
     order.limitPrice = orderPrice;
-    if (size) {
-      order.baseSize = size;
+    if (tradeSide === TradeSide.buy) {
+      order.quoteAmount =
+        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+    } else {
+      order.baseSize = oppo.orderSize || strategy.baseSize;
     }
-    order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
     order.memo = oppo.memo;
 
@@ -333,29 +314,7 @@ export abstract class BaseBacktestRunner {
     const strategy = this.strategy;
 
     const { activePercent, drawbackPercent } = rps;
-    const placeOrderPrice = oppo.orderPrice;
     const tradeSide = oppo.side;
-
-    let activePrice: number;
-
-    if (activePercent) {
-      const activeRatio = activePercent / 100;
-      if (tradeSide === TradeSide.buy) {
-        activePrice = placeOrderPrice * (1 - activeRatio);
-      } else {
-        activePrice = placeOrderPrice * (1 + activeRatio);
-      }
-    }
-
-    let size = strategy.baseSize;
-    const quoteAmount = strategy.quoteAmount || 200;
-    if (!size) {
-      if (activePrice) {
-        size = quoteAmount / activePrice;
-      } else {
-        size = quoteAmount / placeOrderPrice;
-      }
-    }
 
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
@@ -365,14 +324,24 @@ export abstract class BaseBacktestRunner {
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
     order.priceType = 'limit';
-    if (size) {
-      order.baseSize = size;
-    }
-    order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = true;
     order.tpslType = 'move';
     order.moveDrawbackPercent = drawbackPercent;
-    if (activePrice) {
+    if (tradeSide === TradeSide.buy) {
+      order.quoteAmount =
+        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+    } else {
+      order.baseSize = oppo.orderSize || strategy.baseSize;
+    }
+    if (activePercent) {
+      let activePrice: number;
+      const orderPrice = oppo.orderPrice;
+      const activeRatio = activePercent / 100;
+      if (tradeSide === TradeSide.buy) {
+        activePrice = orderPrice * (1 - activeRatio);
+      } else {
+        activePrice = orderPrice * (1 + activeRatio);
+      }
       order.moveActivePrice = activePrice;
     }
     order.memo = oppo.memo;

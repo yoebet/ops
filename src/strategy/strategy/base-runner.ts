@@ -16,8 +16,12 @@ import {
 import {
   createNewDealIfNone,
   durationHumanizerOptions,
+  evalOrdersPnl,
 } from '@/strategy/strategy.utils';
-import { ReportStatusInterval } from '@/strategy/strategy.constants';
+import {
+  DefaultQuoteAmount,
+  ReportStatusInterval,
+} from '@/strategy/strategy.constants';
 import {
   PlaceOrderParams,
   PlaceOrderReturns,
@@ -341,28 +345,7 @@ export abstract class BaseRunner {
       select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
       where: { dealId: deal.id, status: OrderStatus.filled },
     });
-    if (orders.length > 0) {
-      const cal = (side: TradeSide) => {
-        const sOrders = orders.filter((o) => o.side === side);
-        if (sOrders.length === 0) {
-          return [0, 0];
-        }
-        if (sOrders.length === 1) {
-          return [sOrders[0].execSize, sOrders[0].execSize];
-        }
-        const size = _.sumBy(sOrders, 'execSize');
-        const amount = _.sumBy(sOrders, 'execAmount');
-        const avgPrice = amount / size;
-        return [size, avgPrice];
-      };
-      const [buySize, buyAvgPrice] = cal(TradeSide.buy);
-      const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
-      if (buySize > 0 && sellSize > 0) {
-        const settleSize = Math.max(buySize, sellSize);
-        // .. USD
-        deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
-      }
-    }
+    deal.pnlUsd = evalOrdersPnl(orders);
     deal.status = 'closed';
     deal.closedAt = new Date();
     await deal.save();
@@ -445,7 +428,11 @@ export abstract class BaseRunner {
   }
 
   protected shouldCloseDeal(currentDeal: StrategyDeal): boolean {
-    return !currentDeal.pendingOrderId && !!currentDeal.lastOrder;
+    return (
+      !currentDeal.pendingOrderId &&
+      currentDeal.lastOrder &&
+      currentDeal.lastOrder.tag !== 'open'
+    );
   }
 
   protected async onOrderFilled() {
@@ -507,10 +494,25 @@ export abstract class BaseRunner {
     const tradeSide = oppo.side;
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
+    const order = this.newOrderByStrategy();
+    order.tag = oppo.orderTag;
+    order.side = tradeSide;
+    order.status = OrderStatus.notSummited;
+    order.clientOrderId = clientOrderId;
+    order.priceType = 'market';
+    if (tradeSide === TradeSide.buy) {
+      order.quoteAmount =
+        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+    } else {
+      order.baseSize = oppo.orderSize || strategy.baseSize;
+    }
+    order.algoOrder = false;
+    order.memo = oppo.memo;
+
     const params: PlaceOrderParams = {
       side: tradeSide,
       symbol: strategy.rawSymbol,
-      priceType: 'market',
+      priceType: order.priceType,
       clientOrderId,
       algoOrder: false,
     };
@@ -520,26 +522,11 @@ export abstract class BaseRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    const size = strategy.baseSize;
-    const quoteAmount = strategy.quoteAmount || 200;
-    if (size) {
-      params.baseSize = round(size, exSymbol.baseSizeDigits);
+    if (order.baseSize) {
+      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     } else {
-      params.quoteAmount = quoteAmount.toFixed(2);
+      params.quoteAmount = order.quoteAmount.toFixed(2);
     }
-
-    const order = this.newOrderByStrategy();
-    order.tag = oppo.orderTag;
-    order.side = tradeSide;
-    order.status = OrderStatus.notSummited;
-    order.clientOrderId = clientOrderId;
-    order.priceType = params.priceType;
-    if (size) {
-      order.baseSize = size;
-    }
-    order.quoteAmount = size ? undefined : quoteAmount;
-    order.algoOrder = false;
-    order.memo = oppo.memo;
 
     oppo.order = order;
     oppo.params = params;
@@ -552,13 +539,28 @@ export abstract class BaseRunner {
     const strategy = this.strategy;
     const tradeSide = oppo.side;
     const clientOrderId = this.newClientOrderId(oppo.orderTag);
-
     const orderPrice = oppo.orderPrice;
+
+    const order = this.newOrderByStrategy();
+    order.tag = oppo.orderTag;
+    order.side = tradeSide;
+    order.status = OrderStatus.notSummited;
+    order.clientOrderId = clientOrderId;
+    order.priceType = 'limit';
+    order.limitPrice = orderPrice;
+    if (tradeSide === TradeSide.buy) {
+      order.quoteAmount =
+        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+    } else {
+      order.baseSize = oppo.orderSize || strategy.baseSize;
+    }
+    order.algoOrder = false;
+    order.memo = oppo.memo;
 
     const params: PlaceOrderParams = {
       side: tradeSide,
       symbol: strategy.rawSymbol,
-      priceType: 'limit',
+      priceType: order.priceType,
       clientOrderId,
       algoOrder: false,
     };
@@ -568,28 +570,6 @@ export abstract class BaseRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    let size = strategy.baseSize;
-    const quoteAmount = strategy.quoteAmount || 200;
-    if (!size) {
-      if (orderPrice) {
-        size = quoteAmount / orderPrice;
-      }
-    }
-
-    const order = this.newOrderByStrategy();
-    order.tag = oppo.orderTag;
-    order.side = tradeSide;
-    order.status = OrderStatus.notSummited;
-    order.clientOrderId = clientOrderId;
-    order.priceType = params.priceType;
-    order.limitPrice = orderPrice;
-    if (size) {
-      order.baseSize = size;
-    }
-    order.quoteAmount = size ? undefined : quoteAmount;
-    order.algoOrder = false;
-    order.memo = oppo.memo;
-
     oppo.order = order;
     oppo.params = params;
   }
@@ -597,7 +577,7 @@ export abstract class BaseRunner {
   protected async buildMarketOrLimitOrder(
     oppo: TradeOpportunity,
   ): Promise<void> {
-    if (oppo.order) {
+    if (oppo.orderPrice) {
       return this.buildLimitOrder(oppo);
     }
     return this.buildMarketOrder(oppo);
@@ -613,42 +593,42 @@ export abstract class BaseRunner {
     const strategy = this.strategy;
 
     const { activePercent, drawbackPercent } = rps;
-    let placeOrderPrice = oppo.orderPrice;
+    const placeOrderPrice = oppo.orderPrice;
     const tradeSide = oppo.side;
 
-    let activePrice: number;
+    const clientOrderId = this.newClientOrderId(oppo.orderTag);
 
+    const order = this.newOrderByStrategy();
+    order.tag = oppo.orderTag;
+    order.side = tradeSide;
+    order.status = OrderStatus.notSummited;
+    order.clientOrderId = clientOrderId;
+    order.priceType = 'limit';
+    order.algoOrder = true;
+    order.tpslType = 'move';
+    order.moveDrawbackPercent = drawbackPercent;
+    if (tradeSide === TradeSide.buy) {
+      order.quoteAmount =
+        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+    } else {
+      order.baseSize = oppo.orderSize || strategy.baseSize;
+    }
     if (activePercent) {
+      let activePrice: number;
       const activeRatio = activePercent / 100;
-      if (!placeOrderPrice) {
-        placeOrderPrice = await this.env.getLastPrice();
-      }
       if (tradeSide === TradeSide.buy) {
         activePrice = placeOrderPrice * (1 - activeRatio);
       } else {
         activePrice = placeOrderPrice * (1 + activeRatio);
       }
+      order.moveActivePrice = activePrice;
     }
-
-    let size = strategy.baseSize;
-    const quoteAmount = strategy.quoteAmount || 200;
-    if (!size) {
-      if (activePrice) {
-        size = quoteAmount / activePrice;
-      } else {
-        if (!placeOrderPrice) {
-          placeOrderPrice = await this.env.getLastPrice();
-        }
-        size = quoteAmount / placeOrderPrice;
-      }
-    }
-
-    const clientOrderId = this.newClientOrderId(oppo.orderTag);
+    order.memo = oppo.memo;
 
     const params: PlaceTpslOrderParams = {
       side: tradeSide,
       symbol: strategy.rawSymbol,
-      priceType: 'limit',
+      priceType: order.priceType,
       clientOrderId,
       algoOrder: true,
     };
@@ -658,31 +638,17 @@ export abstract class BaseRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    params.tpslType = 'move';
-    params.baseSize = round(size, exSymbol.baseSizeDigits);
+    params.tpslType = order.tpslType;
+    if (order.baseSize) {
+      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
+    } else {
+      params.quoteAmount = order.quoteAmount.toFixed(2);
+    }
     params.moveDrawbackRatio = (drawbackPercent / 100).toFixed(4);
-    if (activePrice) {
+    if (order.moveActivePrice) {
       const priceDigits = exSymbol.priceDigits;
-      params.moveActivePrice = round(activePrice, priceDigits);
+      params.moveActivePrice = round(order.moveActivePrice, priceDigits);
     }
-
-    const order = this.newOrderByStrategy();
-    order.tag = oppo.orderTag;
-    order.side = tradeSide;
-    order.status = OrderStatus.notSummited;
-    order.clientOrderId = clientOrderId;
-    order.priceType = params.priceType;
-    if (size) {
-      order.baseSize = size;
-    }
-    order.quoteAmount = size ? undefined : quoteAmount;
-    order.algoOrder = true;
-    order.tpslType = params.tpslType;
-    order.moveDrawbackPercent = drawbackPercent;
-    if (activePrice) {
-      order.moveActivePrice = activePrice;
-    }
-    order.memo = oppo.memo;
 
     oppo.order = order;
     oppo.params = params;

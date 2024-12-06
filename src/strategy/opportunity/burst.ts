@@ -13,7 +13,7 @@ import {
   KlineAgg,
 } from '@/strategy/opportunity/helper';
 import { AppLogger } from '@/common/app-logger';
-import { OrderTag } from '@/db/models/ex-order';
+import { DefaultBaselineSymbol } from '@/strategy/strategy.constants';
 
 export function checkBurst(
   this: { logger: AppLogger },
@@ -49,7 +49,7 @@ export async function checkBurstOpp(
   this: BaseRunner,
   params: BRCheckerParams,
   considerSide: ConsiderSide,
-  orderTag?: OrderTag,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   const {
     interval,
@@ -102,7 +102,7 @@ export async function checkBurstOpp(
   const waitMs = waitPeriods * intervalSeconds * 1000;
   const waitStr = `wait ${waitPeriods}*${interval}`;
 
-  const baselineSymbol = 'BTC/USDT';
+  const baselineSymbol = DefaultBaselineSymbol;
   if (this.strategy.symbol !== baselineSymbol) {
     const baselineKls = await this.env.getLatestKlines({
       symbol: baselineSymbol,
@@ -150,7 +150,7 @@ export async function checkBurstOpp(
   }
 
   const oppo: TradeOpportunity = {
-    orderTag,
+    ...oppor,
     side,
     orderPrice,
     memo: info.join('\n'),

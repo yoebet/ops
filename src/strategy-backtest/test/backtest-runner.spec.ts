@@ -28,7 +28,7 @@ describe('strategy backtest runner', () => {
   });
 
   it('run 1', async () => {
-    const strategy = await BacktestStrategy.findOneBy({ id: 6 });
+    const strategy = await BacktestStrategy.findOneBy({ id: 51 });
     await service.runStrategy(strategy);
   });
 });

@@ -9,3 +9,7 @@ export const WorkerStalledInterval = MINUTE_MS;
 export const WorkerConcurrency = 10;
 
 export const ReportStatusInterval = WorkerStalledInterval >> 1;
+
+export const DefaultQuoteAmount = 100;
+
+export const DefaultBaselineSymbol = 'BTC/USDT';

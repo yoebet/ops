@@ -24,6 +24,8 @@ export interface TradeOpportunity {
   orderTag?: OrderTag;
   side: TradeSide;
   orderPrice?: number;
+  orderSize?: number;
+  orderAmount?: number;
   order?: ExOrder;
   params?: PlaceOrderParams;
   memo?: string;

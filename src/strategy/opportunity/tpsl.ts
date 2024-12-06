@@ -6,13 +6,12 @@ import {
 } from '@/strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { BaseRunner } from '@/strategy/strategy/base-runner';
-import { OrderTag } from '@/db/models/ex-order';
 
 export async function waitToPlaceLimitOrder(
   this: BaseRunner,
   rps: TpslParams,
   side: ConsiderSide,
-  orderTag?: OrderTag,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   if (!rps.startingPrice) {
     rps.startingPrice = await this.env.getLastPrice();
@@ -20,11 +19,11 @@ export async function waitToPlaceLimitOrder(
 
   if (side === 'both') {
     return Promise.race([
-      waitToPlaceOrderOneSide.call(this, rps, TradeSide.buy, orderTag),
-      waitToPlaceOrderOneSide.call(this, rps, TradeSide.sell, orderTag),
+      waitToPlaceOrderOneSide.call(this, rps, TradeSide.buy, oppor),
+      waitToPlaceOrderOneSide.call(this, rps, TradeSide.sell, oppor),
     ]);
   } else {
-    return waitToPlaceOrderOneSide.call(this, rps, side, orderTag);
+    return waitToPlaceOrderOneSide.call(this, rps, side, oppor);
   }
 }
 
@@ -32,7 +31,7 @@ async function waitToPlaceOrderOneSide(
   this: BaseRunner,
   rps: TpslParams,
   side: TradeSide,
-  orderTag?: OrderTag,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   let basePointPrice = rps.startingPrice;
   if (rps.waitForPercent) {
@@ -52,7 +51,7 @@ async function waitToPlaceOrderOneSide(
     orderPrice = evalTargetPrice(basePointPrice, rps.priceDiffPercent, side);
   }
 
-  const oppo: TradeOpportunity = { orderTag, side, orderPrice };
+  const oppo: TradeOpportunity = { ...oppor, side, orderPrice };
   await this.buildLimitOrder(oppo);
   return oppo;
 }

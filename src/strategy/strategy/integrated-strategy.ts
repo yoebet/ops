@@ -1,7 +1,7 @@
 import { RuntimeParamsRunner } from '@/strategy/strategy/runtime-params-runner';
 import {
-  OppCheckerAlgo,
   CheckOpportunityParams,
+  OppCheckerAlgo,
   TradeOpportunity,
 } from '@/strategy/strategy.types';
 import { Strategy } from '@/db/models/strategy';
@@ -13,6 +13,7 @@ import { checkJumpOpp } from '@/strategy/opportunity/jump';
 import { checkMVOpp } from '@/strategy/opportunity/move';
 import { checkLongStillOpp } from '@/strategy/opportunity/long-still';
 import { OrderTag } from '@/db/models/ex-order';
+import { TradeSide } from '@/data-service/models/base';
 
 export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityParams> {
   constructor(
@@ -26,19 +27,21 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
 
   protected async checkAndWaitToOpenDeal(): Promise<TradeOpportunity> {
     const params = this.getOpenRuntimeParams();
-    const orderTag = OrderTag.open;
     const side = this.strategy.openDealSide;
+    const oppor: Partial<TradeOpportunity> = {
+      orderTag: OrderTag.open,
+    };
     switch (params.algo) {
       case OppCheckerAlgo.BR:
-        return checkBurstOpp.call(this, params, side, orderTag);
+        return checkBurstOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.TP:
-        return waitToPlaceLimitOrder.call(this, params, side, orderTag);
+        return waitToPlaceLimitOrder.call(this, params, side, oppor);
       case OppCheckerAlgo.LS:
-        return checkLongStillOpp.call(this, params, side, orderTag);
+        return checkLongStillOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.MV:
-        return checkMVOpp.call(this, params, side, orderTag);
+        return checkMVOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.JP:
-        return checkJumpOpp.call(this, params, side, orderTag);
+        return checkJumpOpp.call(this, params, side, oppor);
       default:
         return undefined;
     }
@@ -50,22 +53,26 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
       return undefined;
     }
 
-    const params = this.getCloseRuntimeParams();
-    const orderTag = OrderTag.close;
     const side = this.inverseSide(lastOrder.side);
+    const params = this.getCloseRuntimeParams();
+    const oppor: Partial<TradeOpportunity> = {
+      orderTag: OrderTag.close,
+      orderSize: lastOrder.execSize,
+      orderAmount: lastOrder.execAmount,
+    };
     switch (params.algo) {
       case OppCheckerAlgo.BR:
-        return checkBurstOpp.call(this, params, side, orderTag);
+        return checkBurstOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.TP:
         params.startingPrice = lastOrder.execPrice;
-        return waitToPlaceLimitOrder.call(this, params, side, orderTag);
+        return waitToPlaceLimitOrder.call(this, params, side, oppor);
       case OppCheckerAlgo.LS:
-        return checkLongStillOpp.call(this, params, side, orderTag);
+        return checkLongStillOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.MV:
         params.startingPrice = lastOrder.execPrice;
-        return checkMVOpp.call(this, params, side, orderTag);
+        return checkMVOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.JP:
-        return checkJumpOpp.call(this, params, side, orderTag);
+        return checkJumpOpp.call(this, params, side, oppor);
       default:
         return undefined;
     }

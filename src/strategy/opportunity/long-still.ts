@@ -41,7 +41,7 @@ export async function checkLongStillOpp(
   this: BaseRunner,
   params: LSCheckerParams,
   considerSide: ConsiderSide,
-  orderTag?: OrderTag,
+  oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   const {
     interval,
@@ -93,7 +93,7 @@ export async function checkLongStillOpp(
   }
 
   const oppo: TradeOpportunity = {
-    orderTag,
+    ...oppor,
     side,
     orderPrice,
     memo: info.join('\n'),

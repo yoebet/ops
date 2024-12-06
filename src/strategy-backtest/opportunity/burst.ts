@@ -12,20 +12,19 @@ import {
 import { BacktestKlineData } from '@/strategy-backtest/backtest-kline-data';
 import { checkBurst } from '@/strategy/opportunity/burst';
 import { TradeSide } from '@/data-service/models/base';
-import { OrderTag } from '@/db/models/ex-order';
 
 export async function checkBurstContinuous(
   this: BaseBacktestRunner,
   params: BRCheckerParams,
   baselineKld: BacktestKlineData,
+  oppor: Partial<BacktestTradeOppo>,
   options: {
     kld: BacktestKlineLevelsData;
     considerSide: ConsiderSide;
-    orderTag?: OrderTag;
     tsTo?: number;
   },
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, orderTag, tsTo } = options;
+  const { kld, considerSide, tsTo } = options;
   const {
     interval,
     periods,
@@ -108,7 +107,7 @@ export async function checkBurstContinuous(
           }
 
           const oppo: BacktestTradeOppo = {
-            orderTag,
+            ...oppor,
             side,
             orderPrice,
             orderTime: new Date(kld.getIntervalEndTs()),
@@ -129,11 +128,11 @@ export async function checkBurstContinuous(
     if (tsTo) {
       if (kld.getCurrentTs() >= tsTo) {
         return {
-          orderTag,
+          ...oppor,
           side,
           // orderPrice,
           // orderTime: new Date(lastKl.ts),
-          moveOn: true,
+          moveOn: kld.moveOver(),
           reachTimeLimit: true,
         };
       }
