@@ -343,20 +343,25 @@ export abstract class BaseRunner {
     });
     if (orders.length > 0) {
       const cal = (side: TradeSide) => {
-        const sideOrders = orders.filter((o) => o.side === side);
-        if (sideOrders.length === 1) {
-          return [sideOrders[0].execSize, sideOrders[0].execSize];
+        const sOrders = orders.filter((o) => o.side === side);
+        if (sOrders.length === 0) {
+          return [0, 0];
         }
-        const size = _.sumBy(sideOrders, 'execSize');
-        const amount = _.sumBy(sideOrders, 'execAmount');
+        if (sOrders.length === 1) {
+          return [sOrders[0].execSize, sOrders[0].execSize];
+        }
+        const size = _.sumBy(sOrders, 'execSize');
+        const amount = _.sumBy(sOrders, 'execAmount');
         const avgPrice = amount / size;
         return [size, avgPrice];
       };
       const [buySize, buyAvgPrice] = cal(TradeSide.buy);
       const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
-      const settleSize = Math.max(buySize, sellSize);
-      // .. USD
-      deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+      if (buySize > 0 && sellSize > 0) {
+        const settleSize = Math.max(buySize, sellSize);
+        // .. USD
+        deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+      }
     }
     deal.status = 'closed';
     deal.closedAt = new Date();
@@ -400,7 +405,7 @@ export abstract class BaseRunner {
         if (order.status === OrderStatus.filled) {
           currentDeal.lastOrder = order;
           currentDeal.lastOrderId = order.id;
-          await this.logJob(`order filled`);
+          await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
         }
         await currentDeal.save();
       } else {
@@ -534,6 +539,7 @@ export abstract class BaseRunner {
     }
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
+    order.memo = oppo.memo;
 
     oppo.order = order;
     oppo.params = params;
@@ -582,6 +588,7 @@ export abstract class BaseRunner {
     }
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
+    order.memo = oppo.memo;
 
     oppo.order = order;
     oppo.params = params;
@@ -675,6 +682,7 @@ export abstract class BaseRunner {
     if (activePrice) {
       order.moveActivePrice = activePrice;
     }
+    order.memo = oppo.memo;
 
     oppo.order = order;
     oppo.params = params;

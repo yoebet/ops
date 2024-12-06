@@ -21,6 +21,7 @@ export function checkStill(
   latestAgg: KlineAgg,
   amountTimes: number,
   priceChangeTimes: number,
+  info: string[],
 ): boolean {
   const laa = latestAgg.avgAmount;
   const caa = contrastAgg.avgAmount;
@@ -29,12 +30,10 @@ export function checkStill(
   if (!laa || !caa || !lpc || !cpc) {
     return false;
   }
-  this.logger.debug(
-    `avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)} ~ ${amountTimes}`,
-  );
-  this.logger.debug(
-    `priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)} ~ ${priceChangeTimes}`,
-  );
+  const i1 = `avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)} ~ ${amountTimes}`;
+  const i2 = `priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)} ~ ${priceChangeTimes}`;
+  info.push(i1, i2);
+  this.logger.debug([i1, i2].join('\n'));
   return laa < caa * amountTimes && lpc < cpc * priceChangeTimes;
 }
 
@@ -64,6 +63,8 @@ export async function checkLongStillOpp(
   const lkls = selfKls.slice(latestFrom);
   const contrastAgg = evalKlineAgg(ckls);
   const latestAgg = evalKlineAgg(lkls);
+
+  const info: string[] = [];
   if (
     !checkStill.call(
       this,
@@ -71,6 +72,7 @@ export async function checkLongStillOpp(
       latestAgg,
       amountTimes,
       priceChangeTimes,
+      info,
     )
   ) {
     await this.logJob(`quiet, wait ${interval}`);
@@ -90,7 +92,12 @@ export async function checkLongStillOpp(
     orderPrice = evalTargetPrice(lastPrice, params.limitPriceDiffPercent, side);
   }
 
-  const oppo: TradeOpportunity = { orderTag, side, orderPrice };
+  const oppo: TradeOpportunity = {
+    orderTag,
+    side,
+    orderPrice,
+    memo: info.join('\n'),
+  };
   await this.buildMarketOrLimitOrder(oppo);
   return oppo;
 }

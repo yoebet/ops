@@ -51,6 +51,7 @@ export async function checkLongStillContinuous(
       latestAgg.avgPrice > contrastAgg.avgPrice
         ? TradeSide.buy
         : TradeSide.sell;
+    const info: string[] = [];
     if (
       (considerSide === 'both' || side === considerSide) &&
       checkStill.call(
@@ -59,6 +60,7 @@ export async function checkLongStillContinuous(
         latestAgg,
         amountTimes,
         priceChangeTimes,
+        interval,
       )
     ) {
       const lastKl = selfKls[selfKls.length - 1];
@@ -73,8 +75,9 @@ export async function checkLongStillContinuous(
         orderPrice,
         orderTime: new Date(kld.getIntervalEndTs()),
         moveOn: true,
+        memo: info.join('\n'),
       };
-      await this.buildMarketOrLimitOrder(oppo);
+      await this.buildMarketOrder(oppo);
 
       oppo.moveOn = kld.moveOverLevel(interval);
       return oppo;

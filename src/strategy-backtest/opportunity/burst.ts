@@ -55,6 +55,8 @@ export async function checkBurstContinuous(
   let selfLatestAgg = selfLatestRoller.agg;
 
   while (true) {
+    const info: string[] = [];
+
     this.logger.log(`${kl.interval} ${kl.time.toISOString()}`);
     const side =
       selfLatestAgg.avgPrice > selfContrastAgg.avgPrice
@@ -68,6 +70,7 @@ export async function checkBurstContinuous(
           selfLatestAgg,
           selfAmountTimes,
           selfPriceChangeTimes,
+          info,
           'self',
         )
       ) {
@@ -89,6 +92,7 @@ export async function checkBurstContinuous(
             blLatestAgg,
             baselineAmountTimes,
             baselinePriceChangeTimes,
+            info,
             'baseline',
           );
         }
@@ -109,6 +113,7 @@ export async function checkBurstContinuous(
             orderPrice,
             orderTime: new Date(kld.getIntervalEndTs()),
             moveOn: true,
+            memo: info.join('\n'),
           };
           await this.buildMarketOrder(oppo);
 

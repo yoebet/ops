@@ -26,6 +26,7 @@ export interface TradeOpportunity {
   orderPrice?: number;
   order?: ExOrder;
   params?: PlaceOrderParams;
+  memo?: string;
 }
 
 export declare type WatchLevel =

@@ -38,6 +38,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     let ol = 0;
 
     while (true) {
+      await this.loadOrCreateDeal();
+
       ol++;
       await this.logJob(`round #${ol}`);
       const currentDeal = strategy.currentDeal;
@@ -45,7 +47,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       const lastOrder = currentDeal?.lastOrder;
 
       if (pendingOrder) {
-        const moveOn = await this.checkPendingOrderAndFill(kld, pendingOrder);
+        const moveOn = await this.tryFillPendingOrder(kld, pendingOrder);
         if (!moveOn) {
           break;
         }
@@ -88,7 +90,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     const strategy = this.strategy;
     const currentDeal = strategy.currentDeal;
     const lastOrder = currentDeal?.lastOrder;
-    const orderTag = lastOrder ? OrderTag.open : OrderTag.close;
+    const orderTag = lastOrder ? OrderTag.close : OrderTag.open;
     const side = lastOrder
       ? this.inverseSide(lastOrder.side)
       : strategy.openDealSide;
@@ -144,7 +146,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     return oppo.moveOn;
   }
 
-  protected async checkPendingOrderAndFill(
+  protected async tryFillPendingOrder(
     kld: BacktestKlineLevelsData,
     order: BacktestOrder,
   ): Promise<boolean> {
@@ -188,8 +190,10 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
               return false;
             }
           }
-          const tl = kld.getCurrentLevel();
-          this.logger.log(`${tl.interval} ${kl.time.toISOString()} ${kl.open}`);
+          // const tl = kld.getCurrentLevel();
+          // this.logger.debug(
+          //   `${tl.interval} ${kl.time.toISOString()} ${kl.open}`,
+          // );
 
           let toFill = false;
           if (isBuy) {
@@ -245,6 +249,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     currentDeal.lastOrderId = order.id;
     await currentDeal.save();
     await this.onOrderFilled();
+
+    await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
   }
 
   protected async moveOnToPrice(kld: BacktestKlineLevelsData, price: number) {
@@ -258,8 +264,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
           return false;
         }
       }
-      const tl = kld.getCurrentLevel();
-      this.logger.log(`${tl.interval} ${kl.time.toISOString()} ${kl.open}`);
+      // const tl = kld.getCurrentLevel();
+      // this.logger.debug(`${tl.interval} ${kl.time.toISOString()} ${kl.open}`);
 
       if (price >= kl.low && price <= kl.high) {
         if (kld.moveDownLevel()) {

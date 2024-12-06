@@ -49,6 +49,7 @@ export async function checkJumpContinuous(
         ? TradeSide.buy
         : TradeSide.sell;
 
+    const info: string[] = [];
     if (considerSide === 'both' || side === considerSide) {
       if (
         checkJump.call(
@@ -58,6 +59,7 @@ export async function checkJumpContinuous(
           contrastAgg,
           latestAgg,
           priceChangeTimes,
+          info,
         )
       ) {
         const lastKl = selfKls[selfKls.length - 1];
@@ -72,8 +74,9 @@ export async function checkJumpContinuous(
           orderPrice,
           orderTime: new Date(kld.getIntervalEndTs()),
           moveOn: true,
+          memo: info.join('\n'),
         };
-        await this.buildMarketOrLimitOrder(oppo);
+        await this.buildMarketOrder(oppo);
 
         oppo.moveOn = kld.moveOverLevel(interval);
         return oppo;

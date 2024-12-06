@@ -23,6 +23,7 @@ export function checkJump(
   contrastAgg: KlineAgg,
   latestAgg: KlineAgg,
   priceChangeTimes: number,
+  info: string[],
 ): boolean {
   const jl = jumpKlines.length;
   const jumpLast = jumpKlines[jl - 1];
@@ -43,9 +44,9 @@ export function checkJump(
   const lpcs = lpc.toPrecision(6);
   const cpcs = lpc.toPrecision(6);
   const times = (lpc / cpc).toFixed(2);
-  this.logger.debug(
-    `priceChange: ${lpcs} ~ ${cpcs}, times: ${times} ~ ${priceChangeTimes}`,
-  );
+  const m = `priceChange: ${lpcs} ~ ${cpcs}, times: ${times} ~ ${priceChangeTimes}`;
+  info.push(m);
+  this.logger.debug(m);
   return lpc >= cpc * priceChangeTimes;
 }
 
@@ -76,6 +77,7 @@ export async function checkJumpOpp(
     await wait(intervalSeconds * 1000);
     return undefined;
   }
+  const info: string[] = [];
   if (
     !checkJump.call(
       this,
@@ -84,6 +86,7 @@ export async function checkJumpOpp(
       jumpAgg,
       stopAgg,
       priceChangeTimes,
+      info,
     )
   ) {
     const waitPeriods = 0.5;
@@ -98,7 +101,12 @@ export async function checkJumpOpp(
     orderPrice = evalTargetPrice(lastPrice, params.limitPriceDiffPercent, side);
   }
 
-  const oppo: TradeOpportunity = { orderTag, side, orderPrice };
+  const oppo: TradeOpportunity = {
+    orderTag,
+    side,
+    orderPrice,
+    memo: info.join('\n'),
+  };
   await this.buildMarketOrLimitOrder(oppo);
   return oppo;
 }

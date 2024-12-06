@@ -21,7 +21,8 @@ export function checkBurst(
   latestAgg: KlineAgg,
   amountTimes: number,
   priceChangeTimes: number,
-  context?: string,
+  info: string[],
+  context: string,
 ): boolean {
   const laa = latestAgg.avgAmount;
   const caa = contrastAgg.avgAmount;
@@ -36,12 +37,11 @@ export function checkBurst(
   const lpcs = lpc.toPrecision(6);
   const cpcs = cpc.toPrecision(6);
   const ctimes = (lpc / cpc).toFixed(2);
-  this.logger.debug(
-    `[${context}] avgAmount: ${laas} ~ ${caas}, times: ${atimes} ~ ${amountTimes}`,
-  );
-  this.logger.debug(
-    `[${context}] priceChange: ${lpcs} ~ ${cpcs}, times: ${ctimes} ~ ${priceChangeTimes}`,
-  );
+  const c = `[${context}] `;
+  const i1 = `${c}avgAmount: ${laas} ~ ${caas}, times: ${atimes} ~ ${amountTimes}`;
+  const i2 = `${c}priceChange: ${lpcs} ~ ${cpcs}, times: ${ctimes} ~ ${priceChangeTimes}`;
+  info.push(i1, i2);
+  // this.logger.debug([i1, i2].join('\n'));
   return laa >= caa * amountTimes && lpc >= cpc * priceChangeTimes;
 }
 
@@ -64,6 +64,7 @@ export async function checkBurstOpp(
   const latestFrom = periods - checkPeriods;
 
   const intervalSeconds = TimeLevel.evalIntervalSeconds(interval);
+  const info: string[] = [];
 
   let waitPeriods = 0.5;
   const selfKls = await this.env.getLatestKlines({
@@ -79,6 +80,7 @@ export async function checkBurstOpp(
       selfLatestAgg,
       selfAmountTimes,
       selfPriceChangeTimes,
+      info,
       'self',
     )
   ) {
@@ -116,6 +118,7 @@ export async function checkBurstOpp(
         blLatestAgg,
         baselineAmountTimes,
         baselinePriceChangeTimes,
+        info,
         'baseline',
       )
     ) {
@@ -146,7 +149,12 @@ export async function checkBurstOpp(
     orderPrice = evalTargetPrice(lastPrice, params.limitPriceDiffPercent, side);
   }
 
-  const oppo: TradeOpportunity = { orderTag, side, orderPrice };
+  const oppo: TradeOpportunity = {
+    orderTag,
+    side,
+    orderPrice,
+    memo: info.join('\n'),
+  };
   await this.buildMarketOrLimitOrder(oppo);
   return oppo;
 }

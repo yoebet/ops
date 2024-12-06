@@ -24,6 +24,7 @@ export interface BacktestTradeOppo {
   // params?: PlaceOrderParams;
   moveOn: boolean;
   reachTimeLimit?: boolean;
+  memo?: string;
 }
 
 async function createNewDealIfNone(strategy: BacktestStrategy) {
@@ -66,8 +67,6 @@ export abstract class BaseBacktestRunner {
     this.setupStrategyParams();
 
     await this.logJob(JSON.stringify(strategy.params, null, 2), 'params');
-
-    await this.loadOrCreateDeal();
 
     await this.backtest();
   }
@@ -182,20 +181,25 @@ export abstract class BaseBacktestRunner {
     });
     if (orders.length > 0) {
       const cal = (side: TradeSide) => {
-        const sideOrders = orders.filter((o) => o.side === side);
-        if (sideOrders.length === 1) {
-          return [sideOrders[0].execSize, sideOrders[0].execSize];
+        const sOrders = orders.filter((o) => o.side === side);
+        if (sOrders.length === 0) {
+          return [0, 0];
         }
-        const size = _.sumBy(sideOrders, 'execSize');
-        const amount = _.sumBy(sideOrders, 'execAmount');
+        if (sOrders.length === 1) {
+          return [sOrders[0].execSize, sOrders[0].execSize];
+        }
+        const size = _.sumBy(sOrders, 'execSize');
+        const amount = _.sumBy(sOrders, 'execAmount');
         const avgPrice = amount / size;
         return [size, avgPrice];
       };
       const [buySize, buyAvgPrice] = cal(TradeSide.buy);
       const [sellSize, sellAvgPrice] = cal(TradeSide.sell);
-      const settleSize = Math.max(buySize, sellSize);
-      // .. USD
-      deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+      if (buySize > 0 && sellSize > 0) {
+        const settleSize = Math.max(buySize, sellSize);
+        // .. USD
+        deal.pnlUsd = settleSize * (sellAvgPrice - buyAvgPrice);
+      }
     }
     deal.status = 'closed';
     deal.closedAt = new Date();
@@ -211,12 +215,6 @@ export abstract class BaseBacktestRunner {
     await strategy.save();
 
     await this.logJob(`deal closed.`);
-
-    await this.onDealClosed();
-  }
-
-  protected async onDealClosed() {
-    await this.loadOrCreateDeal();
   }
 
   protected shouldCloseDeal(currentDeal: BacktestDeal): boolean {
@@ -293,6 +291,7 @@ export abstract class BaseBacktestRunner {
     }
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
+    order.memo = oppo.memo;
 
     oppo.order = order;
   }
@@ -324,17 +323,9 @@ export abstract class BaseBacktestRunner {
     }
     order.quoteAmount = size ? undefined : quoteAmount;
     order.algoOrder = false;
+    order.memo = oppo.memo;
 
     oppo.order = order;
-  }
-
-  protected async buildMarketOrLimitOrder(
-    oppo: BacktestTradeOppo,
-  ): Promise<void> {
-    if (oppo.orderPrice) {
-      return this.buildLimitOrder(oppo);
-    }
-    return this.buildMarketOrder(oppo);
   }
 
   protected async buildMoveTpslOrder(
@@ -386,6 +377,7 @@ export abstract class BaseBacktestRunner {
     if (activePrice) {
       order.moveActivePrice = activePrice;
     }
+    order.memo = oppo.memo;
 
     oppo.order = order;
   }

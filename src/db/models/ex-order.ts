@@ -156,6 +156,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column('jsonb', { select: false, nullable: true })
   rawOrder?: any;
 
+  @Column({ nullable: true })
+  memo?: string;
+
   @AfterLoad()
   onLoaded() {
     const numFields: (keyof ExOrder)[] = [
