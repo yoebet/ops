@@ -19,7 +19,7 @@ import { TradeSide } from '@/data-service/models/base';
 import { checkLongStillContinuous } from '@/strategy-backtest/opportunity/long-still';
 import { checkJumpContinuous } from '@/strategy-backtest/opportunity/jump';
 import { checkMoveContinuous } from '@/strategy-backtest/opportunity/move';
-import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/fixed';
+import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/tpsl';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -130,7 +130,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       case OppCheckerAlgo.MV:
         oppo = await checkMoveContinuous.call(this, params, checkOptions);
         break;
-      case OppCheckerAlgo.FP:
+      case OppCheckerAlgo.TP:
         oppo = await checkLimitOrderContinuous.call(this, params, checkOptions);
         break;
       default:
@@ -161,71 +161,71 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       await this.fillOrder(order, orderPrice, new Date(kld.getIntervalEndTs()));
 
       return kld.moveOn(false);
-    } else {
-      if (order.tpslType === 'move') {
-        const { moveActivePrice, moveDrawbackPercent } = order;
-        if (moveActivePrice) {
-          const reachPrice = await this.moveOnToPrice(kld, moveActivePrice);
-          if (!reachPrice) {
+    }
+
+    if (order.tpslType === 'move') {
+      const { moveActivePrice, moveDrawbackPercent } = order;
+      if (moveActivePrice) {
+        const reachPrice = await this.moveOnToPrice(kld, moveActivePrice);
+        if (!reachPrice) {
+          return false;
+        }
+      }
+      const kl = await kld.getKline();
+      const activePrice = moveActivePrice || kl.close;
+
+      const drawbackRatio = moveDrawbackPercent / 100;
+      const spr = 1 + drawbackRatio;
+      const bpr = 1 - drawbackRatio;
+      let sentinel = activePrice;
+      const isBuy = order.side === TradeSide.buy;
+      let orderPrice = sentinel * (isBuy ? spr : bpr);
+
+      while (true) {
+        const kl = await kld.getKline();
+        if (!kl) {
+          const moved = kld.moveOn();
+          if (moved) {
+            continue;
+          } else {
             return false;
           }
         }
-        const kl = await kld.getKline();
-        const activePrice = moveActivePrice || kl.close;
+        // const tl = kld.getCurrentLevel();
+        // this.logger.debug(
+        //   `${tl.interval} ${kl.time.toISOString()} ${kl.open}`,
+        // );
 
-        const drawbackRatio = moveDrawbackPercent / 100;
-        const spr = 1 + drawbackRatio;
-        const bpr = 1 - drawbackRatio;
-        let sentinel = activePrice;
-        const isBuy = order.side === TradeSide.buy;
-        let orderPrice = sentinel * (isBuy ? spr : bpr);
-
-        while (true) {
-          const kl = await kld.getKline();
-          if (!kl) {
-            const moved = kld.moveOn();
-            if (moved) {
-              continue;
-            } else {
-              return false;
-            }
+        let toFill = false;
+        if (isBuy) {
+          if (kl.low < sentinel) {
+            sentinel = kl.low;
+            orderPrice = sentinel * spr;
+          } else if (kl.high >= orderPrice) {
+            toFill = true;
           }
-          // const tl = kld.getCurrentLevel();
-          // this.logger.debug(
-          //   `${tl.interval} ${kl.time.toISOString()} ${kl.open}`,
-          // );
-
-          let toFill = false;
-          if (isBuy) {
-            if (kl.low < sentinel) {
-              sentinel = kl.low;
-              orderPrice = sentinel * spr;
-            } else if (kl.high >= orderPrice) {
-              toFill = true;
-            }
-          } else {
-            if (kl.high > sentinel) {
-              sentinel = kl.high;
-              orderPrice = sentinel * bpr;
-            } else if (kl.low <= orderPrice) {
-              toFill = true;
-            }
+        } else {
+          if (kl.high > sentinel) {
+            sentinel = kl.high;
+            orderPrice = sentinel * bpr;
+          } else if (kl.low <= orderPrice) {
+            toFill = true;
           }
-          if (toFill) {
-            if (!kld.isLowestLevel()) {
-              kld.moveDownLevel();
-              continue;
-            }
-            await this.fillOrder(
-              order,
-              orderPrice,
-              new Date(kld.getIntervalEndTs()),
-            );
+        }
+        if (toFill) {
+          if (!kld.isLowestLevel()) {
+            kld.moveDownLevel();
+            continue;
           }
-          const moved = kld.moveOver();
-          if (!moved) {
-            return false;
-          }
+          await this.fillOrder(
+            order,
+            orderPrice,
+            new Date(kld.getIntervalEndTs()),
+          );
+        }
+        const moved = kld.moveOver();
+        if (!moved) {
+          return false;
         }
       }
     }
@@ -311,6 +311,5 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       currentDeal.pendingOrderId = order.id;
       await currentDeal.save();
     }
-    // ...
   }
 }

@@ -8,7 +8,7 @@ import { Strategy } from '@/db/models/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
 import { checkBurstOpp } from '@/strategy/opportunity/burst';
-import { waitToPlaceLimitOrder } from '@/strategy/opportunity/fixed';
+import { waitToPlaceLimitOrder } from '@/strategy/opportunity/tpsl';
 import { checkJumpOpp } from '@/strategy/opportunity/jump';
 import { checkMVOpp } from '@/strategy/opportunity/move';
 import { checkLongStillOpp } from '@/strategy/opportunity/long-still';
@@ -31,7 +31,7 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
     switch (params.algo) {
       case OppCheckerAlgo.BR:
         return checkBurstOpp.call(this, params, side, orderTag);
-      case OppCheckerAlgo.FP:
+      case OppCheckerAlgo.TP:
         return waitToPlaceLimitOrder.call(this, params, side, orderTag);
       case OppCheckerAlgo.LS:
         return checkLongStillOpp.call(this, params, side, orderTag);
@@ -56,7 +56,7 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
     switch (params.algo) {
       case OppCheckerAlgo.BR:
         return checkBurstOpp.call(this, params, side, orderTag);
-      case OppCheckerAlgo.FP:
+      case OppCheckerAlgo.TP:
         params.startingPrice = lastOrder.execPrice;
         return waitToPlaceLimitOrder.call(this, params, side, orderTag);
       case OppCheckerAlgo.LS:

@@ -154,7 +154,7 @@ export abstract class BaseRunner {
         currentDeal.lastOrder = order;
         currentDeal.lastOrderId = order.id;
         await currentDeal.save();
-        await this.logJob(`order filled`);
+        await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
         await this.onOrderFilled();
       } else if (ExOrder.orderToWait(order.status)) {
         currentDeal.pendingOrder = order;

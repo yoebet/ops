@@ -249,11 +249,9 @@ export abstract class BaseBacktestRunner {
   }
 
   protected newClientOrderId(orderTag?: string): string {
-    const { id, algoCode } = this.strategy;
-    const code = algoCode.toLowerCase();
-    const ms = '' + Date.now();
+    const { id } = this.strategy;
     const tag = orderTag?.replace(/[^a-zA-Z]/, '')?.toLowerCase() || '';
-    return `${code}${id}${ms.substring(1, 10)}${tag}`;
+    return `${id}${Date.now()}${tag}`;
   }
 
   protected newOrderByStrategy(): BacktestOrder {

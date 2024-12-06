@@ -2,7 +2,7 @@ import {
   BacktestTradeOppo,
   BaseBacktestRunner,
 } from '@/strategy-backtest/runner/base-backtest-runner';
-import { ConsiderSide, PriceDiffParams } from '@/strategy/strategy.types';
+import { ConsiderSide, TpslParams } from '@/strategy/strategy.types';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
 import { OrderTag } from '@/db/models/ex-order';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
@@ -10,7 +10,7 @@ import { TradeSide } from '@/data-service/models/base';
 
 export async function checkLimitOrderContinuous(
   this: BaseBacktestRunner,
-  params: PriceDiffParams,
+  params: TpslParams,
   options: {
     kld: BacktestKlineLevelsData;
     considerSide: ConsiderSide;

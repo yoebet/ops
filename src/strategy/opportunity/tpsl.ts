@@ -1,7 +1,7 @@
 import { evalTargetPrice, waitForPrice } from '@/strategy/opportunity/helper';
 import {
   ConsiderSide,
-  PriceDiffParams,
+  TpslParams,
   TradeOpportunity,
 } from '@/strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
@@ -10,7 +10,7 @@ import { OrderTag } from '@/db/models/ex-order';
 
 export async function waitToPlaceLimitOrder(
   this: BaseRunner,
-  rps: PriceDiffParams,
+  rps: TpslParams,
   side: ConsiderSide,
   orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {
@@ -30,7 +30,7 @@ export async function waitToPlaceLimitOrder(
 
 async function waitToPlaceOrderOneSide(
   this: BaseRunner,
-  rps: PriceDiffParams,
+  rps: TpslParams,
   side: TradeSide,
   orderTag?: OrderTag,
 ): Promise<TradeOpportunity | undefined> {

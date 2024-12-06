@@ -61,6 +61,7 @@ export async function checkLongStillContinuous(
         amountTimes,
         priceChangeTimes,
         interval,
+        info,
       )
     ) {
       const lastKl = selfKls[selfKls.length - 1];
@@ -95,6 +96,7 @@ export async function checkLongStillContinuous(
           // orderTime: new Date(lastKl.ts),
           moveOn: true,
           reachTimeLimit: true,
+          // memo: info.join('\n'),
         };
       }
     }

@@ -5,7 +5,7 @@ import { DB_SCHEMA } from '@/env';
 import { AppLogger } from '@/common/app-logger';
 import { tsToISO8601 } from '@/common/utils/utils';
 import { ES } from '@/data-service/models/base';
-import { BacktestKline, FtKline, Kline } from '@/data-service/models/kline';
+import { BacktestKline, Kline } from '@/data-service/models/kline';
 
 export function getLimit(limit?: number): number {
   return typeof limit === 'number' ? Math.min(limit, 100_000) : 1000;
@@ -215,9 +215,7 @@ export class KlineDataService implements OnModuleInit {
       limit?: number;
     } & ES,
   ): Promise<BacktestKline[]> {
-    if (!parameter.limit) {
-      parameter.limit = 120;
-    }
+    const limit = parameter.limit || 120;
     const { ex, symbol, interval } = parameter;
 
     const nvs = [
@@ -227,10 +225,10 @@ export class KlineDataService implements OnModuleInit {
       'close',
       'size',
       'amount',
-      'p_ch',
-      'p_avg',
-      'p_cp',
-      'p_ap',
+      // 'p_ch',
+      // 'p_avg',
+      // 'p_cp',
+      // 'p_ap',
     ];
 
     const sql = `select time,
@@ -241,7 +239,7 @@ export class KlineDataService implements OnModuleInit {
                    and ex = '${ex}'
                    and symbol = '${symbol}'
                  order by time
-                 limit ${getLimit(parameter.limit)}`;
+                 limit ${getLimit(limit)}`;
 
     const kls = await this.queryBySql(sql);
     kls.forEach((k: BacktestKline) => {

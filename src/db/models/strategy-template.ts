@@ -1,5 +1,5 @@
 import { BaseModel } from '@/db/models/base-model';
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import { ExTradeType } from '@/db/models/exchange-types';
 import {
   ConsiderSide,

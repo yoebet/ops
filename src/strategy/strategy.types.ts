@@ -9,7 +9,7 @@ export enum StrategyAlgo {
 export enum OppCheckerAlgo {
   MV = 'MV',
   BR = 'BR',
-  FP = 'FP',
+  TP = 'TP',
   LS = 'LS',
   JP = 'JP',
 }
@@ -62,7 +62,7 @@ export interface MVCheckerParams {
   // cancelCheckOnDeviatePercent?: number;
 }
 
-export interface PriceDiffParams {
+export interface TpslParams {
   waitForPercent?: number;
   priceDiffPercent?: number;
   startingPrice?: number;
@@ -114,8 +114,8 @@ export interface OpportunityCheckerBR extends BRCheckerParams {
   algo: OppCheckerAlgo.BR;
 }
 
-export interface OpportunityCheckerFP extends PriceDiffParams {
-  algo: OppCheckerAlgo.FP;
+export interface OpportunityCheckerFP extends TpslParams {
+  algo: OppCheckerAlgo.TP;
 }
 
 export interface OpportunityCheckerLS extends LSCheckerParams {

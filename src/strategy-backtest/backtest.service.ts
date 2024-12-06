@@ -62,7 +62,7 @@ export class BacktestService implements OnModuleInit {
     code: StrategyAlgo,
     oca: OppCheckerAlgo,
   ): string {
-    return `back-test/${code}/${oca}`;
+    return `back-test/${oca}`;
   }
 
   async runStrategyJob(job: Job<StrategyJobData>): Promise<string> {

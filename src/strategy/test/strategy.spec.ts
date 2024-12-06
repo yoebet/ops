@@ -66,7 +66,7 @@ describe('strategy creating', () => {
       algo: OppCheckerAlgo.BR,
       interval: '1m',
       periods: 16,
-      checkPeriods: 2,
+      checkPeriods: 3,
       contrastPeriods: 12,
       baselineAmountTimes: 2,
       baselinePriceChangeTimes: 1.5,
@@ -75,14 +75,14 @@ describe('strategy creating', () => {
     };
     rps[OppCheckerAlgo.BR] = brp;
     const fpp: OpportunityCheckerFP = {
-      algo: OppCheckerAlgo.FP,
+      algo: OppCheckerAlgo.TP,
       waitForPercent: 0.1,
       priceDiffPercent: 1,
     };
-    rps[OppCheckerAlgo.FP] = fpp;
+    rps[OppCheckerAlgo.TP] = fpp;
     const lsp: OpportunityCheckerLS = {
       algo: OppCheckerAlgo.LS,
-      interval: '1m',
+      interval: '5m',
       periods: 16,
       checkPeriods: 8,
       contrastPeriods: 8,
@@ -105,7 +105,7 @@ describe('strategy creating', () => {
         st.openAlgo = openAlgo;
         st.closeAlgo = closeAlgo;
         st.openDealSide = 'both';
-        st.name = `(${st.code})${st.openAlgo}~${st.closeAlgo}/${st.openDealSide}`;
+        st.name = `${st.openAlgo}-${st.closeAlgo}/${st.openDealSide}`;
         st.tradeType = ExTradeType.spot;
         st.quoteAmount = 100;
         st.params = {
@@ -162,7 +162,7 @@ describe('strategy creating', () => {
   it('create strategies', async () => {
     const userId = 1;
     const symbol = 'ETH/USDT';
-    const ex = ExchangeCode.okx;
+    const ex = ExchangeCode.binance;
     const tradeType = ExTradeType.spot;
 
     const exchangeSymbol = await ExchangeSymbol.findOne({

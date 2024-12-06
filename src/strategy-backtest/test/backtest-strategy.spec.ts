@@ -64,7 +64,7 @@ describe('backtest strategy creating', () => {
 
   it('create strategies', async () => {
     const symbol = 'ETH/USDT';
-    const ex = ExchangeCode.okx;
+    const ex = ExchangeCode.binance;
     const tradeType = ExTradeType.spot;
 
     const exchangeSymbol = await ExchangeSymbol.findOne({
