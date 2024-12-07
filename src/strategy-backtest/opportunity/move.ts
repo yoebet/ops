@@ -25,7 +25,6 @@ export async function checkMoveContinuous(
   let sellPrice: number;
   let placeBuyOrder = false;
   let placeSellOrder = false;
-  let stopLoss = false;
 
   while (true) {
     const kl = await kld.getKline();

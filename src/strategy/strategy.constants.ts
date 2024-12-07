@@ -13,3 +13,6 @@ export const ReportStatusInterval = WorkerStalledInterval >> 1;
 export const DefaultBaselineSymbol = 'BTC/USDT';
 
 export const FeeAndSlippageRate = 0.001;
+
+export const DefaultBollingerBandN = 20;
+export const DefaultBollingerBandK = 2;

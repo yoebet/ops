@@ -8,6 +8,7 @@ import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 import {
   IntegratedStrategyParams,
   OppCheckerAlgo,
+  OpportunityCheckerBB,
   OpportunityCheckerBR,
   OpportunityCheckerFP,
   OpportunityCheckerJP,
@@ -98,6 +99,13 @@ describe('strategy creating', () => {
       priceChangeTimes: 3,
     };
     rps[OppCheckerAlgo.JP] = jpp;
+    const bbp: OpportunityCheckerBB = {
+      algo: OppCheckerAlgo.BB,
+      interval: '15m',
+      periods: 20,
+      stdTimes: 2,
+    };
+    rps[OppCheckerAlgo.BB] = bbp;
     for (const openAlgo of Object.values(OppCheckerAlgo)) {
       for (const closeAlgo of Object.values(OppCheckerAlgo)) {
         const st = new StrategyTemplate();
@@ -118,30 +126,44 @@ describe('strategy creating', () => {
           open: rps[st.openAlgo],
           close: rps[st.closeAlgo],
         } as IntegratedStrategyParams;
-        switch (openAlgo) {
-          case OppCheckerAlgo.BR:
-            break;
-        }
         await st.save();
       }
     }
   });
 
   it('create template - br', async () => {
+    const bbp: OpportunityCheckerBB = {
+      algo: OppCheckerAlgo.BB,
+      interval: '15m',
+      periods: 20,
+      stdTimes: 2,
+    };
     const st = new StrategyTemplate();
     st.code = StrategyAlgo.INT;
-    st.name = 'br';
+    st.openAlgo = OppCheckerAlgo.BB;
+    st.closeAlgo = OppCheckerAlgo.BB;
+    st.openDealSide = 'both';
+    st.name = `${st.openAlgo}-${st.closeAlgo}/${st.openDealSide}`;
     st.tradeType = ExTradeType.spot;
-    st.quoteAmount = 200;
-    st.params = {};
+    st.quoteAmount = 100;
+    st.params = {
+      stopLoss: {
+        priceDiffPercent: 1,
+      },
+      lossCoolDownInterval: '4h',
+      minCloseInterval: '15m',
+      maxCloseInterval: '1d',
+      open: bbp,
+      close: bbp,
+    } as IntegratedStrategyParams;
     await st.save();
   });
 
   it('create strategy', async () => {
     const userId = 1;
-    const tempId = 1;
+    const tempId = 56;
     const symbol = 'ETH/USDT';
-    const ex = ExchangeCode.okx;
+    const ex = ExchangeCode.binance;
     const tradeType = ExTradeType.spot;
 
     const exchangeSymbol = await ExchangeSymbol.findOne({

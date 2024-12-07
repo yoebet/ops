@@ -77,11 +77,11 @@ export async function checkLongStillContinuous(
       return oppo;
     }
 
+    const intervalEndTs = kld.getIntervalEndTs();
     if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
       if (kld.moveDownLevel()) {
         continue;
       }
-      const intervalEndTs = kld.getIntervalEndTs();
       const oppo: BacktestTradeOppo = {
         ...oppor,
         side: closeSide,
@@ -94,22 +94,22 @@ export async function checkLongStillContinuous(
       return oppo;
     }
 
+    if (tsTo && intervalEndTs >= tsTo) {
+      return {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.forceclose,
+        orderPrice: kl.close,
+        orderTime: new Date(intervalEndTs),
+        reachTimeLimit: true,
+      };
+    }
+
     const hasNext = await kld.moveOverLevel(interval);
     if (!hasNext) {
       return undefined;
     }
     kl = await kld.getKline();
-    if (tsTo && kld.getCurrentTs() >= tsTo) {
-      return {
-        ...oppor,
-        side: closeSide,
-        orderTag: OrderTag.forceclose,
-        orderPrice: kl.open,
-        orderTime: new Date(kl.ts),
-        reachTimeLimit: true,
-        // memo: info.join('\n'),
-      };
-    }
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     contrastAgg = contrastRoller.next(selfKls[contrastPeriods]);

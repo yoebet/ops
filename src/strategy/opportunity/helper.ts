@@ -2,6 +2,7 @@ import { WatchLevel } from '@/strategy/strategy.types';
 import { WatchRtPriceParams } from '@/data-ex/ex-public-ws.service';
 import { TradeSide } from '@/data-service/models/base';
 import {
+  DefaultBollingerBandK,
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
 } from '@/strategy/strategy.constants';
@@ -14,6 +15,7 @@ import {
 import { BaseRunner } from '@/strategy/strategy/base-runner';
 import { ExKline } from '@/exchange/exchange-service.types';
 import { FtKline } from '@/data-service/models/kline';
+import * as _ from 'lodash';
 
 export function evalWatchLevel(diffPercentAbs: number): WatchLevel {
   let watchLevel: WatchLevel;
@@ -106,6 +108,24 @@ export function evalKlineAgg(klines: ExKline[]): KlineAgg | undefined {
     avgPrice,
     avgPriceChange,
   };
+}
+
+export interface BBand {
+  ma: number;
+  upper: number;
+  lower: number;
+}
+
+export function evalBBands(
+  klines: ExKline[],
+  stdTimes = DefaultBollingerBandK,
+): BBand {
+  const prices = klines.filter((k) => k.size > 0).map((k) => k.amount / k.size);
+  const ma = _.sum(prices) / prices.length;
+  const sqs = prices.map((p) => Math.pow(p - ma, 2));
+  const std = Math.sqrt(_.sum(sqs) / sqs.length);
+  const kstd = std * stdTimes;
+  return { ma, upper: ma + kstd, lower: ma - kstd };
 }
 
 export async function waitForWatchLevel(

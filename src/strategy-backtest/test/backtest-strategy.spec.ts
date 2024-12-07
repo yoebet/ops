@@ -36,7 +36,7 @@ describe('backtest strategy creating', () => {
     strategy.userExAccountId = 1;
     strategy.tradeType = tradeType;
     strategy.paperTrade = true;
-    strategy.active = false;
+    strategy.active = true;
     strategy.dataFrom = '2024-07-02';
     strategy.dataTo = '2024-07-31';
     await strategy.save();
@@ -44,9 +44,9 @@ describe('backtest strategy creating', () => {
   }
 
   it('create strategy', async () => {
-    const tempId = 1;
+    const tempId = 56;
     const symbol = 'ETH/USDT';
-    const ex = ExchangeCode.okx;
+    const ex = ExchangeCode.binance;
     const tradeType = ExTradeType.spot;
 
     const exchangeSymbol = await ExchangeSymbol.findOne({

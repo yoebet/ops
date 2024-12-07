@@ -35,10 +35,14 @@ describe('strategy backtest runner', () => {
   });
 
   it('rerun 1', async () => {
-    const sid = 66;
+    const sid = 76;
     await BacktestDeal.delete({ strategyId: sid });
     await BacktestOrder.delete({ strategyId: sid });
     const strategy = await BacktestStrategy.findOneBy({ id: sid });
+    if (!strategy.active) {
+      strategy.active = true;
+      await strategy.save();
+    }
     await service.runStrategy(strategy);
   });
 });

@@ -77,11 +77,12 @@ export async function checkJumpContinuous(
       }
     }
 
+    const intervalEndTs = kld.getIntervalEndTs();
+
     if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
       if (kld.moveDownLevel()) {
         continue;
       }
-      const intervalEndTs = kld.getIntervalEndTs();
       const oppo: BacktestTradeOppo = {
         ...oppor,
         side: closeSide,
@@ -94,21 +95,23 @@ export async function checkJumpContinuous(
       return oppo;
     }
 
-    const hasNext = kld.moveOverLevel(interval);
-    if (!hasNext) {
-      return undefined;
-    }
-    kl = await kld.getKline();
-    if (tsTo && kld.getCurrentTs() >= tsTo) {
+    if (tsTo && intervalEndTs >= tsTo) {
       return {
         ...oppor,
         side: closeSide,
         orderTag: OrderTag.forceclose,
-        orderPrice: kl.open,
-        orderTime: new Date(kl.ts),
+        orderPrice: kl.close,
+        orderTime: new Date(intervalEndTs),
         reachTimeLimit: true,
       };
     }
+
+    const hasNext = kld.moveOverLevel(interval);
+    if (!hasNext) {
+      return undefined;
+    }
+
+    kl = await kld.getKline();
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     jumpKlines = selfKls.slice(0, jumpPeriods);

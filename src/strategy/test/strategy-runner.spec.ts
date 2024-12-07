@@ -29,7 +29,7 @@ describe('strategy runner', () => {
   });
 
   it('run 1', async () => {
-    const strategy = await Strategy.findOneBy({ id: 7 });
+    const strategy = await Strategy.findOneBy({ id: 58 });
     await service.runStrategy(strategy);
   });
 

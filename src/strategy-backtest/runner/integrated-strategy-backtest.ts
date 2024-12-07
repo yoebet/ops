@@ -25,6 +25,7 @@ import { checkMoveContinuous } from '@/strategy-backtest/opportunity/move';
 import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/tpsl';
 import { DefaultBaselineSymbol } from '@/strategy/strategy.constants';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
+import { checkBollingerContinuous } from '@/strategy-backtest/opportunity/bollinger';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -167,20 +168,20 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
           checkOptions,
         );
         break;
+      case OppCheckerAlgo.BB:
+        oppo = await checkBollingerContinuous.call(
+          this,
+          params,
+          oppor,
+          checkOptions,
+        );
+        break;
       default:
         return undefined;
     }
     if (!oppo) {
       return false;
     }
-    // if (oppo.reachStopLossPrice) {
-    //   // place order
-    //   return true;
-    // }
-    // if (oppo.reachTimeLimit) {
-    //   // force
-    //   return true;
-    // }
     await this.placeOrder(oppo);
     if (oppo.moveOn === undefined) {
       return kld.moveOver();
