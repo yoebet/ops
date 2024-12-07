@@ -7,7 +7,7 @@ import { JumpCheckerParams } from '@/strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { evalTargetPrice, rollAgg } from '@/strategy/opportunity/helper';
 import { checkJump } from '@/strategy/opportunity/jump';
-import { OrderTag } from '@/db/models/ex-order';
+import { checkStopLossAndTimeLimit } from '@/strategy-backtest/opportunity/helper';
 
 export async function checkJumpContinuous(
   this: BaseBacktestRunner,
@@ -15,7 +15,7 @@ export async function checkJumpContinuous(
   oppor: Partial<BacktestTradeOppo>,
   options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, tsTo, stopLossPrice, closeSide } = options;
+  const { kld, considerSide } = options;
   const {
     interval,
     jumpPeriods,
@@ -64,11 +64,12 @@ export async function checkJumpContinuous(
           orderPrice = evalTargetPrice(orderPrice, limitPriceDiffPercent, side);
         }
 
+        const intervalEndTs = kld.getIntervalEndTs();
         const oppo: BacktestTradeOppo = {
           ...oppor,
           side,
           orderPrice,
-          orderTime: new Date(kld.getIntervalEndTs()),
+          orderTime: new Date(intervalEndTs),
           moveOn: kld.moveOverLevel(interval),
           memo: info.join('\n'),
         };
@@ -77,33 +78,9 @@ export async function checkJumpContinuous(
       }
     }
 
-    const intervalEndTs = kld.getIntervalEndTs();
-
-    if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
-      if (kld.moveDownLevel()) {
-        continue;
-      }
-      const oppo: BacktestTradeOppo = {
-        ...oppor,
-        side: closeSide,
-        orderTag: OrderTag.stoploss,
-        orderPrice: stopLossPrice,
-        orderTime: new Date(intervalEndTs),
-        reachStopLossPrice: true,
-      };
-      await this.buildMarketOrder(oppo);
+    const oppo = await checkStopLossAndTimeLimit.call(kl, oppor, options);
+    if (oppo) {
       return oppo;
-    }
-
-    if (tsTo && intervalEndTs >= tsTo) {
-      return {
-        ...oppor,
-        side: closeSide,
-        orderTag: OrderTag.forceclose,
-        orderPrice: kl.close,
-        orderTime: new Date(intervalEndTs),
-        reachTimeLimit: true,
-      };
     }
 
     const hasNext = kld.moveOverLevel(interval);

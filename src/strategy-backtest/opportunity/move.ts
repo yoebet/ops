@@ -6,7 +6,7 @@ import {
 import { MVCheckerParams } from '@/strategy/strategy.types';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
 import { TradeSide } from '@/data-service/models/base';
-import { OrderTag } from '@/db/models/ex-order';
+import { checkStopLossAndTimeLimit } from '@/strategy-backtest/opportunity/helper';
 
 export async function checkMoveContinuous(
   this: BaseBacktestRunner,
@@ -14,7 +14,7 @@ export async function checkMoveContinuous(
   oppor: Partial<BacktestTradeOppo>,
   options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, tsTo, stopLossPrice, closeSide } = options;
+  const { kld, considerSide } = options;
   const { waitForPercent } = params;
 
   const bothSide = considerSide === 'both';
@@ -70,9 +70,8 @@ export async function checkMoveContinuous(
       }
     }
 
-    const intervalEndTs = kld.getIntervalEndTs();
-
     if (placeBuyOrder || placeSellOrder) {
+      const intervalEndTs = kld.getIntervalEndTs();
       const oppo: BacktestTradeOppo = {
         ...oppor,
         side: placeBuyOrder ? TradeSide.buy : TradeSide.sell,
@@ -83,31 +82,9 @@ export async function checkMoveContinuous(
       return oppo;
     }
 
-    if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
-      if (kld.moveDownLevel()) {
-        continue;
-      }
-      const oppo: BacktestTradeOppo = {
-        ...oppor,
-        side: closeSide,
-        orderTag: OrderTag.stoploss,
-        orderPrice: stopLossPrice,
-        orderTime: new Date(intervalEndTs),
-        reachStopLossPrice: true,
-      };
-      await this.buildMarketOrder(oppo);
+    const oppo = await checkStopLossAndTimeLimit.call(kl, oppor, options);
+    if (oppo) {
       return oppo;
-    }
-
-    if (tsTo && intervalEndTs >= tsTo) {
-      return {
-        ...oppor,
-        side: closeSide,
-        orderTag: OrderTag.forceclose,
-        orderPrice: kl.close,
-        orderTime: new Date(intervalEndTs),
-        reachTimeLimit: true,
-      };
     }
 
     const moved = kld.moveOver();
