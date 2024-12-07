@@ -132,7 +132,7 @@ export class StrategyService implements OnModuleInit {
       queuePaused: queue.isPaused.bind(queue),
       summitNewDealJob: () => service.doSummitJob(strategy),
     };
-    const logContext = `${openAlgo}~${closeAlgo}/${openDealSide}/${strategy.id}`;
+    const logContext = `${openAlgo}-${closeAlgo}/${openDealSide}/${strategy.id}`;
     const logger = this.logger.subLogger(logContext);
 
     let runner: BaseRunner;

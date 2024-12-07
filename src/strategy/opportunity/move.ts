@@ -28,10 +28,13 @@ async function checkMVOneSide(
   side: TradeSide,
   oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
-  let basePointPrice: number;
   const { startingPrice, waitForPercent } = rtParams;
-  if (startingPrice && waitForPercent) {
-    basePointPrice = evalTargetPrice(startingPrice, waitForPercent, side);
+  let basePointPrice = startingPrice;
+  if (!basePointPrice) {
+    basePointPrice = await this.env.getLastPrice();
+  }
+  if (waitForPercent) {
+    basePointPrice = evalTargetPrice(basePointPrice, waitForPercent, side);
     await this.logJob(`target-price: ${basePointPrice.toPrecision(6)}`);
 
     const targetPrice = await waitForPrice.call(this, side, basePointPrice);

@@ -4,6 +4,8 @@ import { Strategy } from '@/db/models/strategy';
 import { StrategyModule } from '@/strategy/strategy.module';
 import { StrategyService } from '@/strategy/strategy.service';
 import { HOUR_MS } from '@/common/utils/utils';
+import { StrategyDeal } from '@/db/models/strategy-deal';
+import { ExOrder } from '@/db/models/ex-order';
 
 jest.setTimeout(HOUR_MS);
 
@@ -29,5 +31,18 @@ describe('strategy runner', () => {
   it('run 1', async () => {
     const strategy = await Strategy.findOneBy({ id: 7 });
     await service.runStrategy(strategy);
+  });
+
+  it('rerun 1', async () => {
+    const sid = 33;
+    await StrategyDeal.delete({ strategyId: sid });
+    await ExOrder.delete({ strategyId: sid });
+    const strategy = await Strategy.findOneBy({ id: sid });
+    await service.runStrategy(strategy);
+  });
+
+  it('run all', async () => {
+    const strategies = await Strategy.findBy({ active: true });
+    await Promise.all(strategies.map((s) => service.runStrategy(s)));
   });
 });
