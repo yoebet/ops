@@ -5,7 +5,7 @@ import { StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { TradeSide } from '@/data-service/models/base';
 import { OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { MVCheckerParams } from '@/strategy/strategy.types';
+import { ConsiderSide, MVCheckerParams } from '@/strategy/strategy.types';
 import {
   durationHumanizerOptions,
   evalOrdersPnl,
@@ -18,6 +18,14 @@ import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
 
+export interface CheckOppoOptions {
+  kld: BacktestKlineLevelsData;
+  considerSide: ConsiderSide;
+  stopLossPrice?: number;
+  closeSide?: TradeSide;
+  tsTo?: number;
+}
+
 export interface BacktestTradeOppo {
   orderTag?: OrderTag;
   side?: TradeSide;
@@ -27,7 +35,8 @@ export interface BacktestTradeOppo {
   orderTime?: Date;
   order?: BacktestOrder;
   // params?: PlaceOrderParams;
-  moveOn: boolean;
+  moveOn?: boolean;
+  reachStopLossPrice?: boolean;
   reachTimeLimit?: boolean;
   memo?: string;
 }
@@ -183,10 +192,11 @@ export abstract class BaseBacktestRunner {
     const orders = await BacktestOrder.find({
       select: ['id', 'side', 'execPrice', 'execSize', 'execAmount'],
       where: { dealId: deal.id, status: OrderStatus.filled },
+      order: { exUpdatedAt: 'asc' },
     });
     deal.pnlUsd = evalOrdersPnl(orders);
     deal.status = 'closed';
-    deal.closedAt = new Date();
+    deal.closedAt = deal.lastOrder?.exUpdatedAt;
     await deal.save();
 
     const strategy = this.strategy;

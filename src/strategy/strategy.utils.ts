@@ -4,6 +4,7 @@ import { StrategyDeal } from '@/db/models/strategy-deal';
 import { HumanizerOptions } from 'humanize-duration';
 import { TradeSide } from '@/data-service/models/base';
 import * as _ from 'lodash';
+import { FeeAndSlippageRate } from '@/strategy/strategy.constants';
 
 // for paper-trade or back-test
 export function fillOrderSize(
@@ -15,10 +16,20 @@ export function fillOrderSize(
   if (!price) {
     throw new Error(`missing price`);
   }
+  if (FeeAndSlippageRate != null) {
+    const rate =
+      order.priceType === 'market'
+        ? FeeAndSlippageRate
+        : FeeAndSlippageRate / 2;
+    if (order.side === TradeSide.buy) {
+      price = price * (1 + rate);
+    } else {
+      price = price * (1 - rate);
+    }
+  }
   target.execPrice = price;
   target.execSize = order.baseSize ?? order.quoteAmount / price;
   target.execAmount = order.quoteAmount ?? order.baseSize * price;
-  // TODO: fee and Slippage
 }
 
 export function evalOrdersPnl(orders: ExOrder[]): number | undefined {

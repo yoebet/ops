@@ -76,8 +76,8 @@ describe('strategy creating', () => {
     rps[OppCheckerAlgo.BR] = brp;
     const fpp: OpportunityCheckerFP = {
       algo: OppCheckerAlgo.TP,
-      waitForPercent: 0.1,
-      priceDiffPercent: 1,
+      waitForPercent: 0.5,
+      priceDiffPercent: 2,
     };
     rps[OppCheckerAlgo.TP] = fpp;
     const lsp: OpportunityCheckerLS = {
@@ -85,9 +85,9 @@ describe('strategy creating', () => {
       interval: '5m',
       periods: 16,
       checkPeriods: 8,
-      contrastPeriods: 8,
-      amountTimes: 0.2,
-      priceChangeTimes: 0.2,
+      contrastPeriods: 4,
+      amountTimes: 0.3,
+      priceChangeTimes: 0.3,
     };
     rps[OppCheckerAlgo.LS] = lsp;
     const jpp: OpportunityCheckerJP = {

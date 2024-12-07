@@ -1,9 +1,9 @@
-import { BRCheckerParams, ConsiderSide } from '@/strategy/strategy.types';
+import { BRCheckerParams } from '@/strategy/strategy.types';
 import {
   BacktestTradeOppo,
   BaseBacktestRunner,
+  CheckOppoOptions,
 } from '@/strategy-backtest/runner/base-backtest-runner';
-import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
 import {
   evalKlineAgg,
   evalTargetPrice,
@@ -12,19 +12,16 @@ import {
 import { BacktestKlineData } from '@/strategy-backtest/backtest-kline-data';
 import { checkBurst } from '@/strategy/opportunity/burst';
 import { TradeSide } from '@/data-service/models/base';
+import { OrderTag } from '@/db/models/ex-order';
 
 export async function checkBurstContinuous(
   this: BaseBacktestRunner,
   params: BRCheckerParams,
   baselineKld: BacktestKlineData,
   oppor: Partial<BacktestTradeOppo>,
-  options: {
-    kld: BacktestKlineLevelsData;
-    considerSide: ConsiderSide;
-    tsTo?: number;
-  },
+  options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, tsTo } = options;
+  const { kld, considerSide, tsTo, stopLossPrice, closeSide } = options;
   const {
     interval,
     periods,
@@ -56,7 +53,7 @@ export async function checkBurstContinuous(
   while (true) {
     const info: string[] = [];
 
-    this.logger.log(`${kl.interval} ${kl.time.toISOString()}`);
+    // this.logger.log(`${kl.interval} ${kl.time.toISOString()}`);
     const side =
       selfLatestAgg.avgPrice > selfContrastAgg.avgPrice
         ? TradeSide.buy
@@ -111,33 +108,46 @@ export async function checkBurstContinuous(
             side,
             orderPrice,
             orderTime: new Date(kld.getIntervalEndTs()),
-            moveOn: true,
             memo: info.join('\n'),
           };
           await this.buildMarketOrder(oppo);
-
-          oppo.moveOn = kld.moveOverLevel(interval);
           return oppo;
         }
       }
     }
+
+    if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
+      if (kld.moveDownLevel()) {
+        continue;
+      }
+      const intervalEndTs = kld.getIntervalEndTs();
+      const oppo: BacktestTradeOppo = {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.stoploss,
+        orderPrice: stopLossPrice,
+        orderTime: new Date(intervalEndTs),
+        reachStopLossPrice: true,
+      };
+      await this.buildMarketOrder(oppo);
+      return oppo;
+    }
+
     const hasNext = kld.moveOverLevel(interval);
     if (!hasNext) {
       return undefined;
     }
-    if (tsTo) {
-      if (kld.getCurrentTs() >= tsTo) {
-        return {
-          ...oppor,
-          side,
-          // orderPrice,
-          // orderTime: new Date(lastKl.ts),
-          moveOn: kld.moveOver(),
-          reachTimeLimit: true,
-        };
-      }
-    }
     kl = await kld.getKline();
+    if (tsTo && kld.getCurrentTs() >= tsTo) {
+      return {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.forceclose,
+        orderPrice: kl.open,
+        orderTime: new Date(kl.ts),
+        reachTimeLimit: true,
+      };
+    }
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     selfContrastAgg = selfContrastRoller.next(selfKls[contrastPeriods]);

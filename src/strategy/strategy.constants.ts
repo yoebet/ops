@@ -11,3 +11,5 @@ export const WorkerConcurrency = 10;
 export const ReportStatusInterval = WorkerStalledInterval >> 1;
 
 export const DefaultBaselineSymbol = 'BTC/USDT';
+
+export const FeeAndSlippageRate = 0.001;

@@ -13,7 +13,6 @@ import {
   KlineAgg,
 } from '@/strategy/opportunity/helper';
 import { AppLogger } from '@/common/app-logger';
-import { OrderTag } from '@/db/models/ex-order';
 
 export function checkStill(
   this: { logger: AppLogger },
@@ -33,7 +32,7 @@ export function checkStill(
   const i1 = `avgAmount: ${laa.toFixed(0)} ~ ${caa.toFixed(0)}, times: ${(laa / caa).toFixed(2)} ~ ${amountTimes}`;
   const i2 = `priceChange: ${lpc.toPrecision(6)} ~ ${cpc.toPrecision(6)}, times: ${(lpc / cpc).toFixed(2)} ~ ${priceChangeTimes}`;
   info.push(i1, i2);
-  this.logger.debug([i1, i2].join('\n'));
+  // this.logger.debug([i1, i2].join('\n'));
   return laa < caa * amountTimes && lpc < cpc * priceChangeTimes;
 }
 

@@ -1,24 +1,21 @@
 import {
   BacktestTradeOppo,
   BaseBacktestRunner,
+  CheckOppoOptions,
 } from '@/strategy-backtest/runner/base-backtest-runner';
-import { ConsiderSide, TpslParams } from '@/strategy/strategy.types';
-import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
+import { TpslParams } from '@/strategy/strategy.types';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
 import { TradeSide } from '@/data-service/models/base';
+import { OrderTag } from '@/db/models/ex-order';
 
 export async function checkLimitOrderContinuous(
   this: BaseBacktestRunner,
   params: TpslParams,
   oppor: Partial<BacktestTradeOppo>,
-  options: {
-    kld: BacktestKlineLevelsData;
-    considerSide: ConsiderSide;
-    tsTo?: number;
-  },
+  options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, tsTo } = options;
-  const { waitForPercent, startingPrice } = params;
+  const { kld, considerSide, tsTo, stopLossPrice, closeSide } = options;
+  const { waitForPercent } = params;
 
   const couldBuy = considerSide === 'both' || considerSide === 'buy';
   const couldSell = considerSide === 'both' || considerSide === 'sell';
@@ -72,32 +69,48 @@ export async function checkLimitOrderContinuous(
       }
     }
 
+    const intervalEndTs = kld.getIntervalEndTs();
     if (placeBuyOrder || placeSellOrder) {
       const oppo: BacktestTradeOppo = {
         ...oppor,
         side: placeBuyOrder ? TradeSide.buy : TradeSide.sell,
         orderPrice: placeBuyOrder ? buyPrice : sellPrice,
-        orderTime: new Date(kld.getIntervalEndTs()),
-        moveOn: kld.moveOver(),
+        orderTime: new Date(intervalEndTs),
       };
       await this.buildLimitOrder(oppo);
       return oppo;
     }
 
-    if (tsTo) {
-      if (kld.getCurrentTs() >= tsTo) {
-        return {
-          ...oppor,
-          moveOn: kld.moveOver(),
-          reachTimeLimit: true,
-        };
+    if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
+      if (kld.moveDownLevel()) {
+        continue;
       }
+      const oppo: BacktestTradeOppo = {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.stoploss,
+        orderPrice: stopLossPrice,
+        orderTime: new Date(intervalEndTs),
+        reachStopLossPrice: true,
+      };
+      await this.buildMarketOrder(oppo);
+      return oppo;
     }
+
+    if (tsTo && intervalEndTs >= tsTo) {
+      return {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.forceclose,
+        orderPrice: kl.close,
+        orderTime: new Date(intervalEndTs),
+        reachTimeLimit: true,
+      };
+    }
+
     const moved = kld.moveOver();
     if (!moved) {
-      return {
-        moveOn: false,
-      };
+      return undefined;
     }
   }
 }

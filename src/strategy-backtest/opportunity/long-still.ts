@@ -1,24 +1,21 @@
 import {
   BacktestTradeOppo,
   BaseBacktestRunner,
+  CheckOppoOptions,
 } from '@/strategy-backtest/runner/base-backtest-runner';
-import { ConsiderSide, LSCheckerParams } from '@/strategy/strategy.types';
-import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
+import { LSCheckerParams } from '@/strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { evalTargetPrice, rollAgg } from '@/strategy/opportunity/helper';
 import { checkStill } from '@/strategy/opportunity/long-still';
+import { OrderTag } from '@/db/models/ex-order';
 
 export async function checkLongStillContinuous(
   this: BaseBacktestRunner,
   params: LSCheckerParams,
   oppor: Partial<BacktestTradeOppo>,
-  options: {
-    kld: BacktestKlineLevelsData;
-    considerSide: ConsiderSide;
-    tsTo?: number;
-  },
+  options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {
-  const { kld, considerSide, tsTo } = options;
+  const { kld, considerSide, tsTo, stopLossPrice, closeSide } = options;
   const {
     interval,
     periods,
@@ -59,7 +56,6 @@ export async function checkLongStillContinuous(
         latestAgg,
         amountTimes,
         priceChangeTimes,
-        interval,
         info,
       )
     ) {
@@ -80,24 +76,40 @@ export async function checkLongStillContinuous(
       await this.buildMarketOrder(oppo);
       return oppo;
     }
+
+    if (stopLossPrice && stopLossPrice >= kl.low && stopLossPrice <= kl.high) {
+      if (kld.moveDownLevel()) {
+        continue;
+      }
+      const intervalEndTs = kld.getIntervalEndTs();
+      const oppo: BacktestTradeOppo = {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.stoploss,
+        orderPrice: stopLossPrice,
+        orderTime: new Date(intervalEndTs),
+        reachStopLossPrice: true,
+      };
+      await this.buildMarketOrder(oppo);
+      return oppo;
+    }
+
     const hasNext = await kld.moveOverLevel(interval);
     if (!hasNext) {
       return undefined;
     }
-    if (tsTo) {
-      if (kld.getCurrentTs() >= tsTo) {
-        return {
-          ...oppor,
-          side,
-          // orderPrice,
-          // orderTime: new Date(lastKl.ts),
-          moveOn: kld.moveOver(),
-          reachTimeLimit: true,
-          // memo: info.join('\n'),
-        };
-      }
-    }
     kl = await kld.getKline();
+    if (tsTo && kld.getCurrentTs() >= tsTo) {
+      return {
+        ...oppor,
+        side: closeSide,
+        orderTag: OrderTag.forceclose,
+        orderPrice: kl.open,
+        orderTime: new Date(kl.ts),
+        reachTimeLimit: true,
+        // memo: info.join('\n'),
+      };
+    }
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     contrastAgg = contrastRoller.next(selfKls[contrastPeriods]);

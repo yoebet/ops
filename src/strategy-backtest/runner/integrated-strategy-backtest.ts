@@ -10,7 +10,10 @@ import { RuntimeParamsBacktest } from '@/strategy-backtest/runner/runtime-params
 import { BacktestOrder } from '@/db/models/backtest-order';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
 import { TimeLevel } from '@/db/models/time-level';
-import { BacktestTradeOppo } from '@/strategy-backtest/runner/base-backtest-runner';
+import {
+  BacktestTradeOppo,
+  CheckOppoOptions,
+} from '@/strategy-backtest/runner/base-backtest-runner';
 import { BacktestKlineData } from '@/strategy-backtest/backtest-kline-data';
 import { checkBurstContinuous } from '@/strategy-backtest/opportunity/burst';
 import { OrderStatus, OrderTag } from '@/db/models/ex-order';
@@ -21,6 +24,7 @@ import { checkJumpContinuous } from '@/strategy-backtest/opportunity/jump';
 import { checkMoveContinuous } from '@/strategy-backtest/opportunity/move';
 import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/tpsl';
 import { DefaultBaselineSymbol } from '@/strategy/strategy.constants';
+import { evalTargetPrice } from '@/strategy/opportunity/helper';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -66,16 +70,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
             const seconds = TimeLevel.evalIntervalSeconds(rps.maxCloseInterval);
             tsTo = lastOrderTs + seconds * 1000;
           }
-          if (rps.stopLoss?.priceDiffPercent) {
-            // TODO:
-            // return Promise.race([
-            //   // this.checkAndWaitToStopLoss(),
-            //   // this.checkAndWaitToCloseDeal(),
-            // ]);
-          } else {
-            // return this.checkAndWaitToCloseDeal();
-          }
         }
+        // TODO: lossCoolDownInterval
         const moveOn = await this.checkAndPlaceOrder(kld, tsTo);
         if (!moveOn) {
           break;
@@ -99,16 +95,25 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       ? this.getCloseRuntimeParams()
       : this.getOpenRuntimeParams();
 
-    const checkOptions = {
+    const checkOptions: CheckOppoOptions = {
       kld,
       considerSide: side,
-      orderTag,
       tsTo,
     };
     const oppor: Partial<BacktestTradeOppo> = {
       orderTag,
     };
     if (lastOrder) {
+      const stopLossPercent =
+        this.getRuntimeParams().stopLoss?.priceDiffPercent;
+      if (stopLossPercent) {
+        checkOptions.stopLossPrice = evalTargetPrice(
+          lastOrder.execPrice,
+          stopLossPercent,
+          lastOrder.side,
+        );
+        checkOptions.closeSide = this.inverseSide(lastOrder.side);
+      }
       oppor.orderSize = lastOrder.execSize;
       oppor.orderAmount = lastOrder.execAmount;
     }
@@ -168,10 +173,18 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     if (!oppo) {
       return false;
     }
-    if (oppo.reachTimeLimit) {
-      return true;
-    }
+    // if (oppo.reachStopLossPrice) {
+    //   // place order
+    //   return true;
+    // }
+    // if (oppo.reachTimeLimit) {
+    //   // force
+    //   return true;
+    // }
     await this.placeOrder(oppo);
+    if (oppo.moveOn === undefined) {
+      return kld.moveOver();
+    }
     return oppo.moveOn;
   }
 
