@@ -242,9 +242,14 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
           }
         }
         if (toFill) {
-          if (!kld.isLowestLevel()) {
-            kld.moveDownLevel();
+          if (kld.moveDownLevel()) {
             continue;
+          }
+          const memo = `active: ${activePrice.toPrecision(6)}, sentinel: ${sentinel.toPrecision(6)}`;
+          if (order.memo) {
+            order.memo = [order.memo, memo].join('\n');
+          } else {
+            order.memo = memo;
           }
           await this.fillOrder(
             order,
@@ -267,9 +272,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     orderPrice: number,
     orderTime: Date,
   ) {
-    const exOrderId = this.newOrderId();
     fillOrderSize(order, order, orderPrice);
-    order.exOrderId = exOrderId;
+    order.exOrderId = this.newOrderId();
     order.status = OrderStatus.filled;
     order.exUpdatedAt = orderTime;
 
@@ -318,23 +322,31 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
   }
 
   protected async placeOrder(oppo: BacktestTradeOppo): Promise<void> {
-    const { order, orderSize, orderAmount } = oppo;
+    const { order, orderSize, orderAmount, orderPrice, orderTime } = oppo;
     if (!order) {
       return;
     }
-    const currentDeal = this.strategy.currentDeal;
+    const strategy = this.strategy;
+    const currentDeal = strategy.currentDeal;
     order.exOrderId = this.newOrderId();
-    if (!order.baseSize && orderSize) {
-      order.baseSize = orderSize;
-    }
-    if (!order.quoteAmount && orderAmount) {
-      order.quoteAmount = orderAmount;
+    if (order.side === TradeSide.buy) {
+      if (!order.quoteAmount) {
+        order.quoteAmount = orderAmount || strategy.quoteAmount;
+      }
+    } else {
+      if (!order.baseSize && orderSize) {
+        order.baseSize = orderSize;
+      }
+      if (!order.baseSize) {
+        const amount = orderAmount || strategy.quoteAmount;
+        order.baseSize = amount / orderPrice;
+      }
     }
     if (order.priceType === 'market') {
-      fillOrderSize(order, order, oppo.orderPrice);
+      fillOrderSize(order, order, orderPrice);
       order.status = OrderStatus.filled;
-      order.exCreatedAt = oppo.orderTime;
-      order.exUpdatedAt = oppo.orderTime;
+      order.exCreatedAt = orderTime;
+      order.exUpdatedAt = orderTime;
       await order.save();
       currentDeal.lastOrder = order;
       currentDeal.lastOrderId = order.id;

@@ -87,7 +87,6 @@ export async function checkMoveContinuous(
     if (tsTo) {
       if (kld.getCurrentTs() >= tsTo) {
         return {
-          ...oppor,
           moveOn: kld.moveOver(),
           reachTimeLimit: true,
         };
@@ -95,9 +94,7 @@ export async function checkMoveContinuous(
     }
     const moved = kld.moveOver();
     if (!moved) {
-      return {
-        moveOn: false,
-      };
+      return undefined;
     }
   }
 }

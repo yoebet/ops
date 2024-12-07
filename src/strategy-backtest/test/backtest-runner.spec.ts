@@ -4,6 +4,8 @@ import { HOUR_MS } from '@/common/utils/utils';
 import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.module';
 import { BacktestService } from '@/strategy-backtest/backtest.service';
 import { BacktestStrategy } from '@/db/models/backtest-strategy';
+import { BacktestDeal } from '@/db/models/backtest-deal';
+import { BacktestOrder } from '@/db/models/backtest-order';
 
 jest.setTimeout(HOUR_MS);
 
@@ -29,6 +31,14 @@ describe('strategy backtest runner', () => {
 
   it('run 1', async () => {
     const strategy = await BacktestStrategy.findOneBy({ id: 51 });
+    await service.runStrategy(strategy);
+  });
+
+  it('rerun 1', async () => {
+    const sid = 51;
+    await BacktestDeal.delete({ strategyId: sid });
+    await BacktestOrder.delete({ strategyId: sid });
+    const strategy = await BacktestStrategy.findOneBy({ id: sid });
     await service.runStrategy(strategy);
   });
 });

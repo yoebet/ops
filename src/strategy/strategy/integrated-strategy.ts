@@ -13,7 +13,6 @@ import { checkJumpOpp } from '@/strategy/opportunity/jump';
 import { checkMVOpp } from '@/strategy/opportunity/move';
 import { checkLongStillOpp } from '@/strategy/opportunity/long-still';
 import { OrderTag } from '@/db/models/ex-order';
-import { TradeSide } from '@/data-service/models/base';
 
 export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityParams> {
   constructor(

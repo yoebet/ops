@@ -18,10 +18,7 @@ import {
   durationHumanizerOptions,
   evalOrdersPnl,
 } from '@/strategy/strategy.utils';
-import {
-  DefaultQuoteAmount,
-  ReportStatusInterval,
-} from '@/strategy/strategy.constants';
+import { ReportStatusInterval } from '@/strategy/strategy.constants';
 import {
   PlaceOrderParams,
   PlaceOrderReturns,
@@ -125,11 +122,26 @@ export abstract class BaseRunner {
   >;
 
   protected async placeOrder(oppo: TradeOpportunity): Promise<void> {
-    const { order, params } = oppo;
-    if (order && params) {
-      await order.save();
-      await this.doPlaceOrder(order, params);
+    const { order, params, orderSize, orderAmount, orderPrice } = oppo;
+    if (!order || !params) {
+      return;
     }
+    const strategy = this.strategy;
+    if (order.side === TradeSide.buy) {
+      if (!order.quoteAmount) {
+        order.quoteAmount = orderAmount || strategy.quoteAmount;
+      }
+    } else {
+      if (!order.baseSize && orderSize) {
+        order.baseSize = orderSize;
+      }
+      if (!order.baseSize) {
+        const amount = orderAmount || strategy.quoteAmount;
+        order.baseSize = amount / orderPrice;
+      }
+    }
+    await order.save();
+    await this.doPlaceOrder(order, params);
   }
 
   protected async doPlaceOrder(
@@ -501,8 +513,7 @@ export abstract class BaseRunner {
     order.clientOrderId = clientOrderId;
     order.priceType = 'market';
     if (tradeSide === TradeSide.buy) {
-      order.quoteAmount =
-        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
     }
@@ -549,8 +560,7 @@ export abstract class BaseRunner {
     order.priceType = 'limit';
     order.limitPrice = orderPrice;
     if (tradeSide === TradeSide.buy) {
-      order.quoteAmount =
-        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
     }
@@ -608,20 +618,17 @@ export abstract class BaseRunner {
     order.tpslType = 'move';
     order.moveDrawbackPercent = drawbackPercent;
     if (tradeSide === TradeSide.buy) {
-      order.quoteAmount =
-        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
     }
     if (activePercent) {
-      let activePrice: number;
       const activeRatio = activePercent / 100;
       if (tradeSide === TradeSide.buy) {
-        activePrice = placeOrderPrice * (1 - activeRatio);
+        order.moveActivePrice = placeOrderPrice * (1 - activeRatio);
       } else {
-        activePrice = placeOrderPrice * (1 + activeRatio);
+        order.moveActivePrice = placeOrderPrice * (1 + activeRatio);
       }
-      order.moveActivePrice = activePrice;
     }
     order.memo = oppo.memo;
 

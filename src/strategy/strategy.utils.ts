@@ -5,6 +5,7 @@ import { HumanizerOptions } from 'humanize-duration';
 import { TradeSide } from '@/data-service/models/base';
 import * as _ from 'lodash';
 
+// for paper-trade or back-test
 export function fillOrderSize(
   target: ExOrderResp,
   order: ExOrder,
@@ -17,6 +18,7 @@ export function fillOrderSize(
   target.execPrice = price;
   target.execSize = order.baseSize ?? order.quoteAmount / price;
   target.execAmount = order.quoteAmount ?? order.baseSize * price;
+  // TODO: fee and Slippage
 }
 
 export function evalOrdersPnl(orders: ExOrder[]): number | undefined {

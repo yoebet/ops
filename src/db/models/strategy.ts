@@ -9,6 +9,7 @@ import {
   OppCheckerAlgo,
   StrategyAlgo,
 } from '@/strategy/strategy.types';
+import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
 @Entity()
 // @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
@@ -54,9 +55,6 @@ export class Strategy extends ExSymbolBase {
   @Column()
   active: boolean;
 
-  // @Column('numeric', { nullable: true })
-  // accumulatedPnlUsd?: number;
-
   @Column('jsonb', { nullable: true })
   params?: any;
 
@@ -65,6 +63,16 @@ export class Strategy extends ExSymbolBase {
 
   @Column({ nullable: true })
   jobSummited?: boolean;
+
+  @AfterLoad()
+  onLoaded() {
+    if (this.baseSize != null) {
+      this.baseSize = +this.baseSize;
+    }
+    if (this.quoteAmount != null) {
+      this.quoteAmount = +this.quoteAmount;
+    }
+  }
 
   // template?: StrategyTemplate;
   apiKey?: ExApiKey;

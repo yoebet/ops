@@ -17,7 +17,6 @@ import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-leve
 import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
-import { DefaultQuoteAmount } from '@/strategy/strategy.constants';
 
 export interface BacktestTradeOppo {
   orderTag?: OrderTag;
@@ -271,8 +270,7 @@ export abstract class BaseBacktestRunner {
     order.clientOrderId = clientOrderId;
     order.priceType = 'market';
     if (tradeSide === TradeSide.buy) {
-      order.quoteAmount =
-        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
     }
@@ -296,8 +294,7 @@ export abstract class BaseBacktestRunner {
     order.priceType = 'limit';
     order.limitPrice = orderPrice;
     if (tradeSide === TradeSide.buy) {
-      order.quoteAmount =
-        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
     }
@@ -328,21 +325,18 @@ export abstract class BaseBacktestRunner {
     order.tpslType = 'move';
     order.moveDrawbackPercent = drawbackPercent;
     if (tradeSide === TradeSide.buy) {
-      order.quoteAmount =
-        oppo.orderAmount || strategy.quoteAmount || DefaultQuoteAmount;
+      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
     }
     if (activePercent) {
-      let activePrice: number;
       const orderPrice = oppo.orderPrice;
       const activeRatio = activePercent / 100;
       if (tradeSide === TradeSide.buy) {
-        activePrice = orderPrice * (1 - activeRatio);
+        order.moveActivePrice = orderPrice * (1 - activeRatio);
       } else {
-        activePrice = orderPrice * (1 + activeRatio);
+        order.moveActivePrice = orderPrice * (1 + activeRatio);
       }
-      order.moveActivePrice = activePrice;
     }
     order.memo = oppo.memo;
 
