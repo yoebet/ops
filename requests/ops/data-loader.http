@@ -30,16 +30,18 @@ Content-Type: application/json
 
 {
   "exs": [
-    "okx"
+    "binance"
   ],
   "symbols": [
-    "BTC/USDT"
+    "ETH/USDT"
   ],
   "intervals": [
-    "1d"
+    "15m",
+    "5m",
+    "1m"
   ],
-  "startDate": "2018-01",
-  "endDate": "2024-11",
+  "startDate": "2024-07",
+  "endDate": "2024-07",
   "summitJobs": true,
   "skipExist": true
 }

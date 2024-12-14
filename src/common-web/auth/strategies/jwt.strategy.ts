@@ -9,6 +9,7 @@ import { UserInfo } from '@/common-web/auth/user-info';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
+      // jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       jwtFromRequest: ExtractJwt.fromHeader(AUTHORIZATION_HEADER),
       // jwtFromRequest: ExtractJwt.fromUrlQueryParameter('_access_token'),
       ignoreExpiration: true,

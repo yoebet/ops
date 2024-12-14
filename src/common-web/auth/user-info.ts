@@ -1,7 +1,9 @@
 export interface UserInfo {
-  userId: string;
-  // name?: string;
-  locale?: string;
+  username: string;
+  userId: number;
   role?: string;
-  bs?: string;
+  // bs?: string;
+  // locale?: string;
 }
+
+export type JwtPayload = UserInfo;

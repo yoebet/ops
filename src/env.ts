@@ -59,8 +59,9 @@ const DefaultConfig: PartialConfig = {
     wsPath: '/oflow/ws',
   },
   auth: {
-    bs: 'pr',
+    bs: 'ops',
     jwtSecret: 'af7f25f9-92fc-401c-9cb1-8f50f4d9c3ce',
+    siteSalt: '9854573',
   },
   predefinedProfiles: {
     RunAll: {

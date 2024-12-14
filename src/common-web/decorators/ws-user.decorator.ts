@@ -3,13 +3,13 @@ import { AUTHORIZATION_HEADER, Req } from '@/common-web/web.types';
 import { Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 import { Env } from '@/env';
-import { UserInfo } from '@/common-web/auth/user-info';
+import { JwtPayload, UserInfo } from '@/common-web/auth/user-info';
 
 export function authSocket(socket: Socket): UserInfo | null {
   if (!Env.auth) {
     return null;
   }
-  const { jwtSecret: secret, bs, extraSecrets } = Env.auth;
+  const { jwtSecret: secret } = Env.auth;
   if (!secret) {
     return null;
   }
@@ -25,27 +25,7 @@ export function authSocket(socket: Socket): UserInfo | null {
   if (user?.userId) {
     return user;
   }
-  try {
-    user = jwt.verify(token, secret) as UserInfo;
-    if (user) {
-      user.bs = bs;
-    }
-  } catch (_e) {
-    if (!extraSecrets) {
-      return null;
-    }
-    for (const [bs, sr] of Object.entries(extraSecrets)) {
-      try {
-        user = jwt.verify(token, sr) as UserInfo;
-      } catch (_e) {
-        //
-      }
-      if (user) {
-        user.bs = bs;
-        break;
-      }
-    }
-  }
+  user = jwt.verify(token, secret) as JwtPayload;
   request.user = user;
   return user;
 }

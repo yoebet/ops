@@ -8,6 +8,7 @@ import {
 import { AppLogger } from '@/common/app-logger';
 import { Res } from '@/common-web/web.types';
 import { AppError } from '@/common/app-errors';
+import { ApiResult } from '@/common-web/api-result';
 
 @Catch()
 export class CatchAllFilter implements ExceptionFilter {
@@ -23,9 +24,8 @@ export class CatchAllFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let errCode: string;
 
-    if (ex instanceof Error) {
+    if (ex instanceof Error && ex.message) {
       message = ex.message;
     }
     if (ex instanceof HttpException) {
@@ -34,9 +34,10 @@ export class CatchAllFilter implements ExceptionFilter {
       if (ex.httpStatus) {
         status = ex.httpStatus;
       }
-      errCode = ex.errCode;
     }
 
-    response.status(status).json({ errCode, message });
+    const result = new ApiResult(status, message);
+
+    response.status(status).json(result);
   }
 }

@@ -84,7 +84,7 @@ export class KlineDataService implements OnModuleInit {
     for (const k of klines) {
       if (k.p_ch == null) {
         k.p_ch = k.close - k.open;
-        k.p_avg = k.amount / k.size;
+        k.p_avg = k.size > 0 ? k.amount / k.size : 0;
         k.p_cp = (k.p_ch / k.open) * 100.0;
         k.p_ap = (Math.abs(k.high - k.low) / k.low) * 100.0;
       }

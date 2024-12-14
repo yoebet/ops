@@ -20,6 +20,7 @@ import { StrategyModule } from '@/strategy/strategy.module';
 import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 import { HistoryDataLoaderModule } from '@/data-loader/history-data-loader.module';
 import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.module';
+import { UserModule } from '@/user/user-module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.mo
     StrategyModule,
     StrategyBacktestModule,
     ExSyncModule,
+    UserModule,
   ],
   controllers: [AppController, ExchangeController, AdminLoggerController],
   providers: [AppServers],

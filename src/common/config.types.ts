@@ -47,9 +47,10 @@ export interface KafkaConfig {
 export interface AuthConfig {
   bs?: string;
   jwtSecret: string;
-  extraSecrets?: {
-    [bs: string]: string;
-  };
+  // extraSecrets?: {
+  //   [bs: string]: string;
+  // };
+  siteSalt?: string;
 }
 
 export interface KldServerConfig {

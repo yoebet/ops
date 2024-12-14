@@ -1,9 +1,17 @@
+import { Column, Entity } from 'typeorm';
 import { BaseModel } from '@/db/models/base-model';
-import { Column, Entity, Index } from 'typeorm';
 
 @Entity()
 export class User extends BaseModel {
-  @Column()
-  @Index({ unique: true })
-  name: string;
+  @Column({ unique: true })
+  username: string;
+
+  @Column({ select: false })
+  password?: string;
+
+  @Column({ nullable: true })
+  role?: string;
+
+  @Column({ nullable: true })
+  email?: string;
 }
