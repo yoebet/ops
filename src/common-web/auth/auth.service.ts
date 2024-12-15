@@ -16,13 +16,12 @@ export class AuthService {
     return this.userAccountService.authenticate(username, password);
   }
 
-  async login(user: User): Promise<LoginInfo> {
-    const payload: JwtPayload = {
-      username: user.username,
-      userId: user.id,
-      role: user.role,
-    };
-    const token = this.jwtService.sign(payload);
+  async login(ui: JwtPayload): Promise<LoginInfo> {
+    if (!ui) {
+      return undefined;
+    }
+    const token = this.jwtService.sign(ui);
+    const user = await User.findOneBy({ id: ui.userId });
     const li = new LoginInfo();
     li.user = user;
     li.accessToken = token;

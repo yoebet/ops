@@ -8,7 +8,7 @@ import {
 import { AppLogger } from '@/common/app-logger';
 import { Res } from '@/common-web/web.types';
 import { AppError } from '@/common/app-errors';
-import { ApiResult } from '@/common-web/api-result';
+import { ApiResult } from '@/common/api-result';
 
 @Catch()
 export class CatchAllFilter implements ExceptionFilter {

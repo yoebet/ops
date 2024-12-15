@@ -15,3 +15,25 @@ export class User extends BaseModel {
   @Column({ nullable: true })
   email?: string;
 }
+
+export class CreateUserDto {
+  username: string;
+  password: string;
+  role?: string;
+  email?: string;
+}
+
+export class UpdateUserDto {
+  role?: string;
+  email?: string;
+}
+
+export class PasswordResetDto {
+  username: string;
+  newPassword: string;
+}
+
+export class MyPasswordResetDto {
+  password: string;
+  newPassword: string;
+}

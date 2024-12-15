@@ -2,7 +2,6 @@ export interface UserInfo {
   username: string;
   userId: number;
   role?: string;
-  // bs?: string;
   // locale?: string;
 }
 
