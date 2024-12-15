@@ -45,6 +45,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.6",
     "@nestjs/platform-socket.io": "^10.4.6",
+    "@nestjs/serve-static": "^4.0.2",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.6",
     "@socket.io/admin-ui": "^0.5.1",

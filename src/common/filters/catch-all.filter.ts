@@ -17,7 +17,11 @@ export class CatchAllFilter implements ExceptionFilter {
   }
 
   catch(ex: unknown, host: ArgumentsHost) {
-    this.logger.error(ex);
+    if (ex instanceof Error) {
+      this.logger.error(ex.stack);
+    } else {
+      this.logger.error(ex);
+    }
 
     const ctx = host.switchToHttp();
     const response: Res = ctx.getResponse();

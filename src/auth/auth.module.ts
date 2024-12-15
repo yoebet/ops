@@ -13,7 +13,7 @@ import { CommonServicesModule } from '@/common-services/common-services.module';
     JwtModule.register({
       secret: Env.auth?.jwtSecret,
       signOptions: {
-        /*expiresIn: Config.JwtExpiresIn*/
+        expiresIn: '60d',
       },
     }),
     CommonServicesModule,

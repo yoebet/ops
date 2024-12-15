@@ -11,6 +11,7 @@ import { JobsService } from '@/job/jobs.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('/ops');
   app.enableCors();
   const configService = app.get(ConfigService);
   const logger = new AppLogger('main', configService);

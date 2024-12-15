@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '@/db/models/user';
 import { UserAccountService } from '@/common-services/user-account.service';
 import { LoginInfo } from './login-info';
-import { JwtPayload } from '@/auth/user-info';
+import { JwtPayload, UserInfo } from '@/auth/user-info';
 
 @Injectable()
 export class AuthService {
@@ -12,19 +12,21 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
+  async validateUser(username: string, password: string): Promise<User> {
     return this.userAccountService.authenticate(username, password);
   }
 
-  async login(ui: JwtPayload): Promise<LoginInfo> {
+  async login(ui: UserInfo): Promise<LoginInfo> {
     if (!ui) {
       return undefined;
     }
-    const token = this.jwtService.sign(ui);
+    const pl: JwtPayload = {
+      userId: ui.userId,
+      username: ui.username,
+      role: ui.role,
+    };
+    const token = this.jwtService.sign(pl);
     const user = await User.findOneBy({ id: ui.userId });
-    const li = new LoginInfo();
-    li.user = user;
-    li.accessToken = token;
-    return li;
+    return { user, accessToken: token };
   }
 }

@@ -1,6 +1,6 @@
 import { User } from '@/db/models/user';
 
-export class LoginInfo {
+export interface LoginInfo {
   user: User;
   accessToken: string;
 }
