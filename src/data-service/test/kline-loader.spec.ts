@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { DbModule } from '@/db/db-module';
 import { CommonModule } from '@/common/common.module';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { Kline } from '@/data-service/models/kline';
@@ -13,7 +13,7 @@ describe('load-kline-data', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, CommonModule, DbModule, MarketDataModule],
+      imports: [CommonServicesModule, CommonModule, DbModule, MarketDataModule],
       providers: [KlineDataService],
     }).compile();
 

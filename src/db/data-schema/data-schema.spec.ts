@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import * as fs from 'fs';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { TimeLevel } from '@/db/models/time-level';
 import { DB_SCHEMA } from '@/env';
 

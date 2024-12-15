@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { HOUR_MS } from '@/common/utils/utils';
 import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.module';
 import { BacktestService } from '@/strategy-backtest/backtest.service';
@@ -13,7 +13,7 @@ describe('strategy backtest runner', () => {
   let service: BacktestService;
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, StrategyBacktestModule],
+      imports: [CommonServicesModule, StrategyBacktestModule],
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(BacktestService);

@@ -15,8 +15,8 @@ import {
   UpdateUserDto,
   User,
 } from '@/db/models/user';
-import { Roles } from '@/common-web/decorators/roles.decorator';
-import { JwtAuthGuard } from '@/common-web/auth/guards/jwt-auth.guard';
+import { Roles } from '@/auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { ListResult, ApiResult, ValueResult } from '@/common/api-result';
 
 @Controller('sys/users')

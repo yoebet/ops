@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { User } from '@/db/models/user';
 import { UserExAccount } from '@/db/models/user-ex-account';
@@ -9,7 +9,7 @@ jest.setTimeout(60_000);
 describe('user-ex-account', () => {
   beforeEach(async () => {
     await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
     }).compile();
   });
 

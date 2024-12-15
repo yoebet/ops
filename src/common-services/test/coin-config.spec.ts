@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { Coin } from '@/db/models/coin';
 import { UnifiedSymbol } from '@/db/models/unified-symbol';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
@@ -10,7 +10,7 @@ jest.setTimeout(60_000);
 describe('CoinConfigService', () => {
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
     }).compile();
 
     await moduleRef.init();

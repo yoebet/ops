@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ConfigService } from '@nestjs/config';
 // import { Config } from '@/common/config.types';
 
@@ -9,7 +9,7 @@ describe('ConfigService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
     }).compile();
 
     await moduleRef.init();

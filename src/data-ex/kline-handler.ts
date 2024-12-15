@@ -1,6 +1,6 @@
 import * as Rx from 'rxjs';
 import { Observable } from 'rxjs';
-import { SymbolService } from '@/common-services/symbol.service';
+import { ExSymbolService } from '@/common-services/ex-symbol.service';
 import {
   ChannelProducer,
   DataChannelService,
@@ -16,7 +16,7 @@ export class KlineHandler {
   private klineProducer: ChannelProducer<RtKline>;
 
   constructor(
-    readonly symbolService: SymbolService,
+    readonly symbolService: ExSymbolService,
     readonly dataChannelService: DataChannelService,
     readonly publishToChannel: boolean,
     readonly logger: AppLogger,

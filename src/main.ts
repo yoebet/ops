@@ -4,7 +4,7 @@ import * as process from 'process';
 import { AppModule } from './app.module';
 import { AppLogger } from './common/app-logger';
 import { HttpConfig } from './common/config.types';
-import { CatchAllFilter } from '@/common-web/filters/catch-all.filter';
+import { CatchAllFilter } from '@/common/filters/catch-all.filter';
 import { Env } from '@/env';
 import { AppServers } from '@/app-servers';
 import { JobsService } from '@/job/jobs.service';

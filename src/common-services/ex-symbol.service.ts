@@ -3,7 +3,7 @@ import { AppLogger } from '@/common/app-logger';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
 
 @Injectable()
-export class SymbolService implements OnModuleInit {
+export class ExSymbolService implements OnModuleInit {
   private exchangeSymbols: ExchangeSymbol[] = [];
   // ex:market:rawSymbol -> ExchangeSymbol
   private rawSymbolMap = new Map<string, ExchangeSymbol>(); // with unifiedConfig

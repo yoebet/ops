@@ -1,9 +1,9 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { AUTHORIZATION_HEADER, Req } from '@/common-web/web.types';
+import { AUTHORIZATION_HEADER, Req } from '@/common/web.types';
 import { Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 import { Env } from '@/env';
-import { JwtPayload, UserInfo } from '@/common-web/auth/user-info';
+import { JwtPayload, UserInfo } from '@/auth/user-info';
 
 export function authSocket(socket: Socket): UserInfo | null {
   if (!Env.auth) {

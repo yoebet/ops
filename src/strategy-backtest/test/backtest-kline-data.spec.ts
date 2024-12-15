@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { MarketDataModule } from '@/data-service/market-data.module';
@@ -33,7 +33,7 @@ describe('backtest kline data', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, MarketDataModule],
+      imports: [CommonServicesModule, MarketDataModule],
     }).compile();
     await moduleRef.init();
     klineDataService = moduleRef.get(KlineDataService);

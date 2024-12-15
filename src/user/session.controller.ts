@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
-import { AuthService } from '@/common-web/auth/auth.service';
-import { LocalAuthGuard } from '@/common-web/auth/guards/local-auth.guard';
+import { AuthService } from '@/auth/auth.service';
+import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
 import { ValueResult } from '@/common/api-result';
-import { LoginInfo } from '@/common-web/auth/login-info';
-import { JwtAuthGuard } from '@/common-web/auth/guards/jwt-auth.guard';
+import { LoginInfo } from '@/auth/login-info';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { User } from '@/db/models/user';
-import { Req } from '@/common-web/web.types';
+import { Req } from '@/common/web.types';
 
 @Controller('session')
 export class SessionController {

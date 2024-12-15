@@ -1,6 +1,6 @@
 import { Module, Provider } from '@nestjs/common';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
@@ -13,7 +13,7 @@ const services: Provider[] = [
 ];
 
 @Module({
-  imports: [SystemConfigModule, ExchangeModule, MarketDataModule],
+  imports: [CommonServicesModule, ExchangeModule, MarketDataModule],
   providers: services,
   exports: services,
 })

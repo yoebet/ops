@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { ExAssetService } from '@/ex-sync/ex-asset.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';
@@ -12,7 +12,7 @@ describe('ex-sync', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, ExchangeModule],
+      imports: [CommonServicesModule, ExchangeModule],
       providers: [ExAssetService, ExOrderService],
     }).compile();
 

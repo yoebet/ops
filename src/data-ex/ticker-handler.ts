@@ -1,7 +1,7 @@
 import * as Rx from 'rxjs';
 import { Observable } from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
-import { SymbolService } from '@/common-services/symbol.service';
+import { ExSymbolService } from '@/common-services/ex-symbol.service';
 import { Trade } from '@/data-service/models/trade';
 import {
   ChannelProducer,
@@ -24,7 +24,7 @@ export class TickerHandler {
   private publishPriceCount = 0;
 
   constructor(
-    readonly symbolService: SymbolService,
+    readonly symbolService: ExSymbolService,
     readonly dataChannelService: DataChannelService,
     readonly publishToChannel: boolean,
     readonly logger: AppLogger,

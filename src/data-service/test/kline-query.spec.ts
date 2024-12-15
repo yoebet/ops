@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { KlineDataService } from '@/data-service/kline-data.service';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { DbModule } from '@/db/db-module';
 import { DAY_MS, HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
 import { MarketDataModule } from '@/data-service/market-data.module';
@@ -12,7 +12,7 @@ describe('kline-data', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, DbModule, MarketDataModule],
+      imports: [CommonServicesModule, DbModule, MarketDataModule],
     }).compile();
 
     await moduleRef.init();

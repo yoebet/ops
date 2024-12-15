@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { StrategyModule } from '@/strategy/strategy.module';
 import { HOUR_MS } from '@/common/utils/utils';
 import { MockOrderTracingService } from '@/strategy/mock-order-tracing.service';
@@ -11,7 +11,7 @@ describe('trace order', () => {
   let service: MockOrderTracingService;
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SystemConfigModule, StrategyModule],
+      imports: [CommonServicesModule, StrategyModule],
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(MockOrderTracingService);

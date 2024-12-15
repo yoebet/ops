@@ -1,6 +1,6 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { SymbolService } from '@/common-services/symbol.service';
+import { ExSymbolService } from '@/common-services/ex-symbol.service';
 import { ConfigService } from '@nestjs/config';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { DataChannelService } from '@/data-service/data-channel.service';
@@ -65,7 +65,7 @@ export class ExPublicWsService implements OnApplicationShutdown {
 
   constructor(
     readonly configService: ConfigService,
-    readonly symbolService: SymbolService,
+    readonly symbolService: ExSymbolService,
     readonly exchangeServices: Exchanges,
     readonly dataChannelService: DataChannelService,
     readonly logger: AppLogger,

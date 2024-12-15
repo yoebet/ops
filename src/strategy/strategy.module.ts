@@ -1,5 +1,5 @@
 import { Module, Provider } from '@nestjs/common';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { StrategyService } from '@/strategy/strategy.service';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { JobsModule } from '@/job/jobs.module';
@@ -12,7 +12,7 @@ const services: Provider[] = [StrategyService, MockOrderTracingService];
 
 @Module({
   imports: [
-    SystemConfigModule,
+    CommonServicesModule,
     MarketDataModule,
     JobsModule,
     ExchangeModule,

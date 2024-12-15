@@ -1,9 +1,9 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiResult } from '@/common/api-result';
 import { UsersService } from '@/user/users.service';
-import { JwtAuthGuard } from '@/common-web/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { MyPasswordResetDto, User } from '@/db/models/user';
-import { CurrentUser } from '@/common-web/decorators/user.decorator';
+import { CurrentUser } from '@/auth/decorators/user.decorator';
 
 @Controller('sys/user-profile')
 @UseGuards(JwtAuthGuard)

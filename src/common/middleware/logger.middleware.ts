@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
-import { Req, Res } from '@/common-web/web.types';
+import { Req, Res } from '@/common/web.types';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {

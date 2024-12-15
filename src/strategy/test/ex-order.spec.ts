@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
@@ -11,7 +11,7 @@ jest.setTimeout(60_000);
 describe('ex-order', () => {
   beforeEach(async () => {
     await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
     }).compile();
   });
 

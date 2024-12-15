@@ -14,7 +14,6 @@ export class UserAccountService {
   ) {
     logger.setContext('UserAccountService');
     this.siteSalt = configService.get<string>('auth.siteSalt');
-    logger.debug(`siteSalt: ${this.siteSalt}`);
   }
 
   async authenticate(username: string, password: string): Promise<User> {

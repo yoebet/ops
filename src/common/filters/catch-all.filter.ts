@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { Res } from '@/common-web/web.types';
+import { Res } from '@/common/web.types';
 import { AppError } from '@/common/app-errors';
 import { ApiResult } from '@/common/api-result';
 

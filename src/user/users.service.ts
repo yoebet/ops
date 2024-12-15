@@ -7,7 +7,7 @@ import {
   UpdateUserDto,
   PasswordResetDto,
 } from '@/db/models/user';
-import { UserAccountService } from './user-account.service';
+import { UserAccountService } from '@/common-services/user-account.service';
 import { ApiResult } from '@/common/api-result';
 import { AppLogger } from '@/common/app-logger';
 
@@ -16,12 +16,12 @@ import { AppLogger } from '@/common/app-logger';
   command: 'user',
   description: 'UsersService',
 })
-export class UsersService extends UserAccountService {
+export class UsersService {
   constructor(
     protected configService: ConfigService,
+    protected userAccountService: UserAccountService,
     protected logger: AppLogger,
   ) {
-    super(configService, logger);
     logger.setContext('UsersService');
   }
 
@@ -48,6 +48,14 @@ export class UsersService extends UserAccountService {
     this.logger.log(JSON.stringify(user, null, 2));
   }
 
+  async createUser(vo: CreateUserDto): Promise<User> {
+    return this.userAccountService.createUser(vo);
+  }
+
+  async authenticate(username: string, password: string): Promise<User> {
+    return this.userAccountService.authenticate(username, password);
+  }
+
   async update(id: number, dto: UpdateUserDto): Promise<void> {
     await User.update(id, { role: dto.role, email: dto.email });
   }
@@ -58,7 +66,7 @@ export class UsersService extends UserAccountService {
 
   async resetPass(passwordResetDto: PasswordResetDto): Promise<ApiResult> {
     const { username, newPassword } = passwordResetDto;
-    const password = this.hashPass(newPassword);
+    const password = this.userAccountService.hashPass(newPassword);
     await User.update({ username }, { password });
     return ApiResult.success();
   }

@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { SystemConfigModule } from '@/common-services/system-config.module';
+import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { StrategyTemplate } from '@/db/models/strategy-template';
 import { ExchangeSymbol } from '@/db/models/exchange-symbol';
@@ -10,7 +10,7 @@ jest.setTimeout(60_000);
 describe('backtest strategy creating', () => {
   beforeEach(async () => {
     await Test.createTestingModule({
-      imports: [SystemConfigModule],
+      imports: [CommonServicesModule],
     }).compile();
   });
 

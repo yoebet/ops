@@ -6,7 +6,7 @@ import { ExKline, ExPrice } from '@/exchange/exchange-service.types';
 import { KlinesHolder } from '@/data-ex/kline-data-holder';
 import { TimeLevel } from '@/db/models/time-level';
 import { MINUTE_MS } from '@/common/utils/utils';
-import { SymbolService } from '@/common-services/symbol.service';
+import { ExSymbolService } from '@/common-services/ex-symbol.service';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { RtPrice } from '@/data-service/models/realtime';
 
@@ -21,7 +21,7 @@ export class ExPublicDataService implements OnModuleInit {
 
   constructor(
     private exchanges: Exchanges,
-    private symbolServices: SymbolService,
+    private symbolServices: ExSymbolService,
     private exPublicWsService: ExPublicWsService,
     private logger: AppLogger,
   ) {
