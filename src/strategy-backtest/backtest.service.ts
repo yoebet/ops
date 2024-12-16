@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { Equal, IsNull, Or } from 'typeorm';
 import { AppLogger } from '@/common/app-logger';
-import { BacktestStrategy } from '@/db/models/backtest-strategy';
+import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
 import { StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { JobFacade, JobsService } from '@/job/jobs.service';
 import {

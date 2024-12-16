@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { Exchanges } from '@/exchange/exchanges';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { PlaceOrderParams } from '@/exchange/exchange-service.types';
 import { TestConfig } from '@/env.local.test';
 import { round } from '@/common/utils/utils';

@@ -1,5 +1,5 @@
 import { BaseRunner } from '@/strategy/strategy/base-runner';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
 import * as _ from 'lodash';
@@ -15,7 +15,7 @@ import {
   evalTargetPrice,
   waitForPrice,
 } from '@/strategy/opportunity/helper';
-import { StrategyDeal } from '@/db/models/strategy-deal';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { ExOrder, OrderTag } from '@/db/models/ex-order';
 
 export abstract class RuntimeParamsRunner<

@@ -1,6 +1,6 @@
 import { ExOrder, ExOrderResp } from '@/db/models/ex-order';
-import { Strategy } from '@/db/models/strategy';
-import { StrategyDeal } from '@/db/models/strategy-deal';
+import { Strategy } from '@/db/models/strategy/strategy';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { HumanizerOptions } from 'humanize-duration';
 import { TradeSide } from '@/data-service/models/base';
 import * as _ from 'lodash';

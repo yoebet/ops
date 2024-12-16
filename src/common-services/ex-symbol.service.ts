@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AppLogger } from '@/common/app-logger';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 
 @Injectable()
 export class ExSymbolService implements OnModuleInit {

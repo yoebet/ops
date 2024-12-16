@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { In } from 'typeorm';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
-import { UserExAccount } from '@/db/models/user-ex-account';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 

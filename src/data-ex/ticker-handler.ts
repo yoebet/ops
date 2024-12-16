@@ -8,7 +8,7 @@ import {
   DataChannelService,
 } from '@/data-service/data-channel.service';
 import { RtPrice } from '@/data-service/models/realtime';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
 import { ExTrade } from '@/exchange/exchange-service.types';
 

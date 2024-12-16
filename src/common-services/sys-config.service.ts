@@ -2,7 +2,7 @@ import { In } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { groupBy, parseInt, toPairs } from 'lodash';
 import { AppLogger } from '@/common/app-logger';
-import { SysConfig } from '@/db/models/sys-config';
+import { SysConfig } from '@/db/models/sys/sys-config';
 import { ValueType, TrueValues } from '@/common/sys-config.type';
 
 @Injectable()

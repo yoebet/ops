@@ -1,12 +1,12 @@
 import * as _ from 'lodash';
 import * as humanizeDuration from 'humanize-duration';
 import { AppLogger } from '@/common/app-logger';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
-import { StrategyDeal } from '@/db/models/strategy-deal';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { MINUTE_MS, round, wait } from '@/common/utils/utils';
 import {
   ExitSignal,

@@ -4,15 +4,15 @@ import { AppLogger } from '@/common/app-logger';
 import { StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { TradeSide } from '@/data-service/models/base';
 import { OrderStatus, OrderTag } from '@/db/models/ex-order';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { ConsiderSide, MVCheckerParams } from '@/strategy/strategy.types';
 import {
   durationHumanizerOptions,
   evalOrdersPnl,
 } from '@/strategy/strategy.utils';
-import { BacktestStrategy } from '@/db/models/backtest-strategy';
-import { BacktestDeal } from '@/db/models/backtest-deal';
-import { BacktestOrder } from '@/db/models/backtest-order';
+import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
+import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
 import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';

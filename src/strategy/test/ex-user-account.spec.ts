@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeCode } from '@/db/models/exchange-types';
-import { User } from '@/db/models/user';
-import { UserExAccount } from '@/db/models/user-ex-account';
+import { User } from '@/db/models/sys/user';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 
 jest.setTimeout(60_000);
 

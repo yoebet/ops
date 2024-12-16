@@ -1,6 +1,6 @@
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { Column, Entity } from 'typeorm';
-import { BacktestDeal } from '@/db/models/backtest-deal';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 
 @Entity()
 export class BacktestStrategy extends Strategy {

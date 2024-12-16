@@ -8,7 +8,7 @@ import {
 } from '@/exchange/exchange-service.types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { ExOrder, ExOrderResp, OrderStatus } from '@/db/models/ex-order';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { wait } from '@/common/utils/utils';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { AppLogger } from '@/common/app-logger';

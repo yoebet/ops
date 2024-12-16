@@ -2,8 +2,8 @@ import { Test } from '@nestjs/testing';
 import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
-import { UserExAccount } from '@/db/models/user-ex-account';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 import { ExTradeType } from '@/db/models/exchange-types';
 
 jest.setTimeout(60_000);

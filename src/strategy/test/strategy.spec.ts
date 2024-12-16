@@ -1,10 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { CommonServicesModule } from '@/common-services/common-services.module';
 import { ExchangeCode, ExTradeType } from '@/db/models/exchange-types';
-import { StrategyTemplate } from '@/db/models/strategy-template';
-import { Strategy } from '@/db/models/strategy';
-import { UserExAccount } from '@/db/models/user-ex-account';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { StrategyTemplate } from '@/db/models/strategy/strategy-template';
+import { Strategy } from '@/db/models/strategy/strategy';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import {
   IntegratedStrategyParams,
   OppCheckerAlgo,

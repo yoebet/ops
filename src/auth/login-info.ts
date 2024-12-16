@@ -1,4 +1,4 @@
-import { User } from '@/db/models/user';
+import { User } from '@/db/models/sys/user';
 
 export interface LoginInfo {
   user: User;

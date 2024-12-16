@@ -1,10 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { CommonServicesModule } from '@/common-services/common-services.module';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyModule } from '@/strategy/strategy.module';
 import { StrategyService } from '@/strategy/strategy.service';
 import { HOUR_MS } from '@/common/utils/utils';
-import { StrategyDeal } from '@/db/models/strategy-deal';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { ExOrder } from '@/db/models/ex-order';
 
 jest.setTimeout(HOUR_MS);

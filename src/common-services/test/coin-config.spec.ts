@@ -1,9 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { CommonServicesModule } from '@/common-services/common-services.module';
-import { Coin } from '@/db/models/coin';
-import { UnifiedSymbol } from '@/db/models/unified-symbol';
+import { Coin } from '@/db/models/ex/coin';
+import { UnifiedSymbol } from '@/db/models/ex/unified-symbol';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 
 jest.setTimeout(60_000);
 

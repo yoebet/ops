@@ -1,6 +1,6 @@
 import { BaseModel } from '@/db/models/base-model';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import { UnifiedSymbol } from '@/db/models/unified-symbol';
+import { UnifiedSymbol } from '@/db/models/ex/unified-symbol';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 
 export enum DataTaskStatus {

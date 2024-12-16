@@ -4,10 +4,10 @@ import {
 } from '@/strategy/strategy.types';
 import { StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
-import { BacktestStrategy } from '@/db/models/backtest-strategy';
+import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { RuntimeParamsBacktest } from '@/strategy-backtest/runner/runtime-params-backtest';
-import { BacktestOrder } from '@/db/models/backtest-order';
+import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
 import { TimeLevel } from '@/db/models/time-level';
 import {

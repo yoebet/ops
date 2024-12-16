@@ -1,8 +1,8 @@
 import { Column, Entity, Index } from 'typeorm';
-import { ExSymbolBase } from '@/db/models/ex-symbol-base';
+import { ExSymbolBase } from '@/db/models/strategy/ex-symbol-base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { ExOrder } from '@/db/models/ex-order';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
 @Entity()

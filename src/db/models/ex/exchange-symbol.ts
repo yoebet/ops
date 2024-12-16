@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseModel } from '@/db/models/base-model';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
-import { UnifiedSymbol } from '@/db/models/unified-symbol';
+import { UnifiedSymbol } from '@/db/models/ex/unified-symbol';
 
 @Entity()
 @Index(['ex', 'symbol'], { unique: true })

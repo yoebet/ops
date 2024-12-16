@@ -1,9 +1,9 @@
 import { Column, Entity, Index } from 'typeorm';
-import { ExSymbolBase } from '@/db/models/ex-symbol-base';
+import { ExSymbolBase } from '@/db/models/strategy/ex-symbol-base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
-import { StrategyDeal } from '@/db/models/strategy-deal';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import {
   ConsiderSide,
   OppCheckerAlgo,

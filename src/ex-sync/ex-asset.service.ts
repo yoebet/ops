@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExTradeType } from '@/db/models/exchange-types';
-import { UserExAccount } from '@/db/models/user-ex-account';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 import { ExAssetSnapshot } from '@/db/models/ex-asset-snapshot';
 import { ExAssetSnapshotCoin } from '@/db/models/ex-asset-snapshot-coin';
 

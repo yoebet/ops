@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto, User } from '@/db/models/user';
+import { CreateUserDto, User } from '@/db/models/sys/user';
 import { AppLogger } from '@/common/app-logger';
 
 @Injectable()

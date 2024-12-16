@@ -6,7 +6,7 @@ import {
 } from '@/data-loader/history-data-loader.service';
 import { In } from 'typeorm';
 import { ExchangeCode } from '@/db/models/exchange-types';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { DateRange, ExDataLoaderTask } from '@/db/models/ex-data-loader-task';
 
 jest.setTimeout(1000_000);

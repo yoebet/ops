@@ -1,11 +1,11 @@
 import * as Rx from 'rxjs';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
-import { UserExAccount } from '@/db/models/user-ex-account';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { ExchangeTradeService } from '@/exchange/exchange-service.types';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { ExApiKey } from '@/exchange/base/rest/rest.type';
 import { StrategyEnv } from '@/strategy/env/strategy-env';
 import { ExOrder, OrderIds } from '@/db/models/ex-order';

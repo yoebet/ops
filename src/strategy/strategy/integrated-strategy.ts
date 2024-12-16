@@ -4,7 +4,7 @@ import {
   OppCheckerAlgo,
   TradeOpportunity,
 } from '@/strategy/strategy.types';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { AppLogger } from '@/common/app-logger';
 import { checkBurstOpp } from '@/strategy/opportunity/burst';

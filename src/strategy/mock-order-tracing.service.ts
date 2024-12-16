@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import * as Rx from 'rxjs';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import {
   evalDiffPercent,
   HOUR_MS,

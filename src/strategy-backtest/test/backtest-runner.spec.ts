@@ -3,9 +3,9 @@ import { CommonServicesModule } from '@/common-services/common-services.module';
 import { HOUR_MS } from '@/common/utils/utils';
 import { StrategyBacktestModule } from '@/strategy-backtest/strategy-backtest.module';
 import { BacktestService } from '@/strategy-backtest/backtest.service';
-import { BacktestStrategy } from '@/db/models/backtest-strategy';
-import { BacktestDeal } from '@/db/models/backtest-deal';
-import { BacktestOrder } from '@/db/models/backtest-order';
+import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
+import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 
 jest.setTimeout(HOUR_MS);
 

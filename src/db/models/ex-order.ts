@@ -1,5 +1,5 @@
 import { Column, Entity, Index, Unique } from 'typeorm';
-import { ExSymbolBase } from '@/db/models/ex-symbol-base';
+import { ExSymbolBase } from '@/db/models/strategy/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';

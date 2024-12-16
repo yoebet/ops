@@ -5,7 +5,7 @@ import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
-import { Strategy } from '@/db/models/strategy';
+import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { ExOrderService } from '@/ex-sync/ex-order.service';

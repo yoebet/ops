@@ -6,7 +6,7 @@ import {
   CreateUserDto,
   UpdateUserDto,
   PasswordResetDto,
-} from '@/db/models/user';
+} from '@/db/models/sys/user';
 import { UserAccountService } from '@/common-services/user-account.service';
 import { ApiResult } from '@/common/api-result';
 import { AppLogger } from '@/common/app-logger';

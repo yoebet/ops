@@ -4,7 +4,7 @@ import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
 import { ValueResult } from '@/common/api-result';
 import { LoginInfo } from '@/auth/login-info';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import { User } from '@/db/models/user';
+import { User } from '@/db/models/sys/user';
 import { Req } from '@/common/web.types';
 
 @Controller('session')

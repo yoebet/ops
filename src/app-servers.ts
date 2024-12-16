@@ -4,7 +4,7 @@ import { AppLogger } from '@/common/app-logger';
 import * as gitRepoInfo from 'git-repo-info';
 import { ConfigService } from '@nestjs/config';
 import { Config } from '@/common/config.types';
-import { InstanceLog } from '@/db/models/instance-log';
+import { InstanceLog } from '@/db/models/sys/instance-log';
 import { JobsService } from '@/job/jobs.service';
 import { StrategyService } from '@/strategy/strategy.service';
 import { BacktestService } from '@/strategy-backtest/backtest.service';

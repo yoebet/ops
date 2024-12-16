@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ExchangeCode, ExMarket } from '@/db/models/exchange-types';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { Exchanges } from '@/exchange/exchanges';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 
 jest.setTimeout(10 * 60 * 1000);
 

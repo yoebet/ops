@@ -14,7 +14,7 @@ import {
   PasswordResetDto,
   UpdateUserDto,
   User,
-} from '@/db/models/user';
+} from '@/db/models/sys/user';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { ListResult, ApiResult, ValueResult } from '@/common/api-result';

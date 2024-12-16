@@ -9,7 +9,7 @@ import { AppLogger } from '@/common/app-logger';
 import { RtKline } from '@/data-service/models/realtime';
 import { ExMarket } from '@/db/models/exchange-types';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
-import { UnifiedSymbol } from '@/db/models/unified-symbol';
+import { UnifiedSymbol } from '@/db/models/ex/unified-symbol';
 import { ExWsKline } from '@/exchange/exchange-service.types';
 
 export class KlineHandler {

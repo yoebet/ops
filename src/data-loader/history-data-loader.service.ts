@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DateTime, DateTimeOptions } from 'luxon';
 import { AppLogger } from '@/common/app-logger';
 import { TaskScope } from '@/common/server-profile.type';
-import { ExchangeSymbol } from '@/db/models/exchange-symbol';
+import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import {
   DataTaskStatus,
   DateRange,

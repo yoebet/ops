@@ -3,8 +3,8 @@ import { AppLogger } from '@/common/app-logger';
 import * as _ from 'lodash';
 import { CommonStrategyParams } from '@/strategy/strategy.types';
 import { BaseBacktestRunner } from '@/strategy-backtest/runner/base-backtest-runner';
-import { BacktestStrategy } from '@/db/models/backtest-strategy';
-import { BacktestDeal } from '@/db/models/backtest-deal';
+import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { OrderTag } from '@/db/models/ex-order';
 
