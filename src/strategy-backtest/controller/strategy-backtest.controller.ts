@@ -7,6 +7,9 @@ import { ParseIntPipe } from '@nestjs/common/pipes/parse-int.pipe';
 import { StrategyOrder } from '@/db/models/strategy/strategy-order';
 import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
 import { BacktestOrder } from '@/db/models/strategy/backtest-order';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
+import { ExOrder } from '@/db/models/ex-order';
 
 @Controller('bt-strategies')
 @UseInterceptors(CSI)
@@ -20,6 +23,35 @@ export class StrategyBacktestController {
     const sts = await BacktestStrategy.find({
       select: BacktestStrategy.btListFields,
     });
+
+    const sm = new Map(sts.map((s) => [s.id, s]));
+
+    const ds: { cid: number; count: string }[] =
+      await BacktestDeal.createQueryBuilder()
+        .select('strategy_id', 'cid')
+        .addSelect('count(*)', 'count')
+        .addGroupBy('strategy_id')
+        .execute();
+    for (const c of ds) {
+      const s = sm.get(c.cid);
+      if (s) {
+        s.dealsCount = +c.count;
+      }
+    }
+
+    const os: { cid: number; count: string }[] =
+      await BacktestOrder.createQueryBuilder()
+        .select('strategy_id', 'cid')
+        .addSelect('count(*)', 'count')
+        .addGroupBy('strategy_id')
+        .execute();
+    for (const c of os) {
+      const s = sm.get(c.cid);
+      if (s) {
+        s.ordersCount = +c.count;
+      }
+    }
+
     return ListResult.list(sts);
   }
 
@@ -28,6 +60,21 @@ export class StrategyBacktestController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ValueResult<BacktestStrategy>> {
     const st = await BacktestStrategy.findOneBy({ id });
+
+    const count = await BacktestDeal.createQueryBuilder()
+      .where({ strategyId: id })
+      .getCount();
+    if (count != null) {
+      st.dealsCount = +count;
+    }
+
+    const count2 = await BacktestOrder.createQueryBuilder()
+      .where({ strategyId: id })
+      .getCount();
+    if (count2 != null) {
+      st.ordersCount = +count2;
+    }
+
     return ValueResult.value(st);
   }
 

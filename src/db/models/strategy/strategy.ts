@@ -101,4 +101,7 @@ export class Strategy extends ExSymbolBase {
   currentDeal?: StrategyDeal;
   lastDeal?: StrategyDeal;
   exchangeSymbol?: ExchangeSymbol;
+
+  dealsCount?: number;
+  ordersCount?: number;
 }
