@@ -6,10 +6,22 @@ import {
   OppCheckerAlgo,
   StrategyAlgo,
 } from '@/strategy/strategy.types';
+import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
 @Entity()
 export class StrategyTemplate extends BaseModel {
   // userId
+
+  static listFields: (keyof StrategyTemplate)[] = [
+    'id',
+    'name',
+    'code',
+    'openAlgo',
+    'closeAlgo',
+    'openDealSide',
+    'tradeType',
+    'quoteAmount',
+  ];
 
   @Column()
   name: string;
@@ -34,4 +46,11 @@ export class StrategyTemplate extends BaseModel {
 
   @Column('jsonb', { nullable: true })
   params?: any;
+
+  @AfterLoad()
+  onLoaded() {
+    if (this.quoteAmount != null) {
+      this.quoteAmount = +this.quoteAmount;
+    }
+  }
 }

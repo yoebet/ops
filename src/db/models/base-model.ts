@@ -3,13 +3,12 @@ import { Exclude } from 'class-transformer';
 import { PrimaryGeneratedColumn } from 'typeorm/decorator/columns/PrimaryGeneratedColumn';
 
 export class BaseModel extends BaseEntity {
-  @Exclude()
   @PrimaryGeneratedColumn({
     type: 'int',
   })
   id: number;
 
-  // @Exclude()
+  @Exclude()
   @Index()
   @CreateDateColumn()
   createdAt: Date;

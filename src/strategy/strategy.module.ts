@@ -7,6 +7,8 @@ import { ExDataModule } from '@/data-ex/ex-data.module';
 import { ExchangeModule } from '@/exchange/exchange.module';
 import { ExSyncModule } from '@/ex-sync/ex-sync.module';
 import { MockOrderTracingService } from '@/strategy/mock-order-tracing.service';
+import { StrategyController } from '@/strategy/controller/strategy.controller';
+import { StrategyTemplateController } from '@/strategy/controller/strategy-template.controller';
 
 const services: Provider[] = [StrategyService, MockOrderTracingService];
 
@@ -21,5 +23,6 @@ const services: Provider[] = [StrategyService, MockOrderTracingService];
   ],
   providers: services,
   exports: services,
+  controllers: [StrategyController, StrategyTemplateController],
 })
 export class StrategyModule {}

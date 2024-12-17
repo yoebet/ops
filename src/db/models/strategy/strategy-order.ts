@@ -1,7 +1,29 @@
 import { OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { TradeSide } from '@/data-service/models/base';
+import { BaseModel } from '@/db/models/base-model';
 
-export class StrategyOrder {
+export class StrategyOrder extends BaseModel {
+  static listFields: (keyof StrategyOrder)[] = [
+    'id',
+    'dealId',
+    'tag',
+    'side',
+    'status',
+    'clientOrderId',
+    'priceType',
+    'limitPrice',
+    'baseSize',
+    'quoteAmount',
+    'algoOrder',
+    'tpslType',
+    'exOrderId',
+    'execPrice',
+    'execSize',
+    'execAmount',
+    'exCreatedAt',
+    'exUpdatedAt',
+    'memo',
+  ];
   dealId?: number;
 
   tag?: OrderTag;

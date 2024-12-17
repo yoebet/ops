@@ -14,6 +14,28 @@ import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 @Entity()
 // @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
 export class Strategy extends ExSymbolBase {
+  static listFields: (keyof Strategy)[] = [
+    'id',
+    'ex',
+    'market',
+    'baseCoin',
+    'symbol',
+    'rawSymbol',
+    'algoCode',
+    'name',
+    'openAlgo',
+    'closeAlgo',
+    'openDealSide',
+    'tradeType',
+    'currentDealId',
+    'lastDealId',
+    'baseSize',
+    'quoteAmount',
+    'active',
+    'paperTrade',
+    'jobSummited',
+  ];
+
   @Column()
   // @Index()
   algoCode: StrategyAlgo;

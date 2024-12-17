@@ -4,6 +4,15 @@ import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 
 @Entity()
 export class BacktestStrategy extends Strategy {
+  static btListFields: (keyof BacktestStrategy)[] = (
+    [
+      'dataFrom',
+      'dataTo',
+      'startedAt',
+      'completedAt',
+    ] as (keyof BacktestStrategy)[]
+  ).concat(Strategy.listFields);
+
   // 2024-10-30
   @Column()
   dataFrom: string;
