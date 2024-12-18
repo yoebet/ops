@@ -4,11 +4,11 @@ import {
   CheckOppoOptions,
 } from '@/strategy-backtest/runner/base-backtest-runner';
 import { OrderTag } from '@/db/models/ex-order';
-import { BacktestKline } from '@/data-service/models/kline';
+import { Kline2 } from '@/data-service/models/kline';
 
 export async function checkStopLossAndTimeLimit(
   this: BaseBacktestRunner,
-  kl: BacktestKline,
+  kl: Kline2,
   oppor: Partial<BacktestTradeOppo>,
   options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {

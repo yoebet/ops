@@ -21,7 +21,7 @@ describe('kline-data', () => {
 
   describe('query', () => {
     it('queryKLine', async () => {
-      const result = await service.queryKLines({
+      const result = await service.queryKLines2({
         tsFrom: Date.now() - 30 * MINUTE_MS,
         //tsTo: 1680652800000,
         symbols: [{ symbol: 'BTC/USDT', ex: 'okx' }],
@@ -33,7 +33,7 @@ describe('kline-data', () => {
     });
 
     it('queryKLine-ms', async () => {
-      const result = await service.queryKLines({
+      const result = await service.queryKLines2({
         tsFrom: Date.now() - HOUR_MS,
         //tsTo: 1680652800000,
         symbols: [
@@ -48,7 +48,7 @@ describe('kline-data', () => {
     });
 
     it('queryExSymbolKLines', async () => {
-      const result = await service.queryKLinesForBacktest({
+      const result = await service.queryKLines({
         tsFrom: Date.now() - 60 * DAY_MS,
         tsTo: Date.now(),
         symbol: 'BTC/USDT',

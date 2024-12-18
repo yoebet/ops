@@ -3,9 +3,9 @@ import { TimeLevel } from '@/db/models/time-level';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { DateTime } from 'luxon';
-import { BacktestKline } from '@/data-service/models/kline';
+import { FtKline, Kline2 } from '@/data-service/models/kline';
 
-export class StKlinesHolder extends Holder<BacktestKline> {}
+export class StKlinesHolder extends Holder<FtKline> {}
 
 export class BacktestKlineData {
   holder: StKlinesHolder;
@@ -62,14 +62,14 @@ export class BacktestKlineData {
     interval: string;
     limit?: number;
   }) {
-    return this.klineDataService.queryKLinesForBacktest({
+    return this.klineDataService.queryKLines({
       ...params,
       ex: this.ex,
       symbol: this.symbol,
     });
   }
 
-  async getKline(): Promise<BacktestKline> {
+  async getKline(): Promise<FtKline> {
     const { interval, intervalMs } = this.timeLevel;
     const tsFrom = this.timeCursor.toMillis();
     const holder = this.holder;
@@ -105,10 +105,7 @@ export class BacktestKlineData {
     return kls.length > 0 ? kls[0] : undefined;
   }
 
-  async getKlinesTillNow(
-    interval: string,
-    count: number,
-  ): Promise<BacktestKline[]> {
+  async getKlinesTillNow(interval: string, count: number): Promise<FtKline[]> {
     const { intervalMs } = this.timeLevel;
 
     const tsTo = this.timeCursor.toMillis();

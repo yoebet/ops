@@ -5,23 +5,41 @@ import { DB_SCHEMA } from '@/env';
 import { AppLogger } from '@/common/app-logger';
 import { tsToISO8601 } from '@/common/utils/utils';
 import { ES } from '@/data-service/models/base';
-import { BacktestKline, Kline } from '@/data-service/models/kline';
+import { Kline2, Kline, FtKline } from '@/data-service/models/kline';
+import {
+  MultiSymbolsKlineParams,
+  KlineParams,
+} from '@/data-service/models/query-params';
 
 export function getLimit(limit?: number): number {
   return typeof limit === 'number' ? Math.min(limit, 100_000) : 1000;
 }
 
-const KlAggFields = ` tds,size,amount,bs,ba,ss,sa`;
+const KlNumericFields = [
+  'open',
+  'high',
+  'low',
+  'close',
+  'size',
+  'amount',
+  'sa',
+  'ss',
+  'ba',
+  'bs',
+  // 'p_ch',
+  // 'p_avg',
+  // 'p_cp',
+  // 'p_ap',
+];
 
-const KlAggSumFields = `  sum(tds) as tds,
-  sum(size) as size,
+const KlNumericFieldsStr = KlNumericFields.join(',');
+
+const KlAggSumFields = `  sum(size) as size,
   sum(amount) as amount,
   sum(bs) as bs,
   sum(ba) as ba,
   sum(ss) as ss,
   sum(sa) as sa `;
-
-const KlOhlcFields = ` open,high,low,close`;
 
 export const KlRollupMap = {
   open: 'first(open, time)',
@@ -33,8 +51,6 @@ export const KlRollupMap = {
 const KlOhlcRollupFields = ['open', 'high', 'low', 'close']
   .map((f) => KlRollupMap[f] || `sum(${f})` + ` as ${f}`)
   .join(',');
-
-const KlNonAggFields = ` time,symbol,ex,interval,market,base,quote`;
 
 @Injectable()
 export class KlineDataService implements OnModuleInit {
@@ -136,15 +152,23 @@ export class KlineDataService implements OnModuleInit {
   }
 
   protected timeCondition(parameter: {
-    tsFrom: number;
+    tsFrom?: number;
     tsTo?: number;
     interval?: string;
-  }) {
+  }): { cond: string; timeSort: 'asc' | 'desc' } {
     const { tsFrom, tsTo } = parameter;
-    const timeTo = tsTo || Date.now() + 1000;
-    const fCond = `time >= '${tsToISO8601(tsFrom)}'`;
-    const tCond = tsTo ? `and time <= '${tsToISO8601(timeTo)}'` : '';
-    return `${fCond} ${tCond}`;
+    let timeTo = tsTo;
+    if (!tsFrom && !tsTo) {
+      timeTo = Date.now();
+    }
+    const conds: string[] = [];
+    if (tsFrom) {
+      conds.push(`time >= '${tsToISO8601(tsFrom)}'`);
+    }
+    conds.push(`time <= '${tsToISO8601(timeTo)}'`);
+    const cond = conds.join(' and ');
+    const timeSort = tsFrom ? 'asc' : 'desc';
+    return { cond, timeSort };
   }
 
   protected symbolCondition(symbols: ES[]) {
@@ -162,89 +186,70 @@ export class KlineDataService implements OnModuleInit {
     return ` and ( ${pArray.join(' or ')} )`;
   }
 
-  async queryKLines(parameter: {
-    tsFrom: number;
-    tsTo?: number;
-    symbols: ES[];
-    zipSymbols?: boolean;
-    interval: string;
-    limit?: number;
-  }): Promise<Kline[]> {
-    if (!parameter.limit) {
-      parameter.limit = 1440;
-    }
-    const { symbols, interval } = parameter;
-
-    if (this.isMultiSymbols(symbols) && parameter.zipSymbols) {
-      const sql = `select time,
-                          'symbol'      as symbol,
-                          'ex'          as ex,
-                          'market'      as market,
-                          'base'        as base,
-                          'quote'       as quote,
-                          '${interval}' as interval,
-                          ${KlOhlcRollupFields},
-                          ${KlAggSumFields}
-                   from ${this.getKLineTable(interval)}
-                   where ${this.timeCondition(parameter)}
-                             ${this.symbolCondition(symbols)}
-                   group by time
-                   order by time
-                   limit ${getLimit(parameter.limit)}`;
-
-      return this.queryBySql(sql);
-    }
-
-    const sql = `select ${KlNonAggFields},
-                        ${KlOhlcFields},
-                        ${KlAggFields}
-                 from ${this.getKLineTable(interval)}
-                 where ${this.timeCondition(parameter)}
-                           ${this.symbolCondition(symbols)}
-                 order by time, symbol, ex
-                 limit ${getLimit(parameter.limit)}`;
-
-    return this.queryBySql(sql);
-  }
-
-  async queryKLinesForBacktest(
-    parameter: {
-      tsFrom: number;
-      tsTo: number;
-      interval: string;
-      limit?: number;
-    } & ES,
-  ): Promise<BacktestKline[]> {
-    const limit = parameter.limit || 120;
-    const { ex, symbol, interval } = parameter;
-
-    const nvs = [
-      'open',
-      'high',
-      'low',
-      'close',
-      'size',
-      'amount',
-      // 'p_ch',
-      // 'p_avg',
-      // 'p_cp',
-      // 'p_ap',
-    ];
+  async queryKLines(params: KlineParams): Promise<FtKline[]> {
+    const limit = params.limit || 120;
+    const { ex, symbol, interval } = params;
+    const { cond: timeCond, timeSort } = this.timeCondition(params);
 
     const sql = `select time,
-                        interval,
-                        ${nvs.join(',')}
+                        ${KlNumericFieldsStr}
                  from ${this.getKLineTable(interval)}
-                 where ${this.timeCondition(parameter)}
+                 where ${timeCond}
                    and ex = '${ex}'
                    and symbol = '${symbol}'
-                 order by time
+                 order by time ${timeSort}
                  limit ${getLimit(limit)}`;
 
     const kls = await this.queryBySql(sql);
-    kls.forEach((k: BacktestKline) => {
+    if (timeSort === 'desc') {
+      kls.reverse();
+    }
+    kls.forEach((k: Kline2) => {
       k.ts = k.time.getTime();
-      for (const f of nvs) {
+      for (const f of KlNumericFields) {
+        if (k[f] != null) {
+          k[f] = +k[f];
+        }
+      }
+    });
+    return kls;
+  }
+
+  async queryKLines2(params: MultiSymbolsKlineParams): Promise<FtKline[]> {
+    const limit = params.limit || 120;
+    const { symbols, interval } = params;
+    const { cond: timeCond, timeSort } = this.timeCondition(params);
+
+    let kls: FtKline[];
+    if (this.isMultiSymbols(symbols) && params.zipSymbols) {
+      const sql = `select time,
+                          ${KlOhlcRollupFields},
+                          ${KlAggSumFields}
+                   from ${this.getKLineTable(interval)}
+                   where ${timeCond}
+                             ${this.symbolCondition(symbols)}
+                   group by time
+                   order by time ${timeSort}
+                   limit ${getLimit(limit)}`;
+
+      kls = await this.queryBySql(sql);
+    } else {
+      const sql = `select time,
+                          ${KlNumericFieldsStr}
+                   from ${this.getKLineTable(interval)}
+                   where ${this.timeCondition(params)}
+                             ${this.symbolCondition(symbols)}
+                   order by time ${timeSort}, symbol, ex
+                   limit ${getLimit(limit)}`;
+
+      kls = await this.queryBySql(sql);
+    }
+    if (timeSort === 'desc') {
+      kls.reverse();
+    }
+    kls.forEach((k: Kline2) => {
+      k.ts = k.time.getTime();
+      for (const f of KlNumericFields) {
         if (k[f] != null) {
           k[f] = +k[f];
         }

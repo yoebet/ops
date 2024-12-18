@@ -2,7 +2,7 @@ import { TimeLevel } from '@/db/models/time-level';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { DateTime } from 'luxon';
-import { BacktestKline } from '@/data-service/models/kline';
+import { FtKline, Kline2 } from '@/data-service/models/kline';
 import { BacktestKlineData } from '@/strategy-backtest/backtest-kline-data';
 
 interface TimeLevelHolder extends TimeLevel {
@@ -228,15 +228,12 @@ export class BacktestKlineLevelsData {
     }
   }
 
-  async getKline(): Promise<BacktestKline> {
+  async getKline(): Promise<FtKline> {
     const holder = this.currentLevel.holder;
     return holder.getKline();
   }
 
-  async getKlinesTillNow(
-    interval: string,
-    count: number,
-  ): Promise<BacktestKline[]> {
+  async getKlinesTillNow(interval: string, count: number): Promise<FtKline[]> {
     const tlh = this.timeLevelHolders.find((tl) => tl.interval === interval);
     if (!tlh) {
       throw new Error(`no time level: ${interval}`);

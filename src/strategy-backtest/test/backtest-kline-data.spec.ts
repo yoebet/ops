@@ -65,7 +65,7 @@ describe('backtest kline data', () => {
 
     while (true) {
       const kl = await kld.getKline();
-      console.log(`${kl.time.toISOString()} ${kl.open}`);
+      console.log(`${new Date(kl.ts).toISOString()} ${kl.open}`);
       kld.rollTimeInterval();
       if (kld.getTimeTs() > timeTo) {
         break;
@@ -86,7 +86,7 @@ describe('backtest kline data', () => {
       const h = `${tl.interval} ::`;
       const kl = await kld.getKline();
       if (kl) {
-        console.log(`${h} ${kl.time.toISOString()} ${kl.open}`);
+        console.log(`${h} ${new Date(kl.ts).toISOString()} ${kl.open}`);
       } else {
         console.log(`${h} - missing`);
       }
@@ -107,7 +107,7 @@ describe('backtest kline data', () => {
       const { interval } = kld.getCurrentLevel();
       const h = `${interval} ::`;
       if (kl) {
-        console.log(`${h} ${kl.time.toISOString()} ${kl.open}`);
+        console.log(`${h} ${new Date(kl.ts).toISOString()} ${kl.open}`);
       } else {
         console.log(`${h} missing`);
       }

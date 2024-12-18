@@ -1,0 +1,26 @@
+### query klines 1d
+POST http://{{server}}/ops/klines/query
+Content-Type: application/json
+
+{
+  "ex": "binance",
+  "symbol": "ETH/USDT",
+  "interval": "1d",
+  "dateFrom": "2024-07-02",
+  "dateTo": "2024-07-22",
+  "limit": 5
+}
+
+
+### query klines 15m
+POST http://{{server}}/ops/klines/query
+Content-Type: application/json
+
+{
+  "ex": "binance",
+  "symbol": "ETH/USDT",
+  "interval": "15m",
+  "dateFrom": "2024-07-02",
+  "dateTo": "2024-07-04",
+  "limit": 15
+}
