@@ -5,6 +5,7 @@ import { ExchangeModule } from '@/exchange/exchange.module';
 import { MarketDataModule } from '@/data-service/market-data.module';
 import { ExPrivateWsService } from '@/data-ex/ex-private-ws.service';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
+import { ExKlineDataController } from '@/data-ex/controller/ex-kline-data.controller';
 
 const services: Provider[] = [
   ExPublicWsService,
@@ -16,5 +17,6 @@ const services: Provider[] = [
   imports: [CommonServicesModule, ExchangeModule, MarketDataModule],
   providers: services,
   exports: services,
+  controllers: [ExKlineDataController],
 })
 export class ExDataModule {}

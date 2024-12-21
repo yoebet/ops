@@ -9,6 +9,7 @@ import { MINUTE_MS } from '@/common/utils/utils';
 import { ExSymbolService } from '@/common-services/ex-symbol.service';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 import { RtPrice } from '@/data-service/models/realtime';
+import { KlineParams } from '@/data-service/models/query-params';
 
 const MAX_KEEP_KLINES = 120;
 
@@ -131,15 +132,37 @@ export class ExPublicDataService implements OnModuleInit {
     limit = 60,
   ): Promise<ExKline[]> {
     const dataService = this.exchanges.getExMarketDataService(ex, market);
-    let klines = await dataService.getKlines({
+    const klines = await dataService.getKlines({
       symbol: rawSymbol,
       interval,
       limit,
     });
-    if (klines.length > 0) {
-      if (klines[0].ts > klines[klines.length - 1].ts) {
-        klines = klines.reverse();
-      }
+    if (klines.length > 1 && klines[0].ts > klines[klines.length - 1].ts) {
+      klines.reverse();
+    }
+    return klines;
+  }
+
+  // old to new
+  async fetchKlines(params: KlineParams): Promise<ExKline[]> {
+    await this.symbolServices.ensureLoaded();
+    const es = this.symbolServices.getExchangeSymbolByES(
+      params.ex as ExchangeCode,
+      params.symbol,
+    );
+    const dataService = this.exchanges.getExMarketDataService(
+      params.ex as ExchangeCode,
+      es.market,
+    );
+    const klines = await dataService.getKlines({
+      symbol: es.rawSymbol,
+      interval: params.interval,
+      limit: params.limit,
+      startTime: params.tsFrom,
+      endTime: params.tsTo,
+    });
+    if (klines.length > 1 && klines[0].ts > klines[klines.length - 1].ts) {
+      klines.reverse();
     }
     return klines;
   }
