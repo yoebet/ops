@@ -20,7 +20,7 @@ Content-Type: application/json
   "ex": "binance",
   "symbol": "ETH/USDT",
   "interval": "15m",
-  "dateFrom": "2024-07-02",
-  "dateTo": "2024-07-04",
+  "dateFrom": "2024-07-02 12:00",
+  "dateTo": "2024-07-04 12:00",
   "limit": 15
 }

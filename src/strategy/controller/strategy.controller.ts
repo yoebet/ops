@@ -1,4 +1,11 @@
-import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseBoolPipe,
+  Query,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ClassSerializerInterceptor as CSI } from '@nestjs/common/serializer/class-serializer.interceptor';
 import { ListResult, ValueResult } from '@/common/api-result';
 import { Strategy } from '@/db/models/strategy/strategy';
@@ -6,7 +13,7 @@ import { CurrentUser } from '@/auth/decorators/user.decorator';
 import { UserInfo } from '@/auth/user-info';
 import { ParseIntPipe } from '@nestjs/common/pipes/parse-int.pipe';
 import { StrategyOrder } from '@/db/models/strategy/strategy-order';
-import { ExOrder } from '@/db/models/ex-order';
+import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 
 @Controller('strategies')
@@ -15,9 +22,17 @@ export class StrategyController {
   constructor() {}
 
   @Get('')
-  async all(@CurrentUser() user: UserInfo): Promise<ListResult<Strategy>> {
+  async query(
+    @CurrentUser() user: UserInfo,
+    @Query('type') type?: 'paper' | 'real',
+  ): Promise<ListResult<Strategy>> {
+    const paperTrade =
+      type === 'paper' ? true : type === 'real' ? false : undefined;
     const sts = await Strategy.find({
       select: Strategy.listFields,
+      where: {
+        paperTrade,
+      },
     });
 
     const sm = new Map(sts.map((s) => [s.id, s]));
@@ -26,6 +41,7 @@ export class StrategyController {
       await StrategyDeal.createQueryBuilder()
         .select('strategy_id', 'cid')
         .addSelect('count(*)', 'count')
+        .where({ paperTrade })
         .addGroupBy('strategy_id')
         .execute();
     for (const c of ds) {
@@ -39,6 +55,8 @@ export class StrategyController {
       await ExOrder.createQueryBuilder()
         .select('strategy_id', 'cid')
         .addSelect('count(*)', 'count')
+        .where({ status: 'filled' })
+        .andWhere({ paperTrade })
         .addGroupBy('strategy_id')
         .execute();
     for (const c of os) {
@@ -81,7 +99,7 @@ export class StrategyController {
   ): Promise<ListResult<StrategyOrder>> {
     const sts = await ExOrder.find({
       select: StrategyOrder.listFields,
-      where: { strategyId: id },
+      where: { strategyId: id, status: OrderStatus.filled },
     });
     return ListResult.list(sts);
   }

@@ -34,6 +34,7 @@ export class Strategy extends ExSymbolBase {
     'active',
     'paperTrade',
     'jobSummited',
+    'createdAt',
   ];
 
   @Column()

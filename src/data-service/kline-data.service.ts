@@ -165,7 +165,9 @@ export class KlineDataService implements OnModuleInit {
     if (tsFrom) {
       conds.push(`time >= '${tsToISO8601(tsFrom)}'`);
     }
-    conds.push(`time <= '${tsToISO8601(timeTo)}'`);
+    if (timeTo) {
+      conds.push(`time <= '${tsToISO8601(timeTo)}'`);
+    }
     const cond = conds.join(' and ');
     const timeSort = tsFrom ? 'asc' : 'desc';
     return { cond, timeSort };

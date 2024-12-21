@@ -8,7 +8,7 @@ export class BaseModel extends BaseEntity {
   })
   id: number;
 
-  @Exclude()
+  // @Exclude()
   @Index()
   @CreateDateColumn()
   createdAt: Date;

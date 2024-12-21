@@ -10,7 +10,6 @@ export interface KlineParams extends ES {
 export interface KlineParams2 extends KlineParams {
   dateFrom?: string; // yyyy-MM-dd or yyyy-MM-dd HH:mm
   dateTo?: string;
-  resultTimeField?: 'ts' | 'time';
 }
 
 export interface MultiSymbolsKlineParams {

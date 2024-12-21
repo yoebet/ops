@@ -1,0 +1,18 @@
+
+### all
+GET http://{{server}}/ops/strategies
+
+
+### paper trade
+GET http://{{server}}/ops/strategies?type=paper
+Accept: application/json
+
+
+### real trade
+GET http://{{server}}/ops/strategies?type=real
+Accept: application/json
+
+
+### orders
+GET http://{{server}}/ops/strategies/35/orders
+Accept: application/json
