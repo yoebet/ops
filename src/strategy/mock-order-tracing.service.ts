@@ -72,7 +72,7 @@ export class MockOrderTracingService implements OnModuleInit {
     code: StrategyAlgo,
     oca: OppCheckerAlgo,
   ): string {
-    return `order/${code}/${oca}`;
+    return `paper-trade-order/${oca}`;
   }
 
   async traceAndFillOrderJob(

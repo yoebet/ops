@@ -13,6 +13,11 @@ GET http://{{server}}/ops/bt-strategies/76/deals
 Accept: application/json
 
 
+### job - remove all
+POST http://{{server}}/ops/bt-strategies/jobs/remove-all
+Accept: application/json
+
+
 ### job - summit ('summit' | 'remove' | 'stop' | 'retry' | 'clearLogs')
 POST http://{{server}}/ops/bt-strategies/35/job/summit
 Accept: application/json

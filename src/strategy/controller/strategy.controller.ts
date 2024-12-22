@@ -117,6 +117,12 @@ export class StrategyController {
     return ListResult.list(sts);
   }
 
+  @Post('jobs/remove-all')
+  async removeAllJobs(): Promise<ApiResult> {
+    await this.strategyService.removeAllJobs();
+    return ApiResult.success();
+  }
+
   @Post(':id/job/:op')
   async job(
     @Param('id', ParseIntPipe) id: number,

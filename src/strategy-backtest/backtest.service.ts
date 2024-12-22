@@ -231,4 +231,16 @@ export class BacktestService implements OnModuleInit {
     }
     return ApiResult.fail(`unknown operation ${op}`);
   }
+
+  async removeAllJobs() {
+    this.logger.log(`remove all jobs ...`);
+    for (const s of this.strategyJobFacades.values()) {
+      const q = s.getQueue();
+      await q.drain(); // wait, delayed
+      // 'completed' | 'wait' | 'active' | 'paused' | 'prioritized' | 'delayed' | 'failed'
+      for (const type of ['completed', 'failed', 'active', 'delayed']) {
+        await q.clean(1000, 1000, type as any);
+      }
+    }
+  }
 }

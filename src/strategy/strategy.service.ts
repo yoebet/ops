@@ -56,28 +56,43 @@ export class StrategyService implements OnModuleInit {
 
     for (const code of Object.values(StrategyAlgo)) {
       for (const oca of Object.values(OppCheckerAlgo)) {
-        const queueName = this.genStrategyQueueName(code, oca);
-        const facade = this.jobsService.defineJob<StrategyJobData, string>({
-          queueName,
-          processJob: this.runStrategyJob.bind(this),
-          workerOptions: {
-            maxStalledCount: WorkerMaxStalledCount,
-            stalledInterval: WorkerStalledInterval,
-            concurrency: WorkerConcurrency,
-          },
-        });
-        this.strategyJobFacades.set(queueName, facade);
+        for (const type of ['paper-trade' /*, 'real-trade'*/]) {
+          const queueName = this.genStrategyQueueName(code, oca, type);
+          const facade = this.jobsService.defineJob<StrategyJobData, string>({
+            queueName,
+            processJob: this.runStrategyJob.bind(this),
+            workerOptions: {
+              maxStalledCount: WorkerMaxStalledCount,
+              stalledInterval: WorkerStalledInterval,
+              concurrency: WorkerConcurrency,
+            },
+          });
+          this.strategyJobFacades.set(queueName, facade);
+        }
       }
     }
 
     this.mockOrderTracingService.defineJobs();
   }
 
+  async removeAllJobs() {
+    this.logger.log(`remove all jobs ...`);
+    for (const s of this.strategyJobFacades.values()) {
+      const q = s.getQueue();
+      await q.drain(); // wait, delayed
+      // 'completed' | 'wait' | 'active' | 'paused' | 'prioritized' | 'delayed' | 'failed'
+      for (const type of ['completed', 'failed', 'active', 'delayed']) {
+        await q.clean(1000, 1000, type as any);
+      }
+    }
+  }
+
   private genStrategyQueueName(
     code: StrategyAlgo,
     oca: OppCheckerAlgo,
+    type = 'strategy',
   ): string {
-    return `strategy/${code}/${oca}`;
+    return `${type}/${oca}`;
   }
 
   private prepareEnv(
@@ -119,9 +134,11 @@ export class StrategyService implements OnModuleInit {
     strategy: Strategy,
     job?: Job<StrategyJobData>,
   ): Promise<string> {
-    const { algoCode, openAlgo, closeAlgo, openDealSide } = strategy;
+    const { algoCode, openAlgo, closeAlgo, openDealSide, paperTrade } =
+      strategy;
     const env = this.prepareEnv(strategy, job);
-    const qn = this.genStrategyQueueName(algoCode, openAlgo);
+    const type = paperTrade ? 'paper-trade' : 'real-trade';
+    const qn = this.genStrategyQueueName(algoCode, openAlgo, type);
     const jobFacade = this.strategyJobFacades.get(qn);
     if (!jobFacade) {
       throw new Error(`jobFacade ${algoCode} not found`);
@@ -151,8 +168,9 @@ export class StrategyService implements OnModuleInit {
   }
 
   protected async doSummitJob(strategy: Strategy) {
-    const { algoCode, openAlgo } = strategy;
-    const qn = this.genStrategyQueueName(algoCode, openAlgo);
+    const { algoCode, openAlgo, paperTrade } = strategy;
+    const type = paperTrade ? 'paper-trade' : 'real-trade';
+    const qn = this.genStrategyQueueName(algoCode, openAlgo, type);
     const jobFacade = this.strategyJobFacades.get(qn);
     if (!jobFacade) {
       throw new Error(`jobFacade ${strategy.algoCode} not found`);
@@ -216,8 +234,9 @@ export class StrategyService implements OnModuleInit {
     if (!strategy) {
       return ApiResult.fail(`strategy ${strategyId} not found`);
     }
-    const { algoCode, openAlgo } = strategy;
-    const qn = this.genStrategyQueueName(algoCode, openAlgo);
+    const { algoCode, openAlgo, paperTrade } = strategy;
+    const type = paperTrade ? 'paper-trade' : 'real-trade';
+    const qn = this.genStrategyQueueName(algoCode, openAlgo, type);
     const jobFacade = this.strategyJobFacades.get(qn);
     if (!jobFacade) {
       throw new Error(`jobFacade ${strategy.algoCode} not found`);
