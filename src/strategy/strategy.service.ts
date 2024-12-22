@@ -27,6 +27,7 @@ import {
 } from '@/strategy/strategy.constants';
 import { MINUTE_MS, wait } from '@/common/utils/utils';
 import { IntegratedStrategy } from '@/strategy/strategy/integrated-strategy';
+import { ApiResult } from '@/common/api-result';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -50,8 +51,8 @@ export class StrategyService implements OnModuleInit {
 
   onModuleInit(): any {}
 
-  start() {
-    this.logger.log(`:::: start ...`);
+  defineJobs() {
+    this.logger.log(`:::: define jobs ...`);
 
     for (const code of Object.values(StrategyAlgo)) {
       for (const oca of Object.values(OppCheckerAlgo)) {
@@ -69,7 +70,7 @@ export class StrategyService implements OnModuleInit {
       }
     }
 
-    this.mockOrderTracingService.start();
+    this.mockOrderTracingService.defineJobs();
   }
 
   private genStrategyQueueName(
@@ -162,11 +163,15 @@ export class StrategyService implements OnModuleInit {
     await jobFacade.addTask(
       { strategyId, dealId, runOneDeal: true },
       {
-        jobId: `s${strategyId}/${dealId}`,
+        jobId: this.genJobId(strategy),
         attempts: 10,
         backoff: MINUTE_MS,
       },
     );
+  }
+
+  protected genJobId(s: Strategy) {
+    return `s${s.id}/${s.currentDealId}`;
   }
 
   async summitJob(strategyId: number, force?: boolean) {
@@ -201,5 +206,65 @@ export class StrategyService implements OnModuleInit {
       await this.doSummitJob(strategy);
       await Strategy.update(strategy.id, { jobSummited: true });
     }
+  }
+
+  async operateJob(
+    strategyId: number,
+    op: 'summit' | 'remove' | 'stop' | 'retry' | 'clearLogs',
+  ): Promise<ApiResult> {
+    const strategy = await Strategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ApiResult.fail(`strategy ${strategyId} not found`);
+    }
+    const { algoCode, openAlgo } = strategy;
+    const qn = this.genStrategyQueueName(algoCode, openAlgo);
+    const jobFacade = this.strategyJobFacades.get(qn);
+    if (!jobFacade) {
+      throw new Error(`jobFacade ${strategy.algoCode} not found`);
+    }
+    if (op === 'summit') {
+      strategy.active = true;
+      strategy.jobSummited = true;
+      await strategy.save();
+      await this.doSummitJob(strategy);
+      return ApiResult.success();
+    }
+    const queue = jobFacade.getQueue();
+    if (!strategy.currentDealId) {
+      if (op === 'remove') {
+        strategy.active = false;
+        strategy.jobSummited = false;
+        await strategy.save();
+        return ApiResult.success();
+      }
+      return ApiResult.fail('not started');
+    }
+    const job = await queue.getJob(this.genJobId(strategy));
+    if (!job) {
+      return ApiResult.fail('no job');
+    }
+
+    if (op === 'clearLogs') {
+      await job.clearLogs(30);
+      return ApiResult.success();
+    }
+    if (op === 'stop') {
+      job.discard();
+      strategy.active = false;
+      await strategy.save();
+      return ApiResult.success();
+    }
+    if (op === 'remove') {
+      strategy.active = false;
+      strategy.jobSummited = false;
+      await strategy.save();
+      await job.remove();
+      return ApiResult.success();
+    }
+    if (op === 'retry') {
+      await job.retry();
+      return ApiResult.success();
+    }
+    return ApiResult.fail(`unknown operation ${op}`);
   }
 }

@@ -23,6 +23,7 @@ import { TaskScope } from '@/common/server-profile.type';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { createBullBoard } from '@bull-board/api';
+import { APP_BASE_PATH } from '@/common/constants';
 
 export interface JobSpec<D = any, R = any> {
   queueName: string;
@@ -167,7 +168,7 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
     }
     this.logger.log(`:::: setup task board`);
 
-    const BasePath = '/jobs/board';
+    const BasePath = APP_BASE_PATH + '/jobs/board';
 
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath(BasePath);

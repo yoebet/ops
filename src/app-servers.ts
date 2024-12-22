@@ -68,15 +68,19 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
       serverProfile.ExDataLoaderWorker
     ) {
       if (serverProfile.StrategyWorker) {
-        this.strategyService.start();
+        this.strategyService.defineJobs();
       }
       if (serverProfile.BacktestWorker) {
-        this.backtestService.start();
+        this.backtestService.defineJobs();
       }
       if (serverProfile.ExDataLoaderWorker) {
-        this.historyDataLoaderService.start();
+        this.historyDataLoaderService.defineJobs();
       }
       this.jobsService.startWorker().catch(onErr);
+    } else if (serverProfile.Admin) {
+      this.strategyService.defineJobs();
+      this.backtestService.defineJobs();
+      this.historyDataLoaderService.defineJobs();
     }
   }
 }

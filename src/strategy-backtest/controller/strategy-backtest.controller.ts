@@ -1,6 +1,6 @@
-import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseInterceptors } from '@nestjs/common';
 import { ClassSerializerInterceptor as CSI } from '@nestjs/common/serializer/class-serializer.interceptor';
-import { ListResult, ValueResult } from '@/common/api-result';
+import { ApiResult, ListResult, ValueResult } from '@/common/api-result';
 import { CurrentUser } from '@/auth/decorators/user.decorator';
 import { UserInfo } from '@/auth/user-info';
 import { ParseIntPipe } from '@nestjs/common/pipes/parse-int.pipe';
@@ -9,11 +9,12 @@ import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
 import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { OrderStatus } from '@/db/models/ex-order';
+import { BacktestService } from '@/strategy-backtest/backtest.service';
 
 @Controller('bt-strategies')
 @UseInterceptors(CSI)
 export class StrategyBacktestController {
-  constructor() {}
+  constructor(protected backtestService: BacktestService) {}
 
   @Get('')
   async all(
@@ -87,5 +88,13 @@ export class StrategyBacktestController {
       where: { strategyId: id, status: OrderStatus.filled },
     });
     return ListResult.list(sts);
+  }
+
+  @Post(':id/job/:op')
+  async job(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('op') op: string,
+  ): Promise<ApiResult> {
+    return this.backtestService.operateJob(id, op as any);
   }
 }

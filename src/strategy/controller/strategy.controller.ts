@@ -2,12 +2,12 @@ import {
   Controller,
   Get,
   Param,
-  ParseBoolPipe,
+  Post,
   Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { ClassSerializerInterceptor as CSI } from '@nestjs/common/serializer/class-serializer.interceptor';
-import { ListResult, ValueResult } from '@/common/api-result';
+import { ApiResult, ListResult, ValueResult } from '@/common/api-result';
 import { Strategy } from '@/db/models/strategy/strategy';
 import { CurrentUser } from '@/auth/decorators/user.decorator';
 import { UserInfo } from '@/auth/user-info';
@@ -15,11 +15,12 @@ import { ParseIntPipe } from '@nestjs/common/pipes/parse-int.pipe';
 import { StrategyOrder } from '@/db/models/strategy/strategy-order';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
+import { StrategyService } from '@/strategy/strategy.service';
 
 @Controller('strategies')
 @UseInterceptors(CSI)
 export class StrategyController {
-  constructor() {}
+  constructor(private strategyService: StrategyService) {}
 
   @Get('')
   async query(
@@ -102,5 +103,13 @@ export class StrategyController {
       where: { strategyId: id, status: OrderStatus.filled },
     });
     return ListResult.list(sts);
+  }
+
+  @Post(':id/job/:op')
+  async job(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('op') op: string,
+  ): Promise<ApiResult> {
+    return this.strategyService.operateJob(id, op as any);
   }
 }

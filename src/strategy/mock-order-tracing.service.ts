@@ -48,8 +48,8 @@ export class MockOrderTracingService implements OnModuleInit {
 
   onModuleInit(): any {}
 
-  start() {
-    this.logger.log(`:::: start ...`);
+  defineJobs() {
+    this.logger.log(`:::: define jobs ...`);
 
     for (const code of Object.values(StrategyAlgo)) {
       for (const oca of Object.values(OppCheckerAlgo)) {

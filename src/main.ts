@@ -8,10 +8,11 @@ import { CatchAllFilter } from '@/common/filters/catch-all.filter';
 import { Env } from '@/env';
 import { AppServers } from '@/app-servers';
 import { JobsService } from '@/job/jobs.service';
+import { APP_BASE_PATH } from '@/common/constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('/ops');
+  app.setGlobalPrefix(APP_BASE_PATH);
   app.enableCors();
   const configService = app.get(ConfigService);
   const logger = new AppLogger('main', configService);

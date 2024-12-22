@@ -17,7 +17,7 @@ describe('strategy runner', () => {
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(StrategyService);
-    service.start();
+    service.defineJobs();
   });
 
   it('summit all pending strategies', async () => {

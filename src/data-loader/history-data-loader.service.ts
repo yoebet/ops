@@ -62,8 +62,8 @@ export class HistoryDataLoaderService implements OnModuleInit {
 
   onModuleInit() {}
 
-  async start() {
-    this.logger.log(`:::: start ...`);
+  defineJobs() {
+    this.logger.log(`:::: define jobs ...`);
 
     for (const ex of Object.values(ExchangeCode)) {
       const queueName = this.getQueueName(ex);

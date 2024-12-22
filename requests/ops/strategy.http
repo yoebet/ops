@@ -16,3 +16,8 @@ Accept: application/json
 ### orders
 GET http://{{server}}/ops/strategies/35/orders
 Accept: application/json
+
+
+### job - summit ('summit' | 'remove' | 'stop' | 'retry' | 'clearLogs')
+POST http://{{server}}/ops/strategies/35/job/summit
+Accept: application/json

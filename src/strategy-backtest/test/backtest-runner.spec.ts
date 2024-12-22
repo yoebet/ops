@@ -18,7 +18,7 @@ describe('strategy backtest runner', () => {
     await moduleRef.init();
     service = moduleRef.get(BacktestService);
 
-    service.start();
+    service.defineJobs();
   });
 
   it('summit all pending strategies', async () => {
