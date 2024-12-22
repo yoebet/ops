@@ -10,6 +10,7 @@ import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { OrderStatus } from '@/db/models/ex-order';
 import { BacktestService } from '@/strategy-backtest/backtest.service';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 
 @Controller('bt-strategies')
 @UseInterceptors(CSI)
@@ -86,6 +87,18 @@ export class StrategyBacktestController {
     const sts = await BacktestOrder.find({
       select: StrategyOrder.listFields,
       where: { strategyId: id, status: OrderStatus.filled },
+    });
+    return ListResult.list(sts);
+  }
+
+  @Get(':id/deals')
+  async deals(
+    // @CurrentUser() user: UserInfo,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ListResult<BacktestDeal>> {
+    const sts = await BacktestDeal.find({
+      select: StrategyDeal.listFields,
+      where: { strategyId: id },
     });
     return ListResult.list(sts);
   }

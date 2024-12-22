@@ -105,6 +105,18 @@ export class StrategyController {
     return ListResult.list(sts);
   }
 
+  @Get(':id/deals')
+  async deals(
+    // @CurrentUser() user: UserInfo,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ListResult<StrategyDeal>> {
+    const sts = await StrategyDeal.find({
+      select: StrategyDeal.listFields,
+      where: { strategyId: id },
+    });
+    return ListResult.list(sts);
+  }
+
   @Post(':id/job/:op')
   async job(
     @Param('id', ParseIntPipe) id: number,

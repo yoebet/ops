@@ -18,6 +18,11 @@ GET http://{{server}}/ops/strategies/35/orders
 Accept: application/json
 
 
+### deals
+GET http://{{server}}/ops/strategies/35/deals
+Accept: application/json
+
+
 ### job - summit ('summit' | 'remove' | 'stop' | 'retry' | 'clearLogs')
 POST http://{{server}}/ops/strategies/35/job/summit
 Accept: application/json

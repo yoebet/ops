@@ -7,6 +7,16 @@ import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
 @Entity()
 export class StrategyDeal extends ExSymbolBase {
+  static listFields: (keyof StrategyDeal)[] = [
+    'id',
+    'pendingOrderId',
+    'lastOrderId',
+    'pnlUsd',
+    'status',
+    'closedAt',
+    'createdAt',
+  ];
+
   @Column()
   @Index()
   strategyId: number;
