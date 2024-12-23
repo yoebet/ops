@@ -41,11 +41,17 @@ export interface BacktestTradeOppo {
   memo?: string;
 }
 
-async function createNewDealIfNone(strategy: BacktestStrategy) {
+async function createNewDealIfNone(
+  strategy: BacktestStrategy,
+  openTs?: number,
+) {
   if (strategy.currentDealId) {
     return;
   }
   const currentDeal = BacktestDeal.newStrategyDeal(strategy);
+  if (openTs) {
+    currentDeal.openAt = new Date(openTs);
+  }
   await currentDeal.save();
   strategy.currentDealId = currentDeal.id;
   strategy.currentDeal = currentDeal;
@@ -139,11 +145,7 @@ export abstract class BaseBacktestRunner {
     }
   }
 
-  protected async createNewDeal() {
-    await createNewDealIfNone(this.strategy);
-  }
-
-  protected async loadOrCreateDeal() {
+  protected async loadOrCreateDeal(klineOpenTs: number) {
     const strategy = this.strategy;
     let currentDeal: BacktestDeal;
     if (strategy.currentDealId) {
@@ -182,7 +184,7 @@ export abstract class BaseBacktestRunner {
       await currentDeal.save();
       await strategy.save();
     } else {
-      await this.createNewDeal();
+      await createNewDealIfNone(this.strategy, klineOpenTs);
     }
   }
 
@@ -197,6 +199,10 @@ export abstract class BaseBacktestRunner {
     deal.pnlUsd = evalOrdersPnl(orders);
     deal.status = 'closed';
     deal.closedAt = deal.lastOrder?.exUpdatedAt;
+    if (deal.closedAt && deal.openAt) {
+      const msSpan = deal.closedAt.getTime() - deal.openAt.getTime();
+      deal.dealDuration = this.durationHumanizer(msSpan, { round: true });
+    }
     await deal.save();
 
     const strategy = this.strategy;

@@ -64,6 +64,7 @@ export async function createNewDealIfNone(strategy: Strategy) {
     return;
   }
   const currentDeal = StrategyDeal.newStrategyDeal(strategy);
+  currentDeal.openAt = new Date();
   await currentDeal.save();
   strategy.currentDealId = currentDeal.id;
   strategy.currentDeal = currentDeal;

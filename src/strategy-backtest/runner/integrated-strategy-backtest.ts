@@ -44,7 +44,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     let ol = 0;
 
     while (true) {
-      await this.loadOrCreateDeal();
+      await this.loadOrCreateDeal(kld.getCurrentTs());
 
       ol++;
       await this.logJob(`round #${ol}`);

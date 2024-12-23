@@ -87,6 +87,7 @@ export class StrategyBacktestController {
     const sts = await BacktestOrder.find({
       select: StrategyOrder.listFields,
       where: { strategyId: id, status: OrderStatus.filled },
+      order: { createdAt: 'desc' },
     });
     return ListResult.list(sts);
   }
@@ -99,6 +100,7 @@ export class StrategyBacktestController {
     const sts = await BacktestDeal.find({
       select: StrategyDeal.listFields,
       where: { strategyId: id },
+      order: { createdAt: 'desc' },
     });
     return ListResult.list(sts);
   }

@@ -101,6 +101,7 @@ export class StrategyController {
     const sts = await ExOrder.find({
       select: StrategyOrder.listFields,
       where: { strategyId: id, status: OrderStatus.filled },
+      order: { createdAt: 'desc' },
     });
     return ListResult.list(sts);
   }
@@ -113,6 +114,7 @@ export class StrategyController {
     const sts = await StrategyDeal.find({
       select: StrategyDeal.listFields,
       where: { strategyId: id },
+      order: { createdAt: 'desc' },
     });
     return ListResult.list(sts);
   }

@@ -13,7 +13,9 @@ export class StrategyDeal extends ExSymbolBase {
     'lastOrderId',
     'pnlUsd',
     'status',
+    'openAt',
     'closedAt',
+    'dealDuration',
     'createdAt',
   ];
 
@@ -47,7 +49,13 @@ export class StrategyDeal extends ExSymbolBase {
   paperTrade?: boolean;
 
   @Column({ nullable: true })
+  openAt?: Date;
+
+  @Column({ nullable: true })
   closedAt?: Date;
+
+  @Column({ nullable: true })
+  dealDuration?: string;
 
   pendingOrder?: ExOrder;
   lastOrder?: ExOrder;

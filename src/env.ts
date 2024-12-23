@@ -22,6 +22,7 @@ const DefaultConfig: PartialConfig = {
     database: 'ops',
     host: 'postgres',
     port: 25432,
+    useUTC: true,
   },
   redis: {
     host: 'localhost',

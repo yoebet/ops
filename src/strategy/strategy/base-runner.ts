@@ -360,6 +360,10 @@ export abstract class BaseRunner {
     deal.pnlUsd = evalOrdersPnl(orders);
     deal.status = 'closed';
     deal.closedAt = new Date();
+    if (deal.openAt) {
+      const msSpan = deal.closedAt.getTime() - deal.openAt.getTime();
+      deal.dealDuration = this.durationHumanizer(msSpan, { round: true });
+    }
     await deal.save();
 
     const strategy = this.strategy;
@@ -414,6 +418,7 @@ export abstract class BaseRunner {
           await currentDeal.save();
           await this.logJob(`synchronize-order - filled`);
         } else {
+          await this.logJob(`synchronize-order - not filled`);
           if (await this.shouldCancelOrder(pendingOrder)) {
             await this.env.ensureApiKey();
             const exService = this.env.getTradeService();
@@ -421,8 +426,8 @@ export abstract class BaseRunner {
               symbol: strategy.symbol,
               orderId: pendingOrder.exOrderId,
             });
+            await this.logJob(`cancel order ...`);
           }
-          await this.logJob(`synchronize-order - not filled`);
           return false;
         }
       }
