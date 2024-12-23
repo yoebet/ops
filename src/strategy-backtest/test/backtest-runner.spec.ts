@@ -26,16 +26,16 @@ describe('strategy backtest runner', () => {
   });
 
   it('summit', async () => {
-    await service.summitJob(7, true);
+    await service.summitJob(80, true);
   });
 
   it('run 1', async () => {
-    const strategy = await BacktestStrategy.findOneBy({ id: 57 });
+    const strategy = await BacktestStrategy.findOneBy({ id: 80 });
     await service.runStrategy(strategy);
   });
 
   it('rerun 1', async () => {
-    const sid = 76;
+    const sid = 80;
     await BacktestDeal.delete({ strategyId: sid });
     await BacktestOrder.delete({ strategyId: sid });
     const strategy = await BacktestStrategy.findOneBy({ id: sid });

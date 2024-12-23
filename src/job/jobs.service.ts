@@ -157,7 +157,11 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
       if (wl?.failed) {
         wl.failed(job, err, prev);
       } else {
-        this.logger.error(`${job.id} has failed: ${err.message}`, qj.queueName);
+        this.logger.error(
+          `${job.id} has failed: ${err.message}`,
+          err.stack,
+          qj.queueName,
+        );
       }
     });
   }

@@ -82,7 +82,7 @@ export async function checkMoveContinuous(
       return oppo;
     }
 
-    const oppo = await checkStopLossAndTimeLimit.call(kl, oppor, options);
+    const oppo = await checkStopLossAndTimeLimit.call(this, kl, oppor, options);
     if (oppo) {
       return oppo;
     }

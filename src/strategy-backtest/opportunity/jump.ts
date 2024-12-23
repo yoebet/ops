@@ -31,6 +31,9 @@ export async function checkJumpContinuous(
     return undefined;
   }
   let kl = await kld.getKline();
+  if (!kl) {
+    return undefined;
+  }
 
   let jumpKlines = selfKls.slice(0, jumpPeriods);
   let stopKlines = selfKls.slice(jumpPeriods);
@@ -78,7 +81,7 @@ export async function checkJumpContinuous(
       }
     }
 
-    const oppo = await checkStopLossAndTimeLimit.call(kl, oppor, options);
+    const oppo = await checkStopLossAndTimeLimit.call(this, kl, oppor, options);
     if (oppo) {
       return oppo;
     }
@@ -89,6 +92,9 @@ export async function checkJumpContinuous(
     }
 
     kl = await kld.getKline();
+    if (!kl) {
+      return undefined;
+    }
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     jumpKlines = selfKls.slice(0, jumpPeriods);

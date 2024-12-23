@@ -65,6 +65,9 @@ describe('backtest kline data', () => {
 
     while (true) {
       const kl = await kld.getKline();
+      if (!kl) {
+        break;
+      }
       console.log(`${new Date(kl.ts).toISOString()} ${kl.open}`);
       kld.rollTimeInterval();
       if (kld.getTimeTs() > timeTo) {

@@ -228,7 +228,7 @@ export class BacktestKlineLevelsData {
     }
   }
 
-  async getKline(): Promise<FtKline> {
+  async getKline(): Promise<FtKline | undefined> {
     const holder = this.currentLevel.holder;
     return holder.getKline();
   }

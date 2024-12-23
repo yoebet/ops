@@ -22,6 +22,9 @@ export async function checkBollingerContinuous(
     kld.resetLevel(interval);
 
     const kl = await kld.getKline();
+    if (!kl) {
+      return undefined;
+    }
 
     const klines = await kld.getKlinesTillNow(
       interval,
@@ -55,7 +58,7 @@ export async function checkBollingerContinuous(
       return oppo;
     }
 
-    const oppo = await checkStopLossAndTimeLimit.call(kl, oppor, options);
+    const oppo = await checkStopLossAndTimeLimit.call(this, kl, oppor, options);
     if (oppo) {
       return oppo;
     }

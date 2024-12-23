@@ -215,7 +215,10 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
         }
       }
       const kl = await kld.getKline();
-      const activePrice = moveActivePrice || kl.close;
+      if (!kl) {
+        return undefined;
+      }
+      const activePrice = moveActivePrice || kl.open;
 
       const drawbackRatio = moveDrawbackPercent / 100;
       const spr = 1 + drawbackRatio;

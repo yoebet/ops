@@ -38,7 +38,7 @@ describe('backtest strategy creating', () => {
     strategy.paperTrade = true;
     strategy.active = true;
     strategy.dataFrom = '2024-07-02';
-    strategy.dataTo = '2024-07-31';
+    strategy.dataTo = '2024-08-31';
     await strategy.save();
     console.log(strategy.id);
   }

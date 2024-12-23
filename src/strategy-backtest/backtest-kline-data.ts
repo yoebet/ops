@@ -69,7 +69,7 @@ export class BacktestKlineData {
     });
   }
 
-  async getKline(): Promise<FtKline> {
+  async getKline(): Promise<FtKline | undefined> {
     const { interval, intervalMs } = this.timeLevel;
     const tsFrom = this.timeCursor.toMillis();
     const holder = this.holder;

@@ -42,6 +42,9 @@ export async function checkBurstContinuous(
     return undefined;
   }
   let kl = await kld.getKline();
+  if (!kl) {
+    return undefined;
+  }
 
   const ckls = selfKls.slice(0, contrastPeriods);
   const lkls = selfKls.slice(latestFrom);
@@ -117,7 +120,7 @@ export async function checkBurstContinuous(
       }
     }
 
-    const oppo = await checkStopLossAndTimeLimit.call(kl, oppor, options);
+    const oppo = await checkStopLossAndTimeLimit.call(this, kl, oppor, options);
     if (oppo) {
       return oppo;
     }
@@ -127,6 +130,9 @@ export async function checkBurstContinuous(
       return undefined;
     }
     kl = await kld.getKline();
+    if (!kl) {
+      return undefined;
+    }
     selfKls.push(kl);
     selfKls = selfKls.slice(1);
     selfContrastAgg = selfContrastRoller.next(selfKls[contrastPeriods]);
