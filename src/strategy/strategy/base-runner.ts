@@ -364,6 +364,8 @@ export abstract class BaseRunner {
       const msSpan = deal.closedAt.getTime() - deal.openAt.getTime();
       deal.dealDuration = this.durationHumanizer(msSpan, { round: true });
     }
+    deal.ordersCount = orders.length;
+    deal.closeReason = deal.lastOrder?.tag;
     await deal.save();
 
     const strategy = this.strategy;

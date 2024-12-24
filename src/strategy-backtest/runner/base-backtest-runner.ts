@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import { DateTime } from 'luxon';
 import * as humanizeDuration from 'humanize-duration';
 import { AppLogger } from '@/common/app-logger';
 import { StrategyJobEnv } from '@/strategy/env/strategy-env';
@@ -14,7 +14,6 @@ import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
 import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
-import { DateTime } from 'luxon';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
 
@@ -203,6 +202,8 @@ export abstract class BaseBacktestRunner {
       const msSpan = deal.closedAt.getTime() - deal.openAt.getTime();
       deal.dealDuration = this.durationHumanizer(msSpan, { round: true });
     }
+    deal.ordersCount = orders.length;
+    deal.closeReason = deal.lastOrder?.tag;
     await deal.save();
 
     const strategy = this.strategy;

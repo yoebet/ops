@@ -16,6 +16,8 @@ export class StrategyDeal extends ExSymbolBase {
     'openAt',
     'closedAt',
     'dealDuration',
+    'closeReason',
+    'ordersCount',
     'createdAt',
   ];
 
@@ -56,6 +58,12 @@ export class StrategyDeal extends ExSymbolBase {
 
   @Column({ nullable: true })
   dealDuration?: string;
+
+  @Column({ nullable: true })
+  closeReason?: string;
+
+  @Column({ nullable: true })
+  ordersCount?: number;
 
   pendingOrder?: ExOrder;
   lastOrder?: ExOrder;

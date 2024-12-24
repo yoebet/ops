@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Job } from 'bullmq';
+import { Job, JobState } from 'bullmq';
 import { Equal, IsNull, Or } from 'typeorm';
 import { AppLogger } from '@/common/app-logger';
 import { BacktestStrategy } from '@/db/models/strategy/backtest-strategy';
@@ -21,6 +21,8 @@ import { IntegratedStrategyBacktest } from '@/strategy-backtest/runner/integrate
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { BaseBacktestRunner } from '@/strategy-backtest/runner/base-backtest-runner';
 import { ApiResult } from '@/common/api-result';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
+import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 
 @Injectable()
 export class BacktestService implements OnModuleInit {
@@ -226,7 +228,16 @@ export class BacktestService implements OnModuleInit {
       return ApiResult.success();
     }
     if (op === 'retry') {
-      await job.retry();
+      await BacktestDeal.delete({ strategyId: strategy.id });
+      await BacktestOrder.delete({ strategyId: strategy.id });
+      strategy.currentDealId = undefined;
+      await strategy.save();
+      await job.clearLogs(30);
+      const state = await job.getState();
+      this.logger.log(`job state: ${state}`);
+      if (state === 'completed' || state === 'failed') {
+        await job.retry(state);
+      }
       return ApiResult.success();
     }
     return ApiResult.fail(`unknown operation ${op}`);

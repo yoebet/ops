@@ -2,7 +2,7 @@ import { TimeLevel } from '@/db/models/time-level';
 import { ExchangeCode } from '@/db/models/exchange-types';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { DateTime } from 'luxon';
-import { FtKline, Kline2 } from '@/data-service/models/kline';
+import { FtKline } from '@/data-service/models/kline';
 import { BacktestKlineData } from '@/strategy-backtest/backtest-kline-data';
 
 interface TimeLevelHolder extends TimeLevel {

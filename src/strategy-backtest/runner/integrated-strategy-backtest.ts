@@ -44,13 +44,38 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     let ol = 0;
 
     while (true) {
-      await this.loadOrCreateDeal(kld.getCurrentTs());
+      const startTs = kld.getCurrentTs();
+      await this.loadOrCreateDeal(startTs);
 
       ol++;
       await this.logJob(`round #${ol}`);
       const currentDeal = strategy.currentDeal;
       const pendingOrder = currentDeal.pendingOrder;
       const lastOrder = currentDeal?.lastOrder;
+
+      if (ol === 1 && currentDeal) {
+        const dealOpenTs = currentDeal.openAt?.getTime();
+        if (dealOpenTs && startTs < dealOpenTs) {
+          kld.moveOnToTime(dealOpenTs);
+          this.logger.log(`move to deal open: ${currentDeal.openAt}`);
+        }
+        if (lastOrder) {
+          const lastOrderExUpdatedTs = lastOrder.exUpdatedAt?.getTime();
+          if (lastOrderExUpdatedTs && startTs < lastOrderExUpdatedTs) {
+            kld.moveOnToTime(lastOrderExUpdatedTs);
+            this.logger.log(`move to last order: ${lastOrder.exUpdatedAt}`);
+          }
+        }
+        if (pendingOrder) {
+          const pendingOrderExCreatedTs = pendingOrder.exCreatedAt?.getTime();
+          if (pendingOrderExCreatedTs && startTs < pendingOrderExCreatedTs) {
+            kld.moveOnToTime(pendingOrderExCreatedTs);
+            this.logger.log(
+              `move to pending order: ${pendingOrder.exCreatedAt}`,
+            );
+          }
+        }
+      }
 
       if (pendingOrder) {
         const moveOn = await this.tryFillPendingOrder(kld, pendingOrder);
@@ -346,6 +371,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     const strategy = this.strategy;
     const currentDeal = strategy.currentDeal;
     order.exOrderId = this.newOrderId();
+    order.exCreatedAt = orderTime;
     if (order.side === TradeSide.buy) {
       if (!order.quoteAmount) {
         order.quoteAmount = orderAmount || strategy.quoteAmount;
@@ -362,7 +388,6 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     if (order.priceType === 'market') {
       fillOrderSize(order, order, orderPrice);
       order.status = OrderStatus.filled;
-      order.exCreatedAt = orderTime;
       order.exUpdatedAt = orderTime;
       await order.save();
       currentDeal.lastOrder = order;
