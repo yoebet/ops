@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Post, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ClassSerializerInterceptor as CSI } from '@nestjs/common/serializer/class-serializer.interceptor';
 import { ApiResult, ListResult, ValueResult } from '@/common/api-result';
 import { CurrentUser } from '@/auth/decorators/user.decorator';
@@ -117,5 +125,20 @@ export class StrategyBacktestController {
     @Param('op') op: string,
   ): Promise<ApiResult> {
     return this.backtestService.operateJob(id, op as any);
+  }
+
+  @Post(':id/clone')
+  async cloneStrategy(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() params: { memo?: string },
+  ): Promise<ValueResult<BacktestStrategy>> {
+    return this.backtestService.cloneStrategy(id, params?.memo);
+  }
+
+  @Delete(':id')
+  async dropStrategy(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResult> {
+    return this.backtestService.dropStrategy(id);
   }
 }

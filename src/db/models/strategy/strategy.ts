@@ -87,6 +87,9 @@ export class Strategy extends ExSymbolBase {
   @Column({ nullable: true })
   jobSummited?: boolean;
 
+  @Column({ nullable: true })
+  memo?: string;
+
   @AfterLoad()
   onLoaded() {
     if (this.baseSize != null) {

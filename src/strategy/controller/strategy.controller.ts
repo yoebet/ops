@@ -1,5 +1,7 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -131,5 +133,20 @@ export class StrategyController {
     @Param('op') op: string,
   ): Promise<ApiResult> {
     return this.strategyService.operateJob(id, op as any);
+  }
+
+  @Post(':id/clone')
+  async cloneStrategy(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() params: { memo?: string },
+  ): Promise<ValueResult<Strategy>> {
+    return this.strategyService.cloneStrategy(id, params?.memo);
+  }
+
+  @Delete(':id')
+  async dropStrategy(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResult> {
+    return this.strategyService.dropStrategy(id);
   }
 }

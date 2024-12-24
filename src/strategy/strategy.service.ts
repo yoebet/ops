@@ -27,7 +27,9 @@ import {
 } from '@/strategy/strategy.constants';
 import { MINUTE_MS, wait } from '@/common/utils/utils';
 import { IntegratedStrategy } from '@/strategy/strategy/integrated-strategy';
-import { ApiResult } from '@/common/api-result';
+import { ApiResult, ValueResult } from '@/common/api-result';
+import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
+import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -285,5 +287,35 @@ export class StrategyService implements OnModuleInit {
       return ApiResult.success();
     }
     return ApiResult.fail(`unknown operation ${op}`);
+  }
+
+  async cloneStrategy(
+    strategyId: number,
+    memo?: string,
+  ): Promise<ValueResult<Strategy>> {
+    const strategy = await Strategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ValueResult.fail(`strategy ${strategyId} not found`);
+    }
+    const newStrategy = new Strategy();
+    Object.assign(newStrategy, strategy);
+    delete newStrategy.id;
+    delete newStrategy.createdAt;
+    delete newStrategy.currentDealId;
+    newStrategy.memo = memo;
+    await newStrategy.save();
+    return ValueResult.value(newStrategy);
+  }
+
+  async dropStrategy(strategyId: number): Promise<ApiResult> {
+    const strategy = await Strategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ApiResult.fail(`strategy ${strategyId} not found`);
+    }
+    await BacktestDeal.delete({ strategyId });
+    await BacktestOrder.delete({ strategyId });
+    await strategy.remove();
+
+    return ApiResult.success();
   }
 }

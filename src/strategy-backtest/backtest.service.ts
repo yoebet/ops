@@ -20,7 +20,7 @@ import { MINUTE_MS, wait } from '@/common/utils/utils';
 import { IntegratedStrategyBacktest } from '@/strategy-backtest/runner/integrated-strategy-backtest';
 import { KlineDataService } from '@/data-service/kline-data.service';
 import { BaseBacktestRunner } from '@/strategy-backtest/runner/base-backtest-runner';
-import { ApiResult } from '@/common/api-result';
+import { ApiResult, ValueResult } from '@/common/api-result';
 import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 
@@ -253,5 +253,35 @@ export class BacktestService implements OnModuleInit {
         await q.clean(1000, 1000, type as any);
       }
     }
+  }
+
+  async cloneStrategy(
+    strategyId: number,
+    memo?: string,
+  ): Promise<ValueResult<BacktestStrategy>> {
+    const strategy = await BacktestStrategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ApiResult.fail(`strategy ${strategyId} not found`);
+    }
+    const newStrategy = new BacktestStrategy();
+    Object.assign(newStrategy, strategy);
+    delete newStrategy.id;
+    delete newStrategy.createdAt;
+    delete newStrategy.currentDealId;
+    newStrategy.memo = memo;
+    await newStrategy.save();
+    return ValueResult.value(newStrategy);
+  }
+
+  async dropStrategy(strategyId: number): Promise<ApiResult> {
+    const strategy = await BacktestStrategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ApiResult.fail(`strategy ${strategyId} not found`);
+    }
+    await BacktestDeal.delete({ strategyId });
+    await BacktestOrder.delete({ strategyId });
+    await strategy.remove();
+
+    return ApiResult.success();
   }
 }

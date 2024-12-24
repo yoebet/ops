@@ -31,3 +31,18 @@ Accept: application/json
 ### job - summit ('summit' | 'remove' | 'stop' | 'retry' | 'clearLogs')
 POST http://{{server}}/ops/strategies/35/job/summit
 Accept: application/json
+
+
+### clone
+POST http://{{server}}/ops/strategies/35/clone
+Accept: application/json
+Content-Type: application/json
+
+{
+  "memo": "reo"
+}
+
+
+### drop
+DELETE http://{{server}}/ops/bt-strategies/35
+Accept: application/json
