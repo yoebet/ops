@@ -303,6 +303,7 @@ export class StrategyService implements OnModuleInit {
     delete newStrategy.createdAt;
     delete newStrategy.currentDealId;
     newStrategy.memo = memo;
+    newStrategy.jobSummited = false;
     await newStrategy.save();
     return ValueResult.value(newStrategy);
   }
