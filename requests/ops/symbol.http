@@ -1,4 +1,0 @@
-### list symbols
-GET http://{{server}}/exchange/symbols
-Content-Type: application/json
-

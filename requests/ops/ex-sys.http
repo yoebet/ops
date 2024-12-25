@@ -1,0 +1,14 @@
+### list coins
+GET http://{{server}}/ops/sys/coins
+Content-Type: application/json
+
+
+### list unified symbols
+GET http://{{server}}/ops/sys/unified-symbols
+Content-Type: application/json
+
+
+### list exchange symbols
+GET http://{{server}}/ops/sys/exchange-symbols
+Content-Type: application/json
+
