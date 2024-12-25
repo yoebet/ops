@@ -180,10 +180,11 @@ export abstract class BaseRunner {
         await this.logJob(`place order failed: ${order.status}`);
       }
     } catch (e) {
-      this.logger.error(e);
+      this.logger.error(e, e.stack);
       order.status = OrderStatus.summitFailed;
       await order.save();
-      await this.logJob(`summit order failed`);
+      await this.logJob(`summit order failed: ${e.message}`);
+      await wait(MINUTE_MS);
     }
   }
 
@@ -482,11 +483,12 @@ export abstract class BaseRunner {
   }
 
   protected newClientOrderId(orderTag?: string): string {
-    const { id, algoCode } = this.strategy;
-    const code = algoCode.toLowerCase();
+    const { id, openAlgo } = this.strategy;
+    // const code = algoCode.toLowerCase();
+    const oc = openAlgo.toLowerCase();
     const ms = '' + Date.now();
     const tag = orderTag?.replace(/[^a-zA-Z]/, '')?.toLowerCase() || '';
-    return `${code}${id}${ms.substring(1, 10)}${tag}`;
+    return `${oc}${id}${ms.substring(1, 10)}${tag}`;
   }
 
   protected newOrderByStrategy(): ExOrder {
@@ -523,6 +525,11 @@ export abstract class BaseRunner {
       order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
+      if (!order.baseSize) {
+        const lastPrice = await this.env.getLastPrice();
+        const qa = oppo.orderAmount || strategy.quoteAmount;
+        order.baseSize = qa / lastPrice;
+      }
     }
     order.algoOrder = false;
     order.memo = oppo.memo;
@@ -540,10 +547,10 @@ export abstract class BaseRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    if (order.baseSize) {
-      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
-    } else {
+    if (tradeSide === TradeSide.buy) {
       params.quoteAmount = order.quoteAmount.toFixed(2);
+    } else {
+      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     }
 
     oppo.order = order;
@@ -570,6 +577,10 @@ export abstract class BaseRunner {
       order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
+      if (!order.baseSize) {
+        const qa = oppo.orderAmount || strategy.quoteAmount;
+        order.baseSize = qa / orderPrice;
+      }
     }
     order.algoOrder = false;
     order.memo = oppo.memo;
@@ -585,6 +596,12 @@ export abstract class BaseRunner {
     if (strategy.tradeType === ExTradeType.margin) {
       params.marginMode = 'cross';
       params.marginCoin = unifiedSymbol.quote;
+    }
+
+    if (tradeSide === TradeSide.buy) {
+      params.quoteAmount = order.quoteAmount.toFixed(2);
+    } else {
+      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     }
 
     oppo.order = order;
@@ -628,6 +645,10 @@ export abstract class BaseRunner {
       order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
     } else {
       order.baseSize = oppo.orderSize || strategy.baseSize;
+      if (!order.baseSize) {
+        const qa = oppo.orderAmount || strategy.quoteAmount;
+        order.baseSize = qa / placeOrderPrice; // FIXME
+      }
     }
     if (activePercent) {
       const activeRatio = activePercent / 100;
@@ -653,10 +674,10 @@ export abstract class BaseRunner {
     }
 
     params.tpslType = order.tpslType;
-    if (order.baseSize) {
-      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
-    } else {
+    if (tradeSide === TradeSide.buy) {
       params.quoteAmount = order.quoteAmount.toFixed(2);
+    } else {
+      params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     }
     params.moveDrawbackRatio = (drawbackPercent / 100).toFixed(4);
     if (order.moveActivePrice) {

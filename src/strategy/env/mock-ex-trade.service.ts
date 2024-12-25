@@ -93,6 +93,7 @@ export class MockExTradeService implements ExchangeTradeService {
     await wait(500);
     const exOrderId = this.newOrderId();
     const order = await ExOrder.findOneBy({
+      ex: this.strategy.ex,
       clientOrderId: params.clientOrderId,
     });
 
@@ -103,6 +104,8 @@ export class MockExTradeService implements ExchangeTradeService {
       const orderResp: ExOrderResp = {
         exOrderId,
         status: OrderStatus.filled,
+        exCreatedAt: new Date(),
+        exUpdatedAt: new Date(),
         rawOrder: {},
       };
       fillOrderSize(orderResp, order, price);
@@ -121,6 +124,8 @@ export class MockExTradeService implements ExchangeTradeService {
       orderResp: {
         exOrderId,
         status: OrderStatus.pending,
+        exCreatedAt: new Date(),
+        exUpdatedAt: new Date(),
         rawOrder: {},
       },
     };

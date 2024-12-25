@@ -102,6 +102,10 @@ export abstract class RuntimeParamsRunner<
           return undefined;
         }
       }
+    }
+
+    if (lastOrder) {
+      // close
       if (rps.stopLoss?.priceDiffPercent) {
         return Promise.race([
           this.checkAndWaitToStopLoss(),
@@ -111,6 +115,8 @@ export abstract class RuntimeParamsRunner<
         return this.checkAndWaitToCloseDeal();
       }
     }
+
+    // open ...
 
     if (rps.lossCoolDownInterval && lastDealId) {
       if (!strategy.lastDeal) {

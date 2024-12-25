@@ -372,6 +372,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     const currentDeal = strategy.currentDeal;
     order.exOrderId = this.newOrderId();
     order.exCreatedAt = orderTime;
+    order.exUpdatedAt = orderTime;
     if (order.side === TradeSide.buy) {
       if (!order.quoteAmount) {
         order.quoteAmount = orderAmount || strategy.quoteAmount;
@@ -388,7 +389,6 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     if (order.priceType === 'market') {
       fillOrderSize(order, order, orderPrice);
       order.status = OrderStatus.filled;
-      order.exUpdatedAt = orderTime;
       await order.save();
       currentDeal.lastOrder = order;
       currentDeal.lastOrderId = order.id;
