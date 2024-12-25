@@ -108,7 +108,7 @@ export abstract class BaseRunner {
         if (e instanceof ExitSignal) {
           return e.message;
         }
-        this.logger.error(e);
+        this.logger.error(e, e.stack);
         await this.logJob(e.message);
         await wait(MINUTE_MS);
       }
@@ -278,7 +278,7 @@ export abstract class BaseRunner {
         if (e instanceof ExitSignal) {
           throw e;
         }
-        this.logger.error(e);
+        this.logger.error(e, e.stack);
         await this.logJob(e.message, options.context);
         if (options.maxTry && tried >= options.maxTry) {
           return undefined;

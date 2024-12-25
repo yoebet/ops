@@ -317,6 +317,9 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     fillOrderSize(order, order, orderPrice);
     order.exOrderId = this.newOrderId();
     order.status = OrderStatus.filled;
+    if (!order.exCreatedAt) {
+      order.exCreatedAt = orderTime;
+    }
     order.exUpdatedAt = orderTime;
 
     await order.save();
