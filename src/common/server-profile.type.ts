@@ -2,6 +2,7 @@ import { ExchangeCode } from '@/db/models/exchange-types';
 
 export enum ServerRole {
   StrategyWorker = 'StrategyWorker',
+  PaperTradeWorker = 'PaperTradeWorker',
   BacktestWorker = 'BacktestWorker',
   ExDataLoaderWorker = 'ExDataLoaderWorker',
   Worker = 'Worker',

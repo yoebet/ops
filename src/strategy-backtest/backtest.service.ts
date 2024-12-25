@@ -111,7 +111,7 @@ export class BacktestService implements OnModuleInit {
         throw new Error(`unknown strategy ${algoCode}`);
     }
 
-    await wait(Math.round(10 * 1000 * Math.random()));
+    await wait(Math.round(5 * 1000 * Math.random()));
 
     return runner.run();
   }

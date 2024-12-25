@@ -36,6 +36,7 @@ export class StrategyController {
       where: {
         paperTrade,
       },
+      order: { createdAt: 'desc' },
     });
 
     const sm = new Map(sts.map((s) => [s.id, s]));

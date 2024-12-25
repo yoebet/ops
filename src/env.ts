@@ -75,6 +75,10 @@ const DefaultConfig: PartialConfig = {
       httpPort: 7000,
       [ServerRole.StrategyWorker]: {},
     },
+    [ServerRole.PaperTradeWorker]: {
+      httpPort: 7000,
+      [ServerRole.PaperTradeWorker]: {},
+    },
     [ServerRole.BacktestWorker]: {
       httpPort: 7000,
       [ServerRole.BacktestWorker]: {},

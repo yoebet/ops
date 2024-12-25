@@ -44,7 +44,9 @@ export class MockOrderTracingService implements OnModuleInit {
     protected publicWsService: ExPublicWsService,
     protected jobsService: JobsService,
     protected logger: AppLogger,
-  ) {}
+  ) {
+    logger.setContext(`paper-trade order-tracing`);
+  }
 
   onModuleInit(): any {}
 

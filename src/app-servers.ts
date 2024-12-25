@@ -64,11 +64,15 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
     if (
       serverProfile.Worker ||
       serverProfile.StrategyWorker ||
+      serverProfile.PaperTradeWorker ||
       serverProfile.BacktestWorker ||
       serverProfile.ExDataLoaderWorker
     ) {
       if (serverProfile.StrategyWorker) {
-        this.strategyService.defineJobs();
+        this.strategyService.defineRealTradeJobs();
+      }
+      if (serverProfile.PaperTradeWorker) {
+        this.strategyService.definePaperTradeJobs();
       }
       if (serverProfile.BacktestWorker) {
         this.backtestService.defineJobs();
@@ -78,7 +82,8 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
       }
       this.jobsService.startWorker().catch(onErr);
     } else if (serverProfile.Admin) {
-      this.strategyService.defineJobs();
+      this.strategyService.defineRealTradeJobs();
+      this.strategyService.definePaperTradeJobs();
       this.backtestService.defineJobs();
       this.historyDataLoaderService.defineJobs();
     }

@@ -98,7 +98,7 @@ export class ExPublicDataService implements OnModuleInit {
         if (tt >= latestOpenTs && holder.data.length >= limit) {
           return holder.getLatest(limit);
         }
-        const fetchCount = Math.ceil((latestOpenTs - tt) / intervalMs) + 1;
+        const fetchCount = Math.ceil((liveOpenTs - tt) / intervalMs) + 1;
         const data = await this.fetchLatestKlines(
           ex,
           es.market,
@@ -130,15 +130,26 @@ export class ExPublicDataService implements OnModuleInit {
     rawSymbol: string,
     interval: string,
     limit = 60,
+    liveOpenTs?: number,
   ): Promise<ExKline[]> {
     const dataService = this.exchanges.getExMarketDataService(ex, market);
     const klines = await dataService.getKlines({
       symbol: rawSymbol,
       interval,
-      limit,
+      limit: limit + 1,
     });
-    if (klines.length > 1 && klines[0].ts > klines[klines.length - 1].ts) {
+    const len = klines.length;
+    if (len === 0) {
+      return [];
+    }
+    if (len > 1 && klines[0].ts > klines[len - 1].ts) {
       klines.reverse();
+    }
+    if (liveOpenTs) {
+      const lastKl = klines[len - 1];
+      if (lastKl.ts >= liveOpenTs) {
+        return klines.slice(0, len - 1);
+      }
     }
     return klines;
   }

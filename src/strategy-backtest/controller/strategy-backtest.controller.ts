@@ -31,6 +31,7 @@ export class StrategyBacktestController {
   ): Promise<ListResult<BacktestStrategy>> {
     const sts = await BacktestStrategy.find({
       select: BacktestStrategy.btListFields,
+      order: { createdAt: 'desc' },
     });
 
     const sm = new Map(sts.map((s) => [s.id, s]));

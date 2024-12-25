@@ -53,26 +53,34 @@ export class StrategyService implements OnModuleInit {
 
   onModuleInit(): any {}
 
-  defineJobs() {
-    this.logger.log(`:::: define jobs ...`);
-
+  protected defineJobs(type: 'paper-trade' | 'real-trade') {
     for (const code of Object.values(StrategyAlgo)) {
       for (const oca of Object.values(OppCheckerAlgo)) {
-        for (const type of ['paper-trade' /*, 'real-trade'*/]) {
-          const queueName = this.genStrategyQueueName(code, oca, type);
-          const facade = this.jobsService.defineJob<StrategyJobData, string>({
-            queueName,
-            processJob: this.runStrategyJob.bind(this),
-            workerOptions: {
-              maxStalledCount: WorkerMaxStalledCount,
-              stalledInterval: WorkerStalledInterval,
-              concurrency: WorkerConcurrency,
-            },
-          });
-          this.strategyJobFacades.set(queueName, facade);
-        }
+        const queueName = this.genStrategyQueueName(code, oca, type);
+        const facade = this.jobsService.defineJob<StrategyJobData, string>({
+          queueName,
+          processJob: this.runStrategyJob.bind(this),
+          workerOptions: {
+            maxStalledCount: WorkerMaxStalledCount,
+            stalledInterval: WorkerStalledInterval,
+            concurrency: WorkerConcurrency,
+          },
+        });
+        this.strategyJobFacades.set(queueName, facade);
       }
     }
+  }
+
+  defineRealTradeJobs() {
+    this.logger.log(`:::: define real-trade jobs ...`);
+
+    this.defineJobs('real-trade');
+  }
+
+  definePaperTradeJobs() {
+    this.logger.log(`:::: define paper-trade jobs ...`);
+
+    this.defineJobs('paper-trade');
 
     this.mockOrderTracingService.defineJobs();
   }
@@ -164,7 +172,7 @@ export class StrategyService implements OnModuleInit {
         throw new Error(`unknown strategy ${algoCode}`);
     }
 
-    await wait(Math.round(10 * 1000 * Math.random()));
+    await wait(Math.round(5 * 1000 * Math.random()));
 
     return runner.run();
   }

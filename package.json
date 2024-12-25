@@ -13,6 +13,7 @@
     "start:server": "TZ=UTC SERVER_PROFILE=Admin nest start",
     "start:worker": "TZ=UTC SERVER_PROFILE=Worker nest start",
     "start:st-worker": "TZ=UTC SERVER_PROFILE=StrategyWorker nest start",
+    "start:pt-worker": "TZ=UTC SERVER_PROFILE=PaperTradeWorker nest start",
     "start:bt-worker": "TZ=UTC SERVER_PROFILE=BacktestWorker nest start",
     "start:dl-worker": "TZ=UTC SERVER_PROFILE=ExDataLoaderWorker nest start",
     "start:dev": "TZ=UTC nest start --watch",
