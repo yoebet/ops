@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   UseInterceptors,
 } from '@nestjs/common';
 import { ClassSerializerInterceptor as CSI } from '@nestjs/common/serializer/class-serializer.interceptor';
@@ -19,11 +20,16 @@ import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { OrderStatus } from '@/db/models/ex-order';
 import { BacktestService } from '@/strategy-backtest/backtest.service';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
+import { ExSymbolService } from '@/common-services/ex-symbol.service';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 
 @Controller('bt-strategies')
 @UseInterceptors(CSI)
 export class StrategyBacktestController {
-  constructor(protected backtestService: BacktestService) {}
+  constructor(
+    protected backtestService: BacktestService,
+    private exSymbolService: ExSymbolService,
+  ) {}
 
   @Get('')
   async all(
@@ -141,5 +147,54 @@ export class StrategyBacktestController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResult> {
     return this.backtestService.dropStrategy(id);
+  }
+
+  private async prepareDto(dto: BacktestStrategy) {
+    delete dto.id;
+    delete dto.createdAt;
+    delete dto.userExAccountId;
+    if (!dto.market || !dto.rawSymbol) {
+      await this.exSymbolService.ensureLoaded();
+      const es = this.exSymbolService.getExchangeSymbolByES(dto.ex, dto.symbol);
+      dto.rawSymbol = es.symbol;
+      dto.market = es.market;
+    }
+  }
+
+  @Post()
+  async create(
+    @CurrentUser() user: UserInfo,
+    @Body() dto: BacktestStrategy,
+  ): Promise<ValueResult<BacktestStrategy>> {
+    await this.prepareDto(dto);
+    const uea = await UserExAccount.findOne({
+      select: ['id'],
+      where: {
+        // userId: user.userId, // FIXME
+        ex: dto.ex,
+      },
+    });
+    // TODO:
+    dto.userExAccountId = uea.id;
+    const st = new BacktestStrategy();
+    Object.assign(st, dto);
+    await st.save();
+    return ValueResult.value(st);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: BacktestStrategy,
+  ): Promise<ApiResult> {
+    await this.prepareDto(dto);
+    const st = await BacktestStrategy.findOneBy({ id });
+    if (!st) {
+      return ApiResult.fail(`strategy not found`);
+    }
+    Object.assign(st, dto);
+    // TODO: userExAccountId
+    await st.save();
+    return ApiResult.success();
   }
 }

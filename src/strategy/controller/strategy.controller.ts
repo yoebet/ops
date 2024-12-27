@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseInterceptors,
 } from '@nestjs/common';
@@ -18,11 +19,16 @@ import { StrategyOrder } from '@/db/models/strategy/strategy-order';
 import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { StrategyService } from '@/strategy/strategy.service';
+import { ExSymbolService } from '@/common-services/ex-symbol.service';
+import { UserExAccount } from '@/db/models/sys/user-ex-account';
 
 @Controller('strategies')
 @UseInterceptors(CSI)
 export class StrategyController {
-  constructor(private strategyService: StrategyService) {}
+  constructor(
+    private strategyService: StrategyService,
+    private exSymbolService: ExSymbolService,
+  ) {}
 
   @Get('')
   async query(
@@ -149,5 +155,54 @@ export class StrategyController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResult> {
     return this.strategyService.dropStrategy(id);
+  }
+
+  private async prepareDto(dto: Strategy) {
+    delete dto.id;
+    delete dto.createdAt;
+    delete dto.userExAccountId;
+    if (!dto.market || !dto.rawSymbol) {
+      await this.exSymbolService.ensureLoaded();
+      const es = this.exSymbolService.getExchangeSymbolByES(dto.ex, dto.symbol);
+      dto.rawSymbol = es.symbol;
+      dto.market = es.market;
+    }
+  }
+
+  @Post()
+  async create(
+    @CurrentUser() user: UserInfo,
+    @Body() dto: Strategy,
+  ): Promise<ValueResult<Strategy>> {
+    await this.prepareDto(dto);
+    const uea = await UserExAccount.findOne({
+      select: ['id'],
+      where: {
+        // userId: user.userId, // FIXME
+        ex: dto.ex,
+      },
+    });
+    // TODO:
+    dto.userExAccountId = uea.id;
+    const st = new Strategy();
+    Object.assign(st, dto);
+    await st.save();
+    return ValueResult.value(st);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Strategy,
+  ): Promise<ApiResult> {
+    await this.prepareDto(dto);
+    const st = await Strategy.findOneBy({ id });
+    if (!st) {
+      return ApiResult.fail(`strategy not found`);
+    }
+    Object.assign(st, dto);
+    // TODO: userExAccountId
+    await st.save();
+    return ApiResult.success();
   }
 }

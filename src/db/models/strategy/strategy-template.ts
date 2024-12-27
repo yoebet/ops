@@ -14,6 +14,7 @@ export class StrategyTemplate extends BaseModel {
 
   static listFields: (keyof StrategyTemplate)[] = [
     'id',
+    'createdAt',
     'name',
     'code',
     'openAlgo',
@@ -21,6 +22,7 @@ export class StrategyTemplate extends BaseModel {
     'openDealSide',
     'tradeType',
     'quoteAmount',
+    'memo',
   ];
 
   @Column()
@@ -46,6 +48,9 @@ export class StrategyTemplate extends BaseModel {
 
   @Column('jsonb', { nullable: true })
   params?: any;
+
+  @Column({ nullable: true })
+  memo?: string;
 
   @AfterLoad()
   onLoaded() {
