@@ -24,10 +24,10 @@ describe('ex-public-data-service', () => {
   });
 
   it('get lastPrice', async () => {
-    const ex = ExchangeCode.okx;
-    const symbol = 'BTC/USDT';
+    const ex = ExchangeCode.binance;
+    const symbol = 'ETH/USDT';
     const { obs, unsubs } = await wsDataService.subscribeRtPrice(ex, symbol);
-    obs.subscribe(() => {});
+    // obs.subscribe(() => {});
 
     setInterval(async () => {
       const lastPrice = await service.getLastPrice(ex, symbol);

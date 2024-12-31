@@ -20,12 +20,19 @@ export async function checkPressureContinuous(
   while (true) {
     kld.resetLevel(interval);
 
+    const klines = await kld.getKlinesTillNow(interval, periods);
+    if (klines.length < periods) {
+      const hasNext = kld.moveOverLevel(interval);
+      if (!hasNext) {
+        return undefined;
+      }
+      continue;
+    }
+
     const kl = await kld.getKline();
     if (!kl) {
       return undefined;
     }
-
-    const klines = await kld.getKlinesTillNow(interval, periods);
 
     const info: string[] = [];
     let side: TradeSide;
@@ -51,7 +58,7 @@ export async function checkPressureContinuous(
         orderTime: new Date(intervalEndTs),
         memo: info.join('\n'),
       };
-      await this.buildMarketOrder(oppo);
+      await this.buildLimitOrder(oppo);
       return oppo;
     }
 

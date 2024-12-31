@@ -41,6 +41,7 @@ export class ExPublicDataService implements OnModuleInit {
       async (rtPrice: RtPrice) => {
         const key = `${rtPrice.ex}:${rtPrice.symbol}`;
         this.latestPrices.set(key, { ts: rtPrice.ts, last: rtPrice.price });
+        // this.logger.log(`${key} ${rtPrice.price}`);
       },
     );
   }

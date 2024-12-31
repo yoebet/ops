@@ -89,7 +89,7 @@ export class ExPublicWsService implements OnApplicationShutdown {
     this.logger.log(`:::: start ...`);
     const symbols = ['ETH/USDT'];
     for (const symbol of symbols) {
-      await this.subscribeRtPrice(ExchangeCode.binance, symbol);
+      await this.subscribeRtPrice(ExchangeCode.okx, symbol);
     }
   }
 
