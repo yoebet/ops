@@ -45,7 +45,7 @@ describe('strategy creating', () => {
 
   it('create strategy', async () => {
     const userId = 1;
-    const tempId = 56;
+    const tempId = 67;
     const symbol = 'ETH/USDT';
     const ex = ExchangeCode.binance;
     const tradeType = ExTradeType.spot;

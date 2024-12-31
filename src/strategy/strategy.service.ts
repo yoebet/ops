@@ -151,7 +151,7 @@ export class StrategyService implements OnModuleInit {
     const qn = this.genStrategyQueueName(algoCode, openAlgo, type);
     const jobFacade = this.strategyJobFacades.get(qn);
     if (!jobFacade) {
-      throw new Error(`jobFacade ${algoCode} not found`);
+      throw new Error(`jobFacade ${algoCode}/${openAlgo} not found`);
     }
     const queue = jobFacade.getQueue();
     const service = this;

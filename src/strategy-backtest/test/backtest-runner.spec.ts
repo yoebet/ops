@@ -30,12 +30,12 @@ describe('strategy backtest runner', () => {
   });
 
   it('run 1', async () => {
-    const strategy = await BacktestStrategy.findOneBy({ id: 80 });
+    const strategy = await BacktestStrategy.findOneBy({ id: 89 });
     await service.runStrategy(strategy);
   });
 
   it('rerun 1', async () => {
-    const sid = 80;
+    const sid = 89;
     await BacktestDeal.delete({ strategyId: sid });
     await BacktestOrder.delete({ strategyId: sid });
     const strategy = await BacktestStrategy.findOneBy({ id: sid });

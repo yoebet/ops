@@ -14,6 +14,7 @@ import { checkMVOpp } from '@/strategy/opportunity/move';
 import { checkLongStillOpp } from '@/strategy/opportunity/long-still';
 import { OrderTag } from '@/db/models/ex-order';
 import { checkBollingerBandOpp } from '@/strategy/opportunity/bollinger';
+import { checkPressureOpp } from '@/strategy/opportunity/pressure';
 
 export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityParams> {
   constructor(
@@ -44,6 +45,8 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
         return checkJumpOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.BB:
         return checkBollingerBandOpp.call(this, params, side, oppor);
+      case OppCheckerAlgo.PR:
+        return checkPressureOpp.call(this, params, side, oppor);
       default:
         return undefined;
     }
@@ -75,6 +78,10 @@ export class IntegratedStrategy extends RuntimeParamsRunner<CheckOpportunityPara
         return checkMVOpp.call(this, params, side, oppor);
       case OppCheckerAlgo.JP:
         return checkJumpOpp.call(this, params, side, oppor);
+      case OppCheckerAlgo.BB:
+        return checkBollingerBandOpp.call(this, params, side, oppor);
+      case OppCheckerAlgo.PR:
+        return checkPressureOpp.call(this, params, side, oppor);
       default:
         return undefined;
     }

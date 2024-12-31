@@ -17,6 +17,7 @@ import {
 } from '@/strategy/opportunity/helper';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { ExOrder, OrderTag } from '@/db/models/ex-order';
+import { TradeSide } from '@/data-service/models/base';
 
 export abstract class RuntimeParamsRunner<
   ORP = any,
@@ -190,6 +191,18 @@ export abstract class RuntimeParamsRunner<
   }
 
   protected async shouldCancelOrder(pendingOrder: ExOrder): Promise<boolean> {
+    if (pendingOrder.cancelPrice) {
+      const lastPrice = await this.env.getLastPrice();
+      if (pendingOrder.side === TradeSide.buy) {
+        if (lastPrice >= pendingOrder.cancelPrice) {
+          return true;
+        }
+      } else {
+        if (lastPrice <= pendingOrder.cancelPrice) {
+          return true;
+        }
+      }
+    }
     if (pendingOrder.tag !== OrderTag.close) {
       return false;
     }

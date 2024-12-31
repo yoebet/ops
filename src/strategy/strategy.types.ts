@@ -13,6 +13,7 @@ export enum OppCheckerAlgo {
   LS = 'LS',
   JP = 'JP',
   BB = 'BB',
+  PR = 'PR',
 }
 
 export declare type ConsiderSide = TradeSide | 'both';
@@ -113,6 +114,16 @@ export interface BBCheckerParams {
   stdTimes?: number;
 }
 
+export interface PressureCheckerParams {
+  interval: string;
+  periods: number;
+  hitTimes: number;
+  hitDeltaPercent: number;
+  placeOrderDeltaPercent: number;
+  orderPriceDeltaPercent: number;
+  cancelOrderPricePercent: number;
+}
+
 // strategies:
 
 export interface OpportunityCheckerMV extends MVCheckerParams {
@@ -139,13 +150,18 @@ export interface OpportunityCheckerBB extends BBCheckerParams {
   algo: OppCheckerAlgo.BB;
 }
 
+export interface OpportunityCheckerPR extends PressureCheckerParams {
+  algo: OppCheckerAlgo.PR;
+}
+
 export type CheckOpportunityParams =
   | OpportunityCheckerMV
   | OpportunityCheckerBR
   | OpportunityCheckerFP
   | OpportunityCheckerLS
   | OpportunityCheckerJP
-  | OpportunityCheckerBB;
+  | OpportunityCheckerBB
+  | OpportunityCheckerPR;
 
 export interface CommonStrategyParams<ORP, CRP = ORP> {
   open?: ORP;

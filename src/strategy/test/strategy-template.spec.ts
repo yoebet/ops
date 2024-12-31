@@ -11,6 +11,7 @@ import {
   OpportunityCheckerJP,
   OpportunityCheckerLS,
   OpportunityCheckerMV,
+  OpportunityCheckerPR,
   StrategyAlgo,
 } from '@/strategy/strategy.types';
 
@@ -75,6 +76,17 @@ describe('strategy template creating', () => {
       stdTimes: 2,
     };
     rps[OppCheckerAlgo.BB] = bbp;
+    const prp: OpportunityCheckerPR = {
+      algo: OppCheckerAlgo.PR,
+      interval: '15m',
+      periods: 20,
+      hitTimes: 3,
+      hitDeltaPercent: 0.2,
+      placeOrderDeltaPercent: 0.3,
+      orderPriceDeltaPercent: 0.2,
+      cancelOrderPricePercent: 1,
+    };
+    rps[OppCheckerAlgo.PR] = prp;
     for (const openAlgo of Object.values(OppCheckerAlgo)) {
       for (const closeAlgo of /*Object.values(OppCheckerAlgo)*/ [
         OppCheckerAlgo.MV,
@@ -103,18 +115,28 @@ describe('strategy template creating', () => {
   });
 
   it('create template - br', async () => {
-    const bbp: OpportunityCheckerBB = {
-      algo: OppCheckerAlgo.BB,
+    const prp: OpportunityCheckerPR = {
+      algo: OppCheckerAlgo.PR,
       interval: '15m',
       periods: 20,
-      stdTimes: 2,
+      hitTimes: 3,
+      hitDeltaPercent: 0.2,
+      placeOrderDeltaPercent: 0.3,
+      orderPriceDeltaPercent: 0.2,
+      cancelOrderPricePercent: 1,
+    };
+    const mvp: OpportunityCheckerMV = {
+      algo: OppCheckerAlgo.MV,
+      waitForPercent: 0.2,
+      activePercent: 1.5,
+      drawbackPercent: 1,
     };
     const st = new StrategyTemplate();
     st.code = StrategyAlgo.INT;
-    st.openAlgo = OppCheckerAlgo.BB;
-    st.closeAlgo = OppCheckerAlgo.BB;
+    st.openAlgo = OppCheckerAlgo.PR;
+    st.closeAlgo = OppCheckerAlgo.MV;
     st.openDealSide = 'both';
-    st.name = `${st.openAlgo}-${st.closeAlgo}/${st.openDealSide}`;
+    st.name = `${st.openAlgo}-${st.closeAlgo}`;
     st.tradeType = ExTradeType.spot;
     st.quoteAmount = 100;
     st.params = {
@@ -124,9 +146,10 @@ describe('strategy template creating', () => {
       lossCoolDownInterval: '4h',
       minCloseInterval: '15m',
       maxCloseInterval: '1d',
-      open: bbp,
-      close: bbp,
+      open: prp,
+      close: mvp,
     } as IntegratedStrategyParams;
     await st.save();
+    console.log(st.id);
   });
 });

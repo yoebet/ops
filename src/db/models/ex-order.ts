@@ -91,6 +91,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   limitPrice?: number;
 
   @Column('numeric', { nullable: true })
+  cancelPrice?: number;
+
+  @Column('numeric', { nullable: true })
   baseSize?: number;
 
   @Column('numeric', { nullable: true })

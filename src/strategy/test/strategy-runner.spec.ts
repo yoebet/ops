@@ -17,7 +17,7 @@ describe('strategy runner', () => {
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(StrategyService);
-    service.defineJobs();
+    service.definePaperTradeJobs();
   });
 
   it('summit all pending strategies', async () => {
@@ -34,7 +34,7 @@ describe('strategy runner', () => {
   });
 
   it('rerun 1', async () => {
-    const sid = 33;
+    const sid = 73;
     await StrategyDeal.delete({ strategyId: sid });
     await ExOrder.delete({ strategyId: sid });
     const strategy = await Strategy.findOneBy({ id: sid });

@@ -26,6 +26,7 @@ import { checkLimitOrderContinuous } from '@/strategy-backtest/opportunity/tpsl'
 import { DefaultBaselineSymbol } from '@/strategy/strategy.constants';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
 import { checkBollingerContinuous } from '@/strategy-backtest/opportunity/bollinger';
+import { checkPressureContinuous } from '@/strategy-backtest/opportunity/pressure';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -201,6 +202,14 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
           checkOptions,
         );
         break;
+      case OppCheckerAlgo.PR:
+        oppo = await checkPressureContinuous.call(
+          this,
+          params,
+          oppor,
+          checkOptions,
+        );
+        break;
       default:
         return undefined;
     }
@@ -220,13 +229,33 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
   ): Promise<boolean> {
     if (!order.algoOrder) {
       const orderPrice = order.limitPrice!;
-      const reachPrice = await this.moveOnToPrice(kld, orderPrice);
-      if (!reachPrice) {
-        return false;
+      if (order.cancelPrice) {
+        const { reach, index } = await this.moveOnToPriceEitherSide(
+          kld,
+          order.cancelPrice,
+          orderPrice,
+        );
+        if (!reach) {
+          return false;
+        }
+        const orderTime = new Date(kld.getIntervalEndTs());
+        if (index === 1) {
+          await this.cancelOrder(order, orderTime);
+        } else {
+          await this.fillOrder(order, orderPrice, orderTime);
+        }
+      } else {
+        const reachPrice = await this.moveOnToPrice(kld, orderPrice);
+        if (!reachPrice) {
+          return false;
+        }
+        // const kl = await kld.getKline();
+        await this.fillOrder(
+          order,
+          orderPrice,
+          new Date(kld.getIntervalEndTs()),
+        );
       }
-      // const kl = await kld.getKline();
-
-      await this.fillOrder(order, orderPrice, new Date(kld.getIntervalEndTs()));
 
       return kld.moveOver();
     }
@@ -334,6 +363,25 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
     await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
   }
 
+  protected async cancelOrder(order: BacktestOrder, orderTime: Date) {
+    order.exOrderId = this.newOrderId();
+    order.status = OrderStatus.canceled;
+    if (!order.exCreatedAt) {
+      order.exCreatedAt = orderTime;
+    }
+    order.exUpdatedAt = orderTime;
+
+    await order.save();
+    const currentDeal = this.strategy.currentDeal;
+    // currentDeal.lastOrder = order;
+    // currentDeal.lastOrderId = order.id;
+    currentDeal.pendingOrder = null;
+    currentDeal.pendingOrderId = null;
+    await currentDeal.save();
+
+    await this.logJob(`order canceled: ${order.side}`);
+  }
+
   protected async moveOnToPrice(kld: BacktestKlineLevelsData, price: number) {
     while (true) {
       const kl = await kld.getKline();
@@ -357,6 +405,40 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       const moved = kld.moveOver();
       if (!moved) {
         return false;
+      }
+    }
+  }
+
+  protected async moveOnToPriceEitherSide(
+    kld: BacktestKlineLevelsData,
+    price1: number,
+    price2: number,
+  ): Promise<{ reach: boolean; index?: 1 | 2 }> {
+    while (true) {
+      const kl = await kld.getKline();
+      if (!kl) {
+        const moved = kld.moveOn();
+        if (moved) {
+          continue;
+        } else {
+          return { reach: false };
+        }
+      }
+      if (
+        (price1 >= kl.low && price1 <= kl.high) ||
+        (price2 >= kl.low && price2 <= kl.high)
+      ) {
+        if (kld.moveDownLevel()) {
+          continue;
+        }
+        return {
+          reach: true,
+          index: price1 >= kl.low && price1 <= kl.high ? 1 : 2,
+        };
+      }
+      const moved = kld.moveOver();
+      if (!moved) {
+        return { reach: false };
       }
     }
   }
