@@ -91,7 +91,7 @@ export abstract class BaseRunner {
         if (opp) {
           const sg = await Strategy.existsBy({ id: strategy.id, active: true });
           if (!sg) {
-            await this.logJob(`is no active when about to place order.`);
+            await this.logJob(`not active when about to place order.`);
             return 'not active';
           }
           await this.placeOrder(opp);
@@ -429,6 +429,9 @@ export abstract class BaseRunner {
               symbol: strategy.symbol,
               orderId: pendingOrder.exOrderId,
             });
+            currentDeal.pendingOrder = null;
+            currentDeal.pendingOrderId = null;
+            await currentDeal.save();
             await this.logJob(`cancel order ...`);
           }
           return false;
@@ -437,6 +440,7 @@ export abstract class BaseRunner {
     }
     currentDeal.pendingOrder = null;
     currentDeal.pendingOrderId = null;
+    await currentDeal.save();
 
     await this.onOrderFilled();
 

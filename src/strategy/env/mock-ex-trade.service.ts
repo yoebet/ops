@@ -28,13 +28,11 @@ export class MockExTradeService implements ExchangeTradeService {
     params: { symbol: string; orderId: string },
   ): Promise<any> {
     await ExOrder.update(
-      { status: OrderStatus.canceled },
       {
         exOrderId: params.orderId,
-        ex: this.strategy.ex,
         strategyId: this.strategy.id,
-        paperTrade: true,
       },
+      { status: OrderStatus.canceled },
     );
     return params;
   }

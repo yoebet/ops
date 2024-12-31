@@ -1,4 +1,6 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import * as Rx from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { AppLogger } from '@/common/app-logger';
 import { ExSymbolService } from '@/common-services/ex-symbol.service';
 import { ConfigService } from '@nestjs/config';
@@ -7,13 +9,11 @@ import { DataChannelService } from '@/data-service/data-channel.service';
 import { TickerHandler } from '@/data-ex/ticker-handler';
 import { KlineHandler } from '@/data-ex/kline-handler';
 import { SymbolParamSubject } from '@/exchange/base/ws/ex-ws-subjects';
-import { Observable, Subject } from 'rxjs';
-import * as Rx from 'rxjs';
 import { RtKline, RtPrice } from '@/data-service/models/realtime';
 import {
-  ExWsKline,
-  ExTrade,
   ExchangeMarketDataWs,
+  ExTrade,
+  ExWsKline,
 } from '@/exchange/exchange-service.types';
 import { Exchanges } from '@/exchange/exchanges';
 import { wait } from '@/common/utils/utils';
@@ -83,6 +83,14 @@ export class ExPublicWsService implements OnApplicationShutdown {
       false,
       logger.newLogger('kline-handler'),
     );
+  }
+
+  async start() {
+    this.logger.log(`:::: start ...`);
+    const symbols = ['ETH/USDT'];
+    for (const symbol of symbols) {
+      await this.subscribeRtPrice(ExchangeCode.binance, symbol);
+    }
   }
 
   addRtPriceTap(key: string, tap: RtPriceTap) {

@@ -9,6 +9,7 @@ import { JobsService } from '@/job/jobs.service';
 import { StrategyService } from '@/strategy/strategy.service';
 import { BacktestService } from '@/strategy-backtest/backtest.service';
 import { HistoryDataLoaderService } from '@/data-loader/history-data-loader.service';
+import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
 
 @Injectable()
 export class AppServers implements OnModuleInit, OnModuleDestroy {
@@ -23,6 +24,7 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
     protected strategyService: StrategyService,
     protected backtestService: BacktestService,
     protected historyDataLoaderService: HistoryDataLoaderService,
+    protected exPublicWsService: ExPublicWsService,
     private logger: AppLogger,
   ) {
     logger.setContext('app-servers');
@@ -68,11 +70,16 @@ export class AppServers implements OnModuleInit, OnModuleDestroy {
       serverProfile.BacktestWorker ||
       serverProfile.ExDataLoaderWorker
     ) {
-      if (serverProfile.StrategyWorker) {
-        this.strategyService.defineRealTradeJobs();
-      }
-      if (serverProfile.PaperTradeWorker) {
-        this.strategyService.definePaperTradeJobs();
+      if (serverProfile.StrategyWorker || serverProfile.PaperTradeWorker) {
+        if (serverProfile.StrategyWorker) {
+          this.strategyService.defineRealTradeJobs();
+        }
+        if (serverProfile.PaperTradeWorker) {
+          this.strategyService.definePaperTradeJobs();
+        }
+        this.exPublicWsService.start().catch((err) => {
+          this.logger.error(err);
+        });
       }
       if (serverProfile.BacktestWorker) {
         this.backtestService.defineJobs();
