@@ -2,7 +2,7 @@ import { Column, Entity, Index, Unique } from 'typeorm';
 import { ExSymbolBase } from '@/db/models/strategy/ex-symbol-base';
 import { TradeSide } from '@/data-service/models/base';
 import { ExTradeType } from '@/db/models/exchange-types';
-import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
+import { NumericColumn } from '@/db/models/base-model';
 
 export enum OrderTag {
   open = 'open',
@@ -87,16 +87,16 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column()
   priceType: 'market' | 'limit';
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   limitPrice?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   cancelPrice?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   baseSize?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   quoteAmount?: number;
 
   @Column({ nullable: true })
@@ -111,22 +111,22 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column({ nullable: true })
   tpslClientOrderId?: string;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   tpTriggerPrice?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   tpOrderPrice?: number; // 委托价格为-1时，执行市价止盈
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   slTriggerPrice?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   slOrderPrice?: number; // 委托价格为-1时，执行市价止损
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   moveDrawbackPercent?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   moveActivePrice?: number;
 
   // ---
@@ -138,13 +138,13 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column({ nullable: true })
   exOrderId?: string;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   execPrice?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   execSize?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   execAmount?: number;
 
   @Column({ nullable: true })
@@ -161,29 +161,6 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
 
   @Column({ nullable: true })
   memo?: string;
-
-  @AfterLoad()
-  onLoaded() {
-    const numFields: (keyof ExOrder)[] = [
-      'limitPrice',
-      'baseSize',
-      'quoteAmount',
-      'tpTriggerPrice',
-      'tpOrderPrice',
-      'slTriggerPrice',
-      'slOrderPrice',
-      'moveDrawbackPercent',
-      'moveActivePrice',
-      'execPrice',
-      'execSize',
-      'execAmount',
-    ];
-    for (const key of numFields) {
-      if (this[key] != null) {
-        (this as any)[key] = +this[key];
-      }
-    }
-  }
 
   static orderFinished(status: OrderStatus): boolean {
     return ![

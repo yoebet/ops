@@ -3,7 +3,7 @@ import { ExSymbolBase } from '@/db/models/strategy/ex-symbol-base';
 import { ExTradeType } from '@/db/models/exchange-types';
 import { ExOrder } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy/strategy';
-import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
+import { NumericColumn } from '@/db/models/base-model';
 
 @Entity()
 export class StrategyDeal extends ExSymbolBase {
@@ -41,7 +41,7 @@ export class StrategyDeal extends ExSymbolBase {
   @Column({ nullable: true })
   lastOrderId?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   pnlUsd?: number;
 
   @Column()
@@ -67,13 +67,6 @@ export class StrategyDeal extends ExSymbolBase {
 
   pendingOrder?: ExOrder;
   lastOrder?: ExOrder;
-
-  @AfterLoad()
-  onLoaded() {
-    if (this.pnlUsd != null) {
-      this.pnlUsd = +this.pnlUsd;
-    }
-  }
 
   static newStrategyDeal(strategy: Strategy): StrategyDeal {
     const deal = new StrategyDeal();

@@ -9,7 +9,7 @@ import {
   OppCheckerAlgo,
   StrategyAlgo,
 } from '@/strategy/strategy.types';
-import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
+import { NumericColumn } from '@/db/models/base-model';
 
 @Entity()
 // @Index(['algoCode', 'userExAccountId', 'tradeType', 'symbol'])
@@ -70,10 +70,10 @@ export class Strategy extends ExSymbolBase {
   @Column({ nullable: true })
   lastDealId?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   baseSize?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   quoteAmount?: number;
 
   @Column()
@@ -90,16 +90,6 @@ export class Strategy extends ExSymbolBase {
 
   @Column({ nullable: true })
   memo?: string;
-
-  @AfterLoad()
-  onLoaded() {
-    if (this.baseSize != null) {
-      this.baseSize = +this.baseSize;
-    }
-    if (this.quoteAmount != null) {
-      this.quoteAmount = +this.quoteAmount;
-    }
-  }
 
   // template?: StrategyTemplate;
   apiKey?: ExApiKey;

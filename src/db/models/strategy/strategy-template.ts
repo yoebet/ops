@@ -1,4 +1,4 @@
-import { BaseModel } from '@/db/models/base-model';
+import { BaseModel, NumericColumn } from '@/db/models/base-model';
 import { Column, Entity } from 'typeorm';
 import { ExTradeType } from '@/db/models/exchange-types';
 import {
@@ -6,7 +6,6 @@ import {
   OppCheckerAlgo,
   StrategyAlgo,
 } from '@/strategy/strategy.types';
-import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
 
 @Entity()
 export class StrategyTemplate extends BaseModel {
@@ -43,7 +42,7 @@ export class StrategyTemplate extends BaseModel {
   @Column({ nullable: true })
   tradeType?: ExTradeType;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   quoteAmount?: number;
 
   @Column('jsonb', { nullable: true })
@@ -51,11 +50,4 @@ export class StrategyTemplate extends BaseModel {
 
   @Column({ nullable: true })
   memo?: string;
-
-  @AfterLoad()
-  onLoaded() {
-    if (this.quoteAmount != null) {
-      this.quoteAmount = +this.quoteAmount;
-    }
-  }
 }

@@ -1,7 +1,6 @@
 import { Column, Entity, Unique } from 'typeorm';
 import { ExAccountType, ExchangeCode } from '@/db/models/exchange-types';
-import { BaseModel } from '@/db/models/base-model';
-import { AfterLoad } from 'typeorm/decorator/listeners/AfterLoad';
+import { BaseModel, NumericColumn } from '@/db/models/base-model';
 
 @Entity()
 @Unique(['snapshotId', 'coin'])
@@ -28,34 +27,18 @@ export class ExAssetSnapshotCoin extends BaseModel {
   @Column()
   coin: string;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   eq?: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   eqUsd?: number;
 
-  @Column('numeric')
+  @NumericColumn()
   availBal: number;
 
-  @Column('numeric')
+  @NumericColumn()
   frozenBal: number;
 
-  @Column('numeric', { nullable: true })
+  @NumericColumn({ nullable: true })
   ordFrozen?: number;
-
-  @AfterLoad()
-  onLoaded() {
-    const numFields: (keyof ExAssetSnapshotCoin)[] = [
-      'eq',
-      'eqUsd',
-      'availBal',
-      'frozenBal',
-      'ordFrozen',
-    ];
-    for (const key of numFields) {
-      if (this[key] != null) {
-        (this as any)[key] = +this[key];
-      }
-    }
-  }
 }
