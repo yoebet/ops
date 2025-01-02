@@ -67,8 +67,15 @@ const DefaultConfig: PartialConfig = {
   predefinedProfiles: {
     RunAll: {
       httpPort: 5000,
-      // [ServerRole.Exws]: {},
+      [ServerRole.Admin]: {},
       [ServerRole.Worker]: {},
+      [ServerRole.StrategyWorker]: {},
+      [ServerRole.PaperTradeWorker]: {},
+      [ServerRole.BacktestWorker]: {},
+      [ServerRole.ExDataLoaderWorker]: {},
+    },
+    [ServerRole.Admin]: {
+      httpPort: 5000,
       [ServerRole.Admin]: {},
     },
     [ServerRole.StrategyWorker]: {
@@ -90,10 +97,6 @@ const DefaultConfig: PartialConfig = {
     [ServerRole.Worker]: {
       httpPort: 7000,
       [ServerRole.Worker]: {},
-    },
-    [ServerRole.Admin]: {
-      httpPort: 5000,
-      [ServerRole.Admin]: {},
     },
   },
   serverProfile: ServerRole.Admin,
