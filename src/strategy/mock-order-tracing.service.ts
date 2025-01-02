@@ -124,6 +124,10 @@ export class MockOrderTracingService implements OnModuleInit {
         // fill
         fillOrderSize(order, order);
         order.status = OrderStatus.filled;
+        if (!order.exCreatedAt) {
+          order.exCreatedAt = new Date();
+        }
+        order.exUpdatedAt = new Date();
         await order.save();
         return order;
       }
@@ -158,6 +162,10 @@ export class MockOrderTracingService implements OnModuleInit {
         // fill
         fillOrderSize(order, order, hitPrice);
         order.status = OrderStatus.filled;
+        if (!order.exCreatedAt) {
+          order.exCreatedAt = new Date();
+        }
+        order.exUpdatedAt = new Date();
         await order.save();
         return order;
       }

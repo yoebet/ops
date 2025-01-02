@@ -175,17 +175,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   }
 
   static setProps(order: ExOrder, res: ExOrderResp): void {
-    order.exOrderId = res.exOrderId;
-    order.status = res.status;
-    order.execPrice = res.execPrice;
-    order.execSize = res.execSize;
-    order.execAmount = res.execAmount;
-    if (res.exCreatedAt) {
-      order.exCreatedAt = res.exCreatedAt;
+    if (order === res) {
+      return;
     }
-    if (res.exUpdatedAt) {
-      order.exUpdatedAt = res.exUpdatedAt;
-    }
-    order.rawOrder = res.rawOrder;
+    Object.assign(order, res);
   }
 }
