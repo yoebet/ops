@@ -28,8 +28,8 @@ export function fillOrderSize(
     }
   }
   target.execPrice = price;
-  target.execSize = order.baseSize ?? order.quoteAmount / price;
-  target.execAmount = order.quoteAmount ?? order.baseSize * price;
+  target.execSize = order.baseSize || order.quoteAmount / price;
+  target.execAmount = order.quoteAmount || order.baseSize * price;
 }
 
 export function evalOrdersPnl(orders: ExOrder[]): number | undefined {
@@ -57,6 +57,11 @@ export function evalOrdersPnl(orders: ExOrder[]): number | undefined {
     return settleSize * (sellAvgPrice - buyAvgPrice);
   }
   return undefined;
+}
+
+export function newOrderId(strategy: { id: number; ex: string }) {
+  const { id, ex } = strategy;
+  return `${ex.toLowerCase()}${id}${Math.round(Date.now() / 1000) - 1e9}`;
 }
 
 export async function createNewDealIfNone(strategy: Strategy) {

@@ -170,6 +170,10 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
     ].includes(status);
   }
 
+  static orderFilled(status: OrderStatus): boolean {
+    return status === OrderStatus.filled;
+  }
+
   static orderToWait(status: OrderStatus): boolean {
     return [OrderStatus.pending, OrderStatus.partialFilled].includes(status);
   }

@@ -22,7 +22,7 @@ import {
   StrategyAlgo,
   TraceOrderJobData,
 } from '@/strategy/strategy.types';
-import { fillOrderSize } from '@/strategy/strategy.utils';
+import { fillOrderSize, newOrderId } from '@/strategy/strategy.utils';
 import {
   IntenseWatchExitThreshold,
   IntenseWatchThreshold,
@@ -124,6 +124,9 @@ export class MockOrderTracingService implements OnModuleInit {
         // fill
         fillOrderSize(order, order);
         order.status = OrderStatus.filled;
+        if (!order.exOrderId) {
+          order.exOrderId = newOrderId({ id: order.strategyId, ex: order.ex });
+        }
         if (!order.exCreatedAt) {
           order.exCreatedAt = new Date();
         }
@@ -162,6 +165,9 @@ export class MockOrderTracingService implements OnModuleInit {
         // fill
         fillOrderSize(order, order, hitPrice);
         order.status = OrderStatus.filled;
+        if (!order.exOrderId) {
+          order.exOrderId = newOrderId({ id: order.strategyId, ex: order.ex });
+        }
         if (!order.exCreatedAt) {
           order.exCreatedAt = new Date();
         }

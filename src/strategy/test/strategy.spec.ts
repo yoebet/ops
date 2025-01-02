@@ -68,7 +68,7 @@ describe('strategy creating', () => {
   it('create strategies', async () => {
     const userId = 1;
     const symbol = 'ETH/USDT';
-    const ex = ExchangeCode.binance;
+    const ex = ExchangeCode.okx;
     const tradeType = ExTradeType.spot;
 
     const exchangeSymbol = await ExchangeSymbol.findOne({

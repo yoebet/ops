@@ -13,7 +13,7 @@ import { wait } from '@/common/utils/utils';
 import { ExPublicDataService } from '@/data-ex/ex-public-data.service';
 import { AppLogger } from '@/common/app-logger';
 import { MockOrderTracingService } from '@/strategy/mock-order-tracing.service';
-import { fillOrderSize } from '@/strategy/strategy.utils';
+import { fillOrderSize, newOrderId } from '@/strategy/strategy.utils';
 
 export class MockExTradeService implements ExchangeTradeService {
   constructor(
@@ -89,14 +89,16 @@ export class MockExTradeService implements ExchangeTradeService {
   ): Promise<PlaceOrderReturns> {
     this.logger.log(JSON.stringify(params, null, 2));
     await wait(500);
-    const exOrderId = this.newOrderId();
+
+    const strategy = this.strategy;
+    const exOrderId = newOrderId(strategy);
     const order = await ExOrder.findOneBy({
-      ex: this.strategy.ex,
+      ex: strategy.ex,
       clientOrderId: params.clientOrderId,
     });
 
     if (params.priceType === 'market') {
-      const { ex, symbol } = this.strategy;
+      const { ex, symbol } = strategy;
       const price = await this.publicDataService.getLastPrice(ex, symbol);
 
       const orderResp: ExOrderResp = {
@@ -134,10 +136,5 @@ export class MockExTradeService implements ExchangeTradeService {
     params: PlaceTpslOrderParams,
   ): Promise<PlaceOrderReturns> {
     return this.placeOrder(apiKey, params);
-  }
-
-  protected newOrderId() {
-    const { id, ex } = this.strategy;
-    return `${ex.toLowerCase()}${id}${Math.round(Date.now() / 1000) - 1e9}`;
   }
 }

@@ -387,18 +387,30 @@ export abstract class BaseRunner {
     if (!currentDeal?.pendingOrder) {
       return true;
     }
-    if (ExOrder.orderFinished(currentDeal.pendingOrder.status)) {
-      currentDeal.lastOrder = currentDeal.pendingOrder;
+    const pendingOrder = currentDeal.pendingOrder;
+    if (
+      pendingOrder.status === OrderStatus.notSummited ||
+      pendingOrder.status === OrderStatus.canceled
+    ) {
+      currentDeal.pendingOrder = null;
+      currentDeal.pendingOrderId = null;
       await currentDeal.save();
+      return true;
+    }
+    if (
+      ExOrder.orderFinished(pendingOrder.status) &&
+      !ExOrder.orderFilled(pendingOrder.status)
+    ) {
+      currentDeal.pendingOrder = null;
+      currentDeal.pendingOrderId = null;
+      await currentDeal.save();
+      return true;
+    }
+
+    if (ExOrder.orderFilled(pendingOrder.status)) {
+      currentDeal.lastOrder = pendingOrder;
+      currentDeal.lastOrderId = pendingOrder.id;
     } else {
-      const pendingOrder = currentDeal.pendingOrder;
-      if (pendingOrder.status === OrderStatus.notSummited) {
-        // discard
-        currentDeal.pendingOrder = null;
-        currentDeal.pendingOrderId = null;
-        await currentDeal.save();
-        return true;
-      }
       // check is market price
       const waitSeconds = pendingOrder.priceType === 'market' ? 8 : 10 * 60;
       const order = await this.env.waitForOrder(pendingOrder, waitSeconds);
@@ -409,16 +421,14 @@ export abstract class BaseRunner {
           currentDeal.lastOrderId = order.id;
           await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
         }
-        await currentDeal.save();
+        // await currentDeal.save();
       } else {
         // timeout
         await this.logJob(`waitForOrder - timeout`);
         await this.env.trySynchronizeOrder(pendingOrder);
-        if (ExOrder.orderFinished(pendingOrder.status)) {
+        if (ExOrder.orderFilled(pendingOrder.status)) {
           currentDeal.lastOrder = pendingOrder;
-          currentDeal.pendingOrder = null;
-          currentDeal.pendingOrderId = null;
-          await currentDeal.save();
+          currentDeal.lastOrderId = pendingOrder.id;
           await this.logJob(`synchronize-order - filled`);
         } else {
           await this.logJob(`synchronize-order - not filled`);

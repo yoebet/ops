@@ -76,8 +76,4 @@ export class StrategyEnvMockTrade
     ExOrder.setProps(order, order1);
     return true;
   }
-
-  getThisJob(): Job<StrategyJobData> | undefined {
-    return this.job;
-  }
 }
