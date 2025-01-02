@@ -82,6 +82,9 @@ export class MockOrderTracingService implements OnModuleInit {
   ): Promise<ExOrder | undefined> {
     const { orderId } = job.data;
     const order = await ExOrder.findOneBy({ id: orderId });
+    if (!order) {
+      throw new Error(`orderId ${orderId} not found`);
+    }
     return this.traceAndFillOrder(order, job);
   }
 

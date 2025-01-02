@@ -30,6 +30,9 @@ export class BaseModel extends BaseEntity {
 export function NumericTransformer(): ValueTransformer {
   return {
     from(value: any) {
+      if (value == null) {
+        return value;
+      }
       return +value;
     },
     to(value: any): any {
