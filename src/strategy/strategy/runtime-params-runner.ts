@@ -75,6 +75,9 @@ export abstract class RuntimeParamsRunner<
   protected async checkAndWaitOpportunity(): Promise<TradeOpportunity> {
     const strategy = this.strategy;
     const { currentDeal, lastDealId } = this.strategy;
+    if (!currentDeal) {
+      return undefined;
+    }
     const lastOrder = currentDeal.lastOrder;
     const rps = this.getRuntimeParams();
     if (lastOrder?.exUpdatedAt) {
