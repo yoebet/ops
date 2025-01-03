@@ -416,7 +416,7 @@ export abstract class BaseRunner {
       const order = await this.env.waitForOrder(pendingOrder, waitSeconds);
       if (order) {
         // finished
-        if (order.status === OrderStatus.filled) {
+        if (ExOrder.orderFilled(order.status)) {
           currentDeal.lastOrder = order;
           currentDeal.lastOrderId = order.id;
           await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);

@@ -108,10 +108,11 @@ export async function checkPressureOppOneSide(
   };
   await this.buildLimitOrder(oppo);
   if (oppo.order) {
+    const otherSide = side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
     oppo.order.cancelPrice = evalTargetPrice(
       orderPrice,
       cancelOrderPricePercent || 1.0,
-      side,
+      otherSide,
     );
   }
   return oppo;

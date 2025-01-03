@@ -7,6 +7,7 @@ import { PressureCheckerParams } from '@/strategy/strategy.types';
 import { TradeSide } from '@/data-service/models/base';
 import { checkStopLossAndTimeLimit } from '@/strategy-backtest/opportunity/helper';
 import { checkPressure } from '@/strategy/opportunity/pressure';
+import { evalTargetPrice } from '@/strategy/opportunity/helper';
 
 export async function checkPressureContinuous(
   this: BaseBacktestRunner,
@@ -15,7 +16,7 @@ export async function checkPressureContinuous(
   options: CheckOppoOptions,
 ): Promise<BacktestTradeOppo | undefined> {
   const { kld, considerSide } = options;
-  const { interval, periods } = params;
+  const { interval, periods, cancelOrderPricePercent } = params;
 
   while (true) {
     kld.resetLevel(interval);
@@ -59,6 +60,15 @@ export async function checkPressureContinuous(
         memo: info.join('\n'),
       };
       await this.buildLimitOrder(oppo);
+      if (oppo.order) {
+        const otherSide =
+          side === TradeSide.buy ? TradeSide.sell : TradeSide.buy;
+        oppo.order.cancelPrice = evalTargetPrice(
+          result.orderPrice,
+          cancelOrderPricePercent || 1.0,
+          otherSide,
+        );
+      }
       return oppo;
     }
 

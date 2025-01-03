@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { Equal, IsNull, Or } from 'typeorm';
+import { Equal, In, IsNull, Or } from 'typeorm';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
@@ -232,7 +232,8 @@ export class StrategyService implements OnModuleInit {
     });
     for (const strategy of strategies) {
       await this.doSummitJob(strategy);
-      await Strategy.update(strategy.id, { jobSummited: true });
+      const u = await Strategy.update(strategy.id, { jobSummited: true });
+      this.logger.log(u);
     }
   }
 
