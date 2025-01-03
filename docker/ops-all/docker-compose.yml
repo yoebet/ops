@@ -2,7 +2,7 @@ services:
   server:
     image: node:20
     container_name: ops-all
-    # restart: on-failure
+    restart: on-failure
     environment:
       TZ: UTC
       SERVER_PROFILE: RunAll

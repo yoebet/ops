@@ -255,6 +255,9 @@ export class MockOrderTracingService implements OnModuleInit {
     let orderPrice: number | undefined = undefined;
 
     const reportStatusHandler = setInterval(async () => {
+      if (!orderPrice) {
+        return;
+      }
       const diffPercent = evalDiffPercent(price, orderPrice);
       const pop = orderPrice.toPrecision(6);
       await this.logJob(

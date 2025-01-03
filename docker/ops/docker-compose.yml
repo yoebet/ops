@@ -2,7 +2,7 @@ services:
   admin:
     image: node:20
     container_name: ops-admin
-    # restart: on-failure
+    restart: on-failure
     environment:
       TZ: UTC
       SERVER_PROFILE: Admin
