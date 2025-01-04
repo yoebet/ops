@@ -182,6 +182,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
     if (order === res) {
       return;
     }
+    if (res.clientOrderId === '' || res.clientOrderId === undefined) {
+      delete res.clientOrderId;
+    }
     Object.assign(order, res);
   }
 }

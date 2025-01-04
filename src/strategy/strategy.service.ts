@@ -227,7 +227,8 @@ export class StrategyService implements OnModuleInit {
 
   async summitAllJobs() {
     const strategies = await Strategy.findBy({
-      active: true,
+      // active: true,
+      symbol: 'DOGE/USDT',
       jobSummited: Or(IsNull(), Equal(false)),
     });
     for (const strategy of strategies) {

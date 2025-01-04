@@ -83,8 +83,4 @@ export class StrategyEnvTrade
     await this.ensureApiKey();
     return this.exOrderService.syncOrder(order, strategy.apiKey);
   }
-
-  getThisJob(): Job<StrategyJobData> | undefined {
-    return this.job;
-  }
 }

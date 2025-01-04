@@ -594,10 +594,19 @@ export abstract class BaseRunner {
     order.algoOrder = false;
     order.memo = oppo.memo;
 
+    let priceStr = '';
+    const priceDigits = exSymbol.priceDigits;
+    if (priceDigits != null) {
+      priceStr = round(order.limitPrice, priceDigits);
+    } else {
+      priceStr = order.limitPrice.toString(5);
+    }
+
     const params: PlaceOrderParams = {
       side: tradeSide,
       symbol: strategy.rawSymbol,
       priceType: order.priceType,
+      price: priceStr,
       clientOrderId,
       algoOrder: false,
     };
