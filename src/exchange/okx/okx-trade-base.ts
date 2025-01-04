@@ -88,7 +88,7 @@ export class OkxTradeBase implements ExchangeTradeService {
       tdMode: this.tradeMode,
       // posSide: params.posSide,
       ccy: params.marginMode === 'cross' ? params.marginCoin : undefined,
-      reduceOnly: params.reduceOnly,
+      reduceOnly: !!params.reduceOnly,
       ordType: 'conditional',
     };
 
@@ -156,7 +156,7 @@ export class OkxTradeBase implements ExchangeTradeService {
       tdMode: this.tradeMode,
       // posSide: params.posSide,
       ccy: params.marginMode === 'cross' ? params.marginCoin : undefined,
-      // reduceOnly: false,
+      reduceOnly: !!params.reduceOnly,
     };
     if (this.tradeMode === 'cash' && type === 'market') {
       if (params.quoteAmount) {
