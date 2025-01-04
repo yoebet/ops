@@ -233,7 +233,12 @@ export class StrategyService implements OnModuleInit {
     for (const strategy of strategies) {
       await this.doSummitJob(strategy);
       const u = await Strategy.update(strategy.id, { jobSummited: true });
-      this.logger.log(u);
+      // u = {
+      //   generatedMaps: [],
+      //   raw: [],
+      //   affected: 1,
+      // };
+      this.logger.log(JSON.stringify(u, null, 2));
     }
   }
 

@@ -535,15 +535,12 @@ export abstract class BaseRunner {
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
     order.priceType = 'market';
-    if (tradeSide === TradeSide.buy) {
-      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
-    } else {
-      order.baseSize = oppo.orderSize || strategy.baseSize;
-      if (!order.baseSize) {
-        const lastPrice = await this.env.getLastPrice();
-        const qa = oppo.orderAmount || strategy.quoteAmount;
-        order.baseSize = qa / lastPrice;
-      }
+    order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
+    order.baseSize = oppo.orderSize || strategy.baseSize;
+    if (!order.baseSize) {
+      const lastPrice = await this.env.getLastPrice();
+      const qa = oppo.orderAmount || strategy.quoteAmount;
+      order.baseSize = qa / lastPrice;
     }
     order.algoOrder = false;
     order.memo = oppo.memo;
@@ -561,9 +558,10 @@ export abstract class BaseRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    if (tradeSide === TradeSide.buy) {
+    if (order.quoteAmount) {
       params.quoteAmount = order.quoteAmount.toFixed(2);
-    } else {
+    }
+    if (order.baseSize) {
       params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     }
 
@@ -587,14 +585,11 @@ export abstract class BaseRunner {
     order.clientOrderId = clientOrderId;
     order.priceType = 'limit';
     order.limitPrice = orderPrice;
-    if (tradeSide === TradeSide.buy) {
-      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
-    } else {
-      order.baseSize = oppo.orderSize || strategy.baseSize;
-      if (!order.baseSize) {
-        const qa = oppo.orderAmount || strategy.quoteAmount;
-        order.baseSize = qa / orderPrice;
-      }
+    order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
+    order.baseSize = oppo.orderSize || strategy.baseSize;
+    if (!order.baseSize) {
+      const qa = oppo.orderAmount || strategy.quoteAmount;
+      order.baseSize = qa / orderPrice;
     }
     order.algoOrder = false;
     order.memo = oppo.memo;
@@ -612,9 +607,10 @@ export abstract class BaseRunner {
       params.marginCoin = unifiedSymbol.quote;
     }
 
-    if (tradeSide === TradeSide.buy) {
+    if (order.quoteAmount) {
       params.quoteAmount = order.quoteAmount.toFixed(2);
-    } else {
+    }
+    if (order.baseSize) {
       params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     }
 
@@ -655,14 +651,11 @@ export abstract class BaseRunner {
     order.algoOrder = true;
     order.tpslType = 'move';
     order.moveDrawbackPercent = drawbackPercent;
-    if (tradeSide === TradeSide.buy) {
-      order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
-    } else {
-      order.baseSize = oppo.orderSize || strategy.baseSize;
-      if (!order.baseSize) {
-        const qa = oppo.orderAmount || strategy.quoteAmount;
-        order.baseSize = qa / placeOrderPrice; // FIXME
-      }
+    order.quoteAmount = oppo.orderAmount || strategy.quoteAmount;
+    order.baseSize = oppo.orderSize || strategy.baseSize;
+    if (!order.baseSize) {
+      const qa = oppo.orderAmount || strategy.quoteAmount;
+      order.baseSize = qa / placeOrderPrice; // FIXME
     }
     if (activePercent) {
       const activeRatio = activePercent / 100;
@@ -688,9 +681,10 @@ export abstract class BaseRunner {
     }
 
     params.tpslType = order.tpslType;
-    if (tradeSide === TradeSide.buy) {
+    if (order.quoteAmount) {
       params.quoteAmount = order.quoteAmount.toFixed(2);
-    } else {
+    }
+    if (order.baseSize) {
       params.baseSize = round(order.baseSize, exSymbol.baseSizeDigits);
     }
     params.moveDrawbackRatio = (drawbackPercent / 100).toFixed(4);
