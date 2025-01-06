@@ -180,7 +180,9 @@ export abstract class BaseRunner {
       }
     } catch (e) {
       this.logger.error(e, e.stack);
+      this.logger.error(`order id: ${order.id}`);
       order.status = OrderStatus.summitFailed;
+      order.errMsg = [e.message, e.stack].join('\n');
       await order.save();
       await this.logJob(`summit order failed: ${e.message}`);
       await wait(MINUTE_MS);
@@ -563,7 +565,7 @@ export abstract class BaseRunner {
       priceType: order.priceType,
       clientOrderId,
       algoOrder: false,
-      reduceOnly: order.tag !== OrderTag.open,
+      // reduceOnly: order.tag !== OrderTag.open,
     };
 
     if (strategy.tradeType === ExTradeType.margin) {
@@ -622,7 +624,7 @@ export abstract class BaseRunner {
       price: priceStr,
       clientOrderId,
       algoOrder: false,
-      reduceOnly: order.tag !== OrderTag.open,
+      // reduceOnly: order.tag !== OrderTag.open,
     };
 
     if (strategy.tradeType === ExTradeType.margin) {
@@ -696,7 +698,7 @@ export abstract class BaseRunner {
       priceType: order.priceType,
       clientOrderId,
       algoOrder: true,
-      reduceOnly: order.tag !== OrderTag.open,
+      // reduceOnly: order.tag !== OrderTag.open,
     };
 
     if (strategy.tradeType === ExTradeType.margin) {

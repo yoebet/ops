@@ -162,6 +162,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column({ nullable: true })
   memo?: string;
 
+  @Column({ nullable: true })
+  errMsg?: string;
+
   static orderFinished(status: OrderStatus): boolean {
     return ![
       OrderStatus.notSummited,
