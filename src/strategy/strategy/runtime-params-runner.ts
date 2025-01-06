@@ -177,7 +177,7 @@ export abstract class RuntimeParamsRunner<
     const slPrice = evalTargetPrice(
       lastOrder.execPrice,
       priceDiffPercent,
-      slSide,
+      lastOrder.side,
     );
 
     const _price = await waitForPrice.call(this, slSide, slPrice);
