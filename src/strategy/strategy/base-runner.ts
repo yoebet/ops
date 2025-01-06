@@ -425,7 +425,12 @@ export abstract class BaseRunner {
       } else {
         // timeout
         await this.logJob(`waitForOrder - timeout`);
-        await this.env.trySynchronizeOrder(pendingOrder);
+        if (!pendingOrder.exOrderId && pendingOrder.rawOrder?.algoId) {
+          pendingOrder.exOrderId = pendingOrder.rawOrder?.algoId;
+        }
+        if (pendingOrder.exOrderId) {
+          await this.env.trySynchronizeOrder(pendingOrder);
+        }
         if (ExOrder.orderFilled(pendingOrder.status)) {
           currentDeal.lastOrder = pendingOrder;
           currentDeal.lastOrderId = pendingOrder.id;
