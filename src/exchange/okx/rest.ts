@@ -331,6 +331,21 @@ export class OkxRest extends ExRest {
     });
   }
 
+  async getAlgoOrder(
+    apiKey: ExApiKey,
+    params: {
+      algoId?: string;
+      algoClOrdId?: string;
+    },
+  ): Promise<RestTypes['Order']> {
+    return this.requestPickData0({
+      path: '/api/v5/trade/order-algo',
+      method: HttpMethodType.get,
+      params,
+      apiKey,
+    });
+  }
+
   // 获取用户未完成委托记录 https://www.okx.com/docs-v5/zh/#rest-api-trade-get-order-history-last-7-days
   async getOpenOrders(
     apiKey: ExApiKey,

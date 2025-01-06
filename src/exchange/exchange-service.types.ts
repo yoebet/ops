@@ -156,7 +156,11 @@ export interface ExchangeTradeService {
 
   getOrder(
     apiKey: ExApiKey,
-    params: { symbol: string; orderId: string },
+    params: {
+      symbol: string;
+      orderId: string;
+      algoOrder?: boolean;
+    },
   ): Promise<ExOrderResp | undefined>;
 
   // getOpenOrdersBySymbol(

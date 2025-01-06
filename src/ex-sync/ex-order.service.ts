@@ -45,6 +45,7 @@ export class ExOrderService {
     const res = await tradeService.getOrder(apiKey, {
       symbol: order.rawSymbol,
       orderId: order.exOrderId,
+      algoOrder: order.algoOrder,
     });
     if (!res) {
       return false;

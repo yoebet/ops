@@ -1,11 +1,10 @@
-import * as _ from 'lodash';
 import * as humanizeDuration from 'humanize-duration';
 import { AppLogger } from '@/common/app-logger';
 import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
-import { ExOrder, OrderStatus } from '@/db/models/ex-order';
+import { ExOrder, OrderStatus, OrderTag } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { MINUTE_MS, round, wait } from '@/common/utils/utils';
 import {
@@ -563,6 +562,7 @@ export abstract class BaseRunner {
       priceType: order.priceType,
       clientOrderId,
       algoOrder: false,
+      reduceOnly: order.tag !== OrderTag.open,
     };
 
     if (strategy.tradeType === ExTradeType.margin) {
@@ -621,6 +621,7 @@ export abstract class BaseRunner {
       price: priceStr,
       clientOrderId,
       algoOrder: false,
+      reduceOnly: order.tag !== OrderTag.open,
     };
 
     if (strategy.tradeType === ExTradeType.margin) {
@@ -694,6 +695,7 @@ export abstract class BaseRunner {
       priceType: order.priceType,
       clientOrderId,
       algoOrder: true,
+      reduceOnly: order.tag !== OrderTag.open,
     };
 
     if (strategy.tradeType === ExTradeType.margin) {

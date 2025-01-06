@@ -244,12 +244,23 @@ export class OkxTradeBase implements ExchangeTradeService {
 
   async getOrder(
     apiKey: ExApiKey,
-    params: { symbol: string; orderId: string },
+    params: {
+      symbol: string;
+      orderId: string;
+      algoOrder?: boolean;
+    },
   ): Promise<SyncOrder | undefined> {
-    const ro = await this.rest.getOrder(apiKey, {
-      instId: params.symbol,
-      ordId: params.orderId,
-    });
+    let ro: RestTypes['Order'];
+    if (params.algoOrder) {
+      ro = await this.rest.getAlgoOrder(apiKey, {
+        algoId: params.orderId,
+      });
+    } else {
+      ro = await this.rest.getOrder(apiKey, {
+        instId: params.symbol,
+        ordId: params.orderId,
+      });
+    }
     if (!ro) {
       return undefined;
     }

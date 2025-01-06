@@ -140,6 +140,13 @@ test('getOrder', async () => {
   console.log(JSON.stringify(data));
 });
 
+test('getAlgoOrder', async () => {
+  const data = await rest.getAlgoOrder(apiKey, {
+    algoId: '2135215895399112704',
+  });
+  console.log(JSON.stringify(data, null, 2));
+});
+
 test('getOpenOrders', async () => {
   const data = await rest.getOpenOrders(apiKey, {
     instType: 'MARGIN',
