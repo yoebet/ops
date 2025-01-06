@@ -442,6 +442,7 @@ export abstract class BaseRunner {
             await exService.cancelOrder(strategy.apiKey, {
               symbol: strategy.symbol,
               orderId: pendingOrder.exOrderId,
+              algoOrder: pendingOrder.algoOrder,
             });
             currentDeal.pendingOrder = null;
             currentDeal.pendingOrderId = null;

@@ -198,8 +198,18 @@ export class OkxTradeBase implements ExchangeTradeService {
 
   async cancelOrder(
     apiKey: ExApiKey,
-    params: { symbol: string; orderId: string },
+    params: {
+      symbol: string;
+      orderId: string;
+      algoOrder?: boolean;
+    },
   ): Promise<any> {
+    if (params.algoOrder) {
+      return this.rest.cancelAlgoOrder(apiKey, {
+        instId: params.symbol,
+        algoId: params.orderId,
+      });
+    }
     return this.rest.cancelOrder(apiKey, {
       instId: params.symbol,
       ordId: params.orderId,

@@ -184,6 +184,14 @@ test('cancelOrder', async () => {
   console.log(JSON.stringify(data));
 });
 
+test('cancelAlgoOrder', async () => {
+  const data = await rest.cancelAlgoOrder(apiKey, {
+    instId: 'ETH-USDT',
+    algoId: '2129268035440607232',
+  });
+  console.log(JSON.stringify(data));
+});
+
 test('cancelBatchOrders', async () => {
   const data = await rest.cancelBatchOrders(apiKey, [
     {

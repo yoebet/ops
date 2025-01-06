@@ -429,6 +429,21 @@ export class OkxRest extends ExRest {
     });
   }
 
+  async cancelAlgoOrder(
+    apiKey: ExApiKey,
+    params: {
+      instId: string;
+      algoId: string;
+    },
+  ): Promise<RestTypes['CancelOrder']> {
+    return this.requestPickData0({
+      path: '/api/v5/trade/cancel-algos',
+      method: HttpMethodType.post,
+      params: [params],
+      apiKey,
+    });
+  }
+
   // https://www.okx.com/docs-v5/zh/#order-book-trading-trade-post-cancel-multiple-orders
   async cancelBatchOrders(
     apiKey: ExApiKey,

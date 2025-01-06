@@ -141,6 +141,7 @@ export interface ExchangeTradeService {
     params: {
       symbol: string;
       orderId: string;
+      algoOrder?: boolean;
     },
   ): Promise<any>;
 
