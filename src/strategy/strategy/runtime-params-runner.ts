@@ -101,8 +101,7 @@ export abstract class RuntimeParamsRunner<
             side: oppositeSide,
           };
           await this.buildMarketOrder(oppo);
-          await oppo.order.save();
-          await this.doPlaceOrder(oppo.order, oppo.params);
+          await this.placeOrder(oppo);
           return undefined;
         }
       }
@@ -166,6 +165,9 @@ export abstract class RuntimeParamsRunner<
     if (!lastOrder) {
       return undefined;
     }
+    if (lastOrder.tag !== 'open') {
+      return undefined;
+    }
     const slSide = this.inverseSide(lastOrder.side);
     const rps = this.getRuntimeParams();
     const stopLossParams: StopLossParams = rps.stopLoss;
@@ -187,8 +189,7 @@ export abstract class RuntimeParamsRunner<
       side: slSide,
     };
     await this.buildMarketOrder(oppo);
-    await oppo.order.save();
-    await this.doPlaceOrder(oppo.order, oppo.params);
+    await this.placeOrder(oppo);
 
     return undefined;
   }

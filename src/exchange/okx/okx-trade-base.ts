@@ -82,6 +82,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     params: PlaceTpslOrderParams,
   ): Promise<PlaceOrderReturns> {
     const op: CreateAlgoOrderParams = {
+      algoClOrdId: params.clientOrderId,
       instId: params.symbol,
       side: params.side,
       sz: params.baseSize,

@@ -502,12 +502,19 @@ export abstract class BaseRunner {
   }
 
   protected newClientOrderId(orderTag?: string): string {
-    const { id, openAlgo } = this.strategy;
+    const { id, openAlgo, currentDealId } = this.strategy;
     // const code = algoCode.toLowerCase();
     const oc = openAlgo.toLowerCase();
     const ms = '' + Date.now();
-    const tag = orderTag?.replace(/[^a-zA-Z]/, '')?.toLowerCase() || '';
-    return `${oc}${id}${ms.substring(1, 10)}${tag}`;
+    let tag = orderTag?.replace(/[^a-zA-Z]/, '')?.toLowerCase() || '';
+    if (tag === 'open') {
+      tag = 'o';
+    } else if (tag === 'close') {
+      tag = 'c';
+    } else if (tag === 'stoploss') {
+      tag = 'sl';
+    }
+    return `${oc}${id}d${currentDealId || ''}${tag}${ms.substring(1, 11)}`;
   }
 
   protected newOrderByStrategy(): ExOrder {
