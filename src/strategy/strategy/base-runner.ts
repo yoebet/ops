@@ -426,7 +426,16 @@ export abstract class BaseRunner {
       } else {
         // timeout
         await this.logJob(`waitForOrder - timeout`);
-        if (!pendingOrder.exOrderId && pendingOrder.rawOrder?.algoId) {
+        if (!pendingOrder.exOrderId) {
+          if (!pendingOrder.rawOrder) {
+            const po = await ExOrder.findOne({
+              select: ['id', 'rawOrder'],
+              where: { id: pendingOrder.id },
+            });
+            if (po) {
+              pendingOrder.rawOrder = po.rawOrder;
+            }
+          }
           pendingOrder.exOrderId = pendingOrder.rawOrder?.algoId;
         }
         if (pendingOrder.exOrderId) {

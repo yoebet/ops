@@ -4,9 +4,9 @@ export const IntenseWatchThreshold = 0.3; // 0.3%
 export const IntenseWatchExitThreshold = 0.1; // 0.1%
 
 // job
-export const WorkerMaxStalledCount = 3;
+export const WorkerMaxStalledCount = 2;
 export const WorkerStalledInterval = MINUTE_MS;
-export const WorkerConcurrency = 10;
+export const WorkerConcurrency = 30;
 
 export const ReportStatusInterval = WorkerStalledInterval >> 1;
 
