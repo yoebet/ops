@@ -216,7 +216,7 @@ export async function waitForPrice(
   this: BaseRunner,
   side: TradeSide,
   targetPrice?: number,
-): Promise<number> {
+): Promise<number | undefined> {
   while (true) {
     const lastPrice = await this.env.getLastPrice();
 
@@ -249,6 +249,10 @@ export async function waitForPrice(
       logContext,
     );
 
+    const strategy = this.strategy;
+    const cdId = strategy.currentDealId;
+    const loId = strategy.currentDeal?.lastOrderId;
+
     const reachPrice = await waitForWatchLevel.call(
       this,
       side,
@@ -257,6 +261,12 @@ export async function waitForPrice(
       targetPrice,
       logContext,
     );
+
+    const cdId2 = strategy.currentDealId;
+    const loId2 = strategy.currentDeal?.lastOrderId;
+    if (cdId !== cdId2 || loId !== loId2) {
+      return undefined;
+    }
     if (reachPrice) {
       return targetPrice;
     }

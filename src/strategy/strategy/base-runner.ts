@@ -93,6 +93,7 @@ export abstract class BaseRunner {
             await this.logJob(`not active when about to place order.`);
             return 'not active';
           }
+          this.logger.log(`place order: ${opp.orderTag} >>>>>>`);
           await this.placeOrder(opp);
         }
         if (!strategy.currentDealId) {
