@@ -221,7 +221,6 @@ export abstract class RuntimeParamsRunner<
     if (lastOrder.tag === OrderTag.close) {
       return true;
     }
-    const slSide = this.inverseSide(lastOrder.side);
     const rps = this.getRuntimeParams();
     const stopLossParams: StopLossParams = rps.stopLoss;
     const priceDiffPercent = stopLossParams?.priceDiffPercent;
@@ -231,9 +230,9 @@ export abstract class RuntimeParamsRunner<
     const slPrice = evalTargetPrice(
       lastOrder.execPrice,
       priceDiffPercent,
-      slSide,
+      lastOrder.side,
     );
-    return await checkPriceReached.call(this, slSide, slPrice);
+    return await checkPriceReached.call(this, lastOrder.side, slPrice);
   }
 
   protected async placeOrder(oppo: TradeOpportunity): Promise<void> {
