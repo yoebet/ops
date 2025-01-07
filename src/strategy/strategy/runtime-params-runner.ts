@@ -160,12 +160,9 @@ export abstract class RuntimeParamsRunner<
   protected abstract checkAndWaitToCloseDeal(): Promise<TradeOpportunity>;
 
   protected async checkAndWaitToStopLoss(): Promise<TradeOpportunity> {
-    const currentDeal = this.strategy.currentDeal!;
-    const lastOrder = currentDeal.lastOrder;
-    if (!lastOrder) {
-      return undefined;
-    }
-    if (lastOrder.tag !== 'open') {
+    const strategy = this.strategy;
+    let lastOrder = strategy.currentDeal?.lastOrder;
+    if (lastOrder?.tag !== 'open') {
       return undefined;
     }
     const slSide = this.inverseSide(lastOrder.side);
@@ -183,6 +180,11 @@ export abstract class RuntimeParamsRunner<
     );
 
     const _price = await waitForPrice.call(this, lastOrder.side, slPrice);
+
+    lastOrder = strategy.currentDeal?.lastOrder;
+    if (lastOrder?.tag !== 'open') {
+      return undefined;
+    }
 
     const oppo: TradeOpportunity = {
       orderTag: OrderTag.stoploss,
