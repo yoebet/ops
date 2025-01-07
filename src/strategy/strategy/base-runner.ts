@@ -182,7 +182,7 @@ export abstract class BaseRunner {
       this.logger.error(e, e.stack);
       this.logger.error(`order id: ${order.id}`);
       order.status = OrderStatus.summitFailed;
-      order.errMsg = [e.message, e.stack].join('\n');
+      order.errMsg = e.stack;
       await order.save();
       await this.logJob(`summit order failed: ${e.message}`);
       await wait(MINUTE_MS);
