@@ -236,7 +236,7 @@ export async function waitForPrice(
         return targetPrice;
       }
     }
-    const logContext = side === TradeSide.buy ? 'wait-up' : 'wait-down';
+    const logContext = side === TradeSide.sell ? 'wait-up' : 'wait-down';
 
     const diffPercent = evalDiffPercent(lastPrice, targetPrice);
     const diffPercentAbs = Math.abs(diffPercent);

@@ -111,8 +111,8 @@ export abstract class RuntimeParamsRunner<
       // close
       if (rps.stopLoss?.priceDiffPercent) {
         return Promise.race([
-          this.checkAndWaitToStopLoss(),
           this.checkAndWaitToCloseDeal(),
+          this.checkAndWaitToStopLoss(),
         ]);
       } else {
         return this.checkAndWaitToCloseDeal();
@@ -182,7 +182,7 @@ export abstract class RuntimeParamsRunner<
       lastOrder.side,
     );
 
-    const _price = await waitForPrice.call(this, slSide, slPrice);
+    const _price = await waitForPrice.call(this, lastOrder.side, slPrice);
 
     const oppo: TradeOpportunity = {
       orderTag: OrderTag.stoploss,

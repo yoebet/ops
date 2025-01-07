@@ -29,21 +29,21 @@ async function checkMVOneSide(
   oppor?: Partial<TradeOpportunity>,
 ): Promise<TradeOpportunity | undefined> {
   const { startingPrice, waitForPercent } = rtParams;
-  let basePointPrice = startingPrice;
-  if (!basePointPrice) {
-    basePointPrice = await this.env.getLastPrice();
+  let targetPrice = startingPrice;
+  if (!targetPrice) {
+    targetPrice = await this.env.getLastPrice();
   }
   if (waitForPercent) {
-    basePointPrice = evalTargetPrice(basePointPrice, waitForPercent, side);
-    await this.logJob(`target-price: ${basePointPrice.toPrecision(6)}`);
+    targetPrice = evalTargetPrice(targetPrice, waitForPercent, side);
+    await this.logJob(`target-price: ${targetPrice.toPrecision(6)}`);
 
-    const targetPrice = await waitForPrice.call(this, side, basePointPrice);
+    targetPrice = await waitForPrice.call(this, side, targetPrice);
     if (!targetPrice) {
       return undefined;
     }
   }
 
-  const oppo: TradeOpportunity = { ...oppor, side, orderPrice: basePointPrice };
+  const oppo: TradeOpportunity = { ...oppor, side, orderPrice: targetPrice };
   await this.buildMoveTpslOrder(oppo, rtParams);
   return oppo;
 }

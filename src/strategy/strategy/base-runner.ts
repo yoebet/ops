@@ -274,6 +274,9 @@ export abstract class BaseRunner {
         if (result) {
           return result;
         }
+        if (!strategy.currentDeal) {
+          return undefined;
+        }
         await this.checkCommands();
       } catch (e) {
         if (e instanceof ExitSignal) {
