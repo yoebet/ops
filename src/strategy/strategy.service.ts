@@ -25,7 +25,7 @@ import {
   WorkerMaxStalledCount,
   WorkerStalledInterval,
 } from '@/strategy/strategy.constants';
-import { MINUTE_MS, wait } from '@/common/utils/utils';
+import { HOUR_MS, MINUTE_MS, wait } from '@/common/utils/utils';
 import { IntegratedStrategy } from '@/strategy/strategy/integrated-strategy';
 import { ApiResult, ValueResult } from '@/common/api-result';
 import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
@@ -51,7 +51,11 @@ export class StrategyService implements OnModuleInit {
     logger.setContext('Strategy');
   }
 
-  onModuleInit(): any {}
+  onModuleInit(): any {
+    setInterval(() => {
+      this.clearJobLogs().catch((e) => this.logger.error(e, e.stack));
+    }, HOUR_MS);
+  }
 
   protected defineJobs(type: 'paper-trade' | 'real-trade') {
     for (const code of Object.values(StrategyAlgo)) {
@@ -333,5 +337,14 @@ export class StrategyService implements OnModuleInit {
     await strategy.remove();
 
     return ApiResult.success();
+  }
+
+  protected async clearJobLogs() {
+    for (const jf of this.strategyJobFacades.values()) {
+      const js = await jf.getQueue().getJobs('active');
+      for (const job of js) {
+        await job.clearLogs(100);
+      }
+    }
   }
 }

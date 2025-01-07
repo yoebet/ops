@@ -87,10 +87,14 @@ export class ExPublicWsService implements OnApplicationShutdown {
 
   async start() {
     this.logger.log(`:::: start ...`);
-    const exs: ExchangeCode[] = [ExchangeCode.okx, ExchangeCode.binance];
-    const symbols = ['ETH/USDT'];
+    const exs: ExchangeCode[] = [
+      ExchangeCode.okx,
+      // ExchangeCode.binance
+    ];
+    const coins = ['ETH', 'DOGE', 'FIL', 'XRP', 'SOL'];
     for (const ex of exs) {
-      for (const symbol of symbols) {
+      for (const coin of coins) {
+        const symbol = `${coin}/USDT`;
         await this.subscribeRtPrice(ex, symbol);
       }
     }
