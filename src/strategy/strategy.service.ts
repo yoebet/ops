@@ -148,8 +148,14 @@ export class StrategyService implements OnModuleInit {
     strategy: Strategy,
     job?: Job<StrategyJobData>,
   ): Promise<string> {
-    const { algoCode, openAlgo, closeAlgo, openDealSide, paperTrade } =
-      strategy;
+    const {
+      algoCode,
+      openAlgo,
+      closeAlgo,
+      openDealSide,
+      paperTrade,
+      baseCoin,
+    } = strategy;
     const env = this.prepareEnv(strategy, job);
     const type = paperTrade ? 'paper-trade' : 'real-trade';
     const qn = this.genStrategyQueueName(algoCode, openAlgo, type);
@@ -164,7 +170,7 @@ export class StrategyService implements OnModuleInit {
       queuePaused: queue.isPaused.bind(queue),
       summitNewDealJob: () => service.doSummitJob(strategy),
     };
-    const logContext = `${type}:${openAlgo}-${closeAlgo}/${openDealSide}/${strategy.id}`;
+    const logContext = `${type}/${openAlgo}-${closeAlgo}/${openDealSide}/${baseCoin}/${strategy.id}`;
     const logger = this.logger.newLogger(logContext);
 
     let runner: BaseRunner;

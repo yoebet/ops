@@ -129,6 +129,10 @@ export abstract class BaseRunner {
       return;
     }
     const strategy = this.strategy;
+    if (!strategy.currentDeal) {
+      await this.logJob(`no currentDeal, skip order`);
+      return;
+    }
     if (order.side === TradeSide.buy) {
       if (!order.quoteAmount) {
         order.quoteAmount = orderAmount || strategy.quoteAmount;
