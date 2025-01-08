@@ -111,7 +111,12 @@ export abstract class RuntimeParamsRunner<
       // close
       if (rps.stopLoss?.priceDiffPercent) {
         const [cp, slp] = await Promise.all([
-          this.checkAndWaitToCloseDeal(),
+          this.checkAndWaitToCloseDeal().then((op) => {
+            if (op?.order) {
+              this.ov++;
+            }
+            return op;
+          }),
           this.checkAndWaitToStopLoss(),
         ]);
         return cp || slp;
