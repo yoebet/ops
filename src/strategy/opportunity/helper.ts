@@ -254,10 +254,6 @@ export async function waitForPrice(
       logContext,
     );
 
-    const strategy = this.strategy;
-    const cdId = strategy.currentDealId;
-    const loId = strategy.currentDeal?.lastOrderId;
-
     const reachPrice = await waitForWatchLevel.call(
       this,
       side,
@@ -270,11 +266,6 @@ export async function waitForPrice(
       return undefined;
     }
 
-    const cdId2 = strategy.currentDealId;
-    const loId2 = strategy.currentDeal?.lastOrderId;
-    if (cdId !== cdId2 || loId !== loId2) {
-      return undefined;
-    }
     if (reachPrice) {
       return targetPrice;
     }
