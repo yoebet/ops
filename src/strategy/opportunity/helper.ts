@@ -217,7 +217,12 @@ export async function waitForPrice(
   side: TradeSide,
   targetPrice?: number,
 ): Promise<number | undefined> {
+  const ov = this.ov;
   while (true) {
+    if (ov !== this.ov) {
+      await this.logJob(`ov changed: ${ov} -> ${this.ov}`);
+      return undefined;
+    }
     const lastPrice = await this.env.getLastPrice();
 
     if (!targetPrice) {
@@ -261,6 +266,9 @@ export async function waitForPrice(
       targetPrice,
       logContext,
     );
+    if (ov !== this.ov) {
+      return undefined;
+    }
 
     const cdId2 = strategy.currentDealId;
     const loId2 = strategy.currentDeal?.lastOrderId;

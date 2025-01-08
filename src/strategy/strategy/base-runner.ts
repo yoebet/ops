@@ -30,6 +30,8 @@ export abstract class BaseRunner {
     durationHumanizerOptions,
   );
 
+  ov = 0;
+
   protected constructor(
     protected readonly strategy: Strategy,
     protected env: StrategyEnv,
@@ -148,6 +150,7 @@ export abstract class BaseRunner {
     order: ExOrder,
     params: PlaceOrderParams | PlaceTpslOrderParams,
   ) {
+    this.ov++;
     const apiKey = await this.env.ensureApiKey();
     const exService = this.env.getTradeService();
 
@@ -259,9 +262,13 @@ export abstract class BaseRunner {
     },
   ): Promise<T | undefined> {
     const strategy = this.strategy;
+    const ov = this.ov;
     let tried = 0;
     let waited = 0;
     while (true) {
+      if (ov !== this.ov) {
+        return undefined;
+      }
       tried++;
       const start = Date.now();
       const hd = setInterval(() => {

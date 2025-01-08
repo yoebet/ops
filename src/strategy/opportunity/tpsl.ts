@@ -17,14 +17,13 @@ export async function waitToPlaceLimitOrder(
     rps.startingPrice = await this.env.getLastPrice();
   }
 
-  if (side === 'both') {
-    return Promise.race([
-      waitToPlaceOrderOneSide.call(this, rps, TradeSide.buy, oppor),
-      waitToPlaceOrderOneSide.call(this, rps, TradeSide.sell, oppor),
-    ]);
-  } else {
+  if (side !== 'both') {
     return waitToPlaceOrderOneSide.call(this, rps, side, oppor);
   }
+  return Promise.race([
+    waitToPlaceOrderOneSide.call(this, rps, TradeSide.buy, oppor),
+    waitToPlaceOrderOneSide.call(this, rps, TradeSide.sell, oppor),
+  ]);
 }
 
 async function waitToPlaceOrderOneSide(

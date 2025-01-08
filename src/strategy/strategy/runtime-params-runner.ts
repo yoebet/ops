@@ -120,6 +120,7 @@ export abstract class RuntimeParamsRunner<
     }
 
     // open ...
+    const ov = this.ov;
 
     if (rps.lossCoolDownInterval && lastDealId) {
       if (!strategy.lastDeal) {
@@ -142,6 +143,9 @@ export abstract class RuntimeParamsRunner<
         }
       }
     }
+    if (ov !== this.ov) {
+      return undefined;
+    }
     return this.checkAndWaitToOpenDeal();
   }
 
@@ -160,6 +164,7 @@ export abstract class RuntimeParamsRunner<
   protected abstract checkAndWaitToCloseDeal(): Promise<TradeOpportunity>;
 
   protected async checkAndWaitToStopLoss(): Promise<TradeOpportunity> {
+    const ov = this.ov;
     const strategy = this.strategy;
     let lastOrder = strategy.currentDeal?.lastOrder;
     if (lastOrder?.tag !== 'open') {
@@ -183,6 +188,9 @@ export abstract class RuntimeParamsRunner<
 
     lastOrder = strategy.currentDeal?.lastOrder;
     if (lastOrder?.tag !== 'open') {
+      return undefined;
+    }
+    if (ov !== this.ov) {
       return undefined;
     }
 
