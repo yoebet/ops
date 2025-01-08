@@ -27,6 +27,7 @@ import { DefaultBaselineSymbol } from '@/strategy/strategy.constants';
 import { evalTargetPrice } from '@/strategy/opportunity/helper';
 import { checkBollingerContinuous } from '@/strategy-backtest/opportunity/bollinger';
 import { checkPressureContinuous } from '@/strategy-backtest/opportunity/pressure';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 
 export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOpportunityParams> {
   constructor(
@@ -353,10 +354,8 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
 
     await order.save();
     const currentDeal = this.strategy.currentDeal;
-    currentDeal.lastOrder = order;
-    currentDeal.lastOrderId = order.id;
-    currentDeal.pendingOrder = null;
-    currentDeal.pendingOrderId = null;
+    StrategyDeal.setLastOrder(currentDeal, order);
+    StrategyDeal.setPendingOrder(currentDeal, null);
     await currentDeal.save();
     await this.onOrderFilled();
 
@@ -373,10 +372,7 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
 
     await order.save();
     const currentDeal = this.strategy.currentDeal;
-    // currentDeal.lastOrder = order;
-    // currentDeal.lastOrderId = order.id;
-    currentDeal.pendingOrder = null;
-    currentDeal.pendingOrderId = null;
+    StrategyDeal.setPendingOrder(currentDeal, null);
     await currentDeal.save();
 
     await this.logJob(`order canceled: ${order.side}`);
@@ -475,15 +471,13 @@ export class IntegratedStrategyBacktest extends RuntimeParamsBacktest<CheckOppor
       fillOrderSize(order, order, orderPrice);
       order.status = OrderStatus.filled;
       await order.save();
-      currentDeal.lastOrder = order;
-      currentDeal.lastOrderId = order.id;
+      StrategyDeal.setLastOrder(currentDeal, order);
       await currentDeal.save();
       await this.onOrderFilled();
     } else {
       order.status = OrderStatus.pending;
       await order.save();
-      currentDeal.pendingOrder = order;
-      currentDeal.pendingOrderId = order.id;
+      StrategyDeal.setPendingOrder(currentDeal, order);
       await currentDeal.save();
     }
   }

@@ -170,14 +170,12 @@ export abstract class BaseRunner {
       await order.save();
 
       if (order.status === OrderStatus.filled) {
-        currentDeal.lastOrder = order;
-        currentDeal.lastOrderId = order.id;
+        StrategyDeal.setLastOrder(currentDeal, order);
         await currentDeal.save();
         await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
         await this.onOrderFilled();
       } else if (ExOrder.orderToWait(order.status)) {
-        currentDeal.pendingOrder = order;
-        currentDeal.pendingOrderId = order.id;
+        StrategyDeal.setPendingOrder(currentDeal, order);
         await currentDeal.save();
       } else {
         await this.logJob(`place order failed: ${order.status}`);
@@ -341,20 +339,16 @@ export abstract class BaseRunner {
     if (currentDeal) {
       const { lastOrderId, pendingOrderId } = currentDeal;
       if (lastOrderId) {
-        currentDeal.lastOrder = await ExOrder.findOneBy({
+        const lastOrder = await ExOrder.findOneBy({
           id: lastOrderId,
         });
-        if (!currentDeal.lastOrder) {
-          currentDeal.lastOrderId = null;
-        }
+        StrategyDeal.setLastOrder(currentDeal, lastOrder);
       }
       if (currentDeal.pendingOrderId) {
-        currentDeal.pendingOrder = await ExOrder.findOneBy({
+        const pendingOrder = await ExOrder.findOneBy({
           id: pendingOrderId,
         });
-        if (!currentDeal.pendingOrder) {
-          currentDeal.pendingOrderId = null;
-        }
+        StrategyDeal.setPendingOrder(currentDeal, pendingOrder);
       }
       await currentDeal.save();
       await strategy.save();
@@ -404,8 +398,7 @@ export abstract class BaseRunner {
       pendingOrder.status === OrderStatus.notSummited ||
       pendingOrder.status === OrderStatus.canceled
     ) {
-      currentDeal.pendingOrder = null;
-      currentDeal.pendingOrderId = null;
+      StrategyDeal.setPendingOrder(currentDeal, null);
       await currentDeal.save();
       return true;
     }
@@ -413,15 +406,13 @@ export abstract class BaseRunner {
       ExOrder.orderFinished(pendingOrder.status) &&
       !ExOrder.orderFilled(pendingOrder.status)
     ) {
-      currentDeal.pendingOrder = null;
-      currentDeal.pendingOrderId = null;
+      StrategyDeal.setPendingOrder(currentDeal, null);
       await currentDeal.save();
       return true;
     }
 
     if (ExOrder.orderFilled(pendingOrder.status)) {
-      currentDeal.lastOrder = pendingOrder;
-      currentDeal.lastOrderId = pendingOrder.id;
+      StrategyDeal.setLastOrder(currentDeal, pendingOrder);
     } else {
       // check is market price
       const waitSeconds = pendingOrder.priceType === 'market' ? 8 : 10 * 60;
@@ -429,8 +420,7 @@ export abstract class BaseRunner {
       if (order) {
         // finished
         if (ExOrder.orderFilled(order.status)) {
-          currentDeal.lastOrder = order;
-          currentDeal.lastOrderId = order.id;
+          StrategyDeal.setLastOrder(currentDeal, order);
           await this.logJob(`order filled: ${order.side} @ ${order.execPrice}`);
         }
         // await currentDeal.save();
@@ -453,8 +443,7 @@ export abstract class BaseRunner {
           await this.env.trySynchronizeOrder(pendingOrder);
         }
         if (ExOrder.orderFilled(pendingOrder.status)) {
-          currentDeal.lastOrder = pendingOrder;
-          currentDeal.lastOrderId = pendingOrder.id;
+          StrategyDeal.setLastOrder(currentDeal, pendingOrder);
           await this.logJob(`synchronize-order - filled`);
         } else {
           await this.logJob(`synchronize-order - not filled`);
@@ -466,8 +455,7 @@ export abstract class BaseRunner {
               orderId: pendingOrder.exOrderId,
               algoOrder: pendingOrder.algoOrder,
             });
-            currentDeal.pendingOrder = null;
-            currentDeal.pendingOrderId = null;
+            StrategyDeal.setPendingOrder(currentDeal, null);
             await currentDeal.save();
             await this.logJob(`cancel order ...`);
           }
@@ -475,8 +463,7 @@ export abstract class BaseRunner {
         }
       }
     }
-    currentDeal.pendingOrder = null;
-    currentDeal.pendingOrderId = null;
+    StrategyDeal.setPendingOrder(currentDeal, null);
     await currentDeal.save();
 
     await this.onOrderFilled();

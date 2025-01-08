@@ -16,6 +16,7 @@ import { BacktestOrder } from '@/db/models/strategy/backtest-order';
 import { BacktestKlineLevelsData } from '@/strategy-backtest/backtest-kline-levels-data';
 import { TimeLevel } from '@/db/models/time-level';
 import { KlineDataService } from '@/data-service/kline-data.service';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 
 export interface CheckOppoOptions {
   kld: BacktestKlineLevelsData;
@@ -165,20 +166,16 @@ export abstract class BaseBacktestRunner {
     if (currentDeal) {
       const { lastOrderId, pendingOrderId } = currentDeal;
       if (lastOrderId) {
-        currentDeal.lastOrder = await BacktestOrder.findOneBy({
+        const lastOrder = await BacktestOrder.findOneBy({
           id: lastOrderId,
         });
-        if (!currentDeal.lastOrder) {
-          currentDeal.lastOrderId = null;
-        }
+        StrategyDeal.setLastOrder(currentDeal, lastOrder);
       }
       if (currentDeal.pendingOrderId) {
-        currentDeal.pendingOrder = await BacktestOrder.findOneBy({
+        const pendingOrder = await BacktestOrder.findOneBy({
           id: pendingOrderId,
         });
-        if (!currentDeal.pendingOrder) {
-          currentDeal.pendingOrderId = null;
-        }
+        StrategyDeal.setPendingOrder(currentDeal, pendingOrder);
       }
       await currentDeal.save();
       await strategy.save();

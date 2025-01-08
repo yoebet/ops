@@ -4,6 +4,7 @@ import { ExTradeType } from '@/db/models/exchange-types';
 import { ExOrder } from '@/db/models/ex-order';
 import { Strategy } from '@/db/models/strategy/strategy';
 import { NumericColumn } from '@/db/models/base-model';
+import { TradeSide } from '@/data-service/models/base';
 
 @Entity()
 export class StrategyDeal extends ExSymbolBase {
@@ -11,6 +12,7 @@ export class StrategyDeal extends ExSymbolBase {
     'id',
     'pendingOrderId',
     'lastOrderId',
+    'lastOrderSide',
     'pnlUsd',
     'status',
     'openAt',
@@ -41,6 +43,9 @@ export class StrategyDeal extends ExSymbolBase {
   @Column({ nullable: true })
   lastOrderId?: number;
 
+  @Column({ nullable: true })
+  lastOrderSide?: TradeSide;
+
   @NumericColumn({ nullable: true })
   pnlUsd?: number;
 
@@ -67,6 +72,28 @@ export class StrategyDeal extends ExSymbolBase {
 
   pendingOrder?: ExOrder;
   lastOrder?: ExOrder;
+
+  static setLastOrder(deal: StrategyDeal, order: ExOrder) {
+    if (order) {
+      deal.lastOrder = order;
+      deal.lastOrderId = order.id;
+      deal.lastOrderSide = order.side;
+    } else {
+      deal.lastOrder = null;
+      deal.lastOrderId = null;
+      deal.lastOrderSide = null;
+    }
+  }
+
+  static setPendingOrder(deal: StrategyDeal, pendingOrder: ExOrder) {
+    if (pendingOrder) {
+      deal.pendingOrder = pendingOrder;
+      deal.pendingOrderId = pendingOrder.id;
+    } else {
+      deal.pendingOrder = null;
+      deal.pendingOrderId = null;
+    }
+  }
 
   static newStrategyDeal(strategy: Strategy): StrategyDeal {
     const deal = new StrategyDeal();
