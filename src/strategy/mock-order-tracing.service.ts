@@ -272,14 +272,14 @@ export class MockOrderTracingService implements OnModuleInit {
       Rx.filter((rtPrice) => {
         price = rtPrice.price;
         if (side === TradeSide.buy) {
-          if (price < sentinel) {
+          if (sentinel > price) {
             sentinel = price;
             orderPrice = sentinel * spr;
           } else if (price >= orderPrice) {
             return true;
           }
         } else {
-          if (price > sentinel) {
+          if (sentinel < price) {
             sentinel = price;
             orderPrice = sentinel * bpr;
           } else if (price <= orderPrice) {
@@ -314,8 +314,8 @@ export class MockOrderTracingService implements OnModuleInit {
     if (context) {
       message = `${context}: ${message}`;
     }
-    const { id } = order;
-    const mc = `trace order: ${id}`;
+    const { id, side } = order;
+    const mc = `trace order: ${id}, ${side}`;
     this.logger.log(message, mc);
     if (job) {
       await job
@@ -377,6 +377,7 @@ export class MockOrderTracingService implements OnModuleInit {
           watchRtPriceParams,
         );
         if (watchResult.timeout) {
+          await this.logJob(job, order, `watchRtPrice timeout`, logContext);
           continue;
         }
         if (direction === 'down') {
@@ -384,12 +385,12 @@ export class MockOrderTracingService implements OnModuleInit {
             return watchResult.price;
           }
         } else {
-          if (watchResult.reachLower) {
+          if (watchResult.reachUpper) {
             return watchResult.price;
           }
         }
       } else if (diffPercentAbs < 1) {
-        // await reportStatus(`${diffInfo}, wait 10s`, logContext);
+        await this.logJob(job, order, `${diffInfo}, wait 10s`, logContext);
         await wait(10 * 1000);
       } else if (diffPercentAbs < 2) {
         await this.logJob(job, order, `${diffInfo}, wait 1m`, logContext);

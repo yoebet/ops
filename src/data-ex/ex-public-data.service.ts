@@ -18,7 +18,7 @@ export class ExPublicDataService implements OnModuleInit {
   private latestPrices = new Map<string, ExPrice>();
   private klineHolders = new Map<string, KlinesHolder>();
 
-  private $lastPrice: Promise<ExPrice>;
+  private $lastPrices = new Map<string, Promise<ExPrice>>();
 
   constructor(
     private exchanges: Exchanges,
@@ -61,12 +61,14 @@ export class ExPublicDataService implements OnModuleInit {
     if (lastPrice && Date.now() - lastPrice.ts <= cacheTimeLimit) {
       return lastPrice.last;
     }
-    if (!this.$lastPrice) {
+    let $lastPrice = this.$lastPrices.get(key);
+    if (!$lastPrice) {
       const dataService = this.exchanges.getExMarketDataService(ex, es.market);
-      this.$lastPrice = dataService.getPrice(es.rawSymbol);
+      $lastPrice = dataService.getPrice(es.rawSymbol);
+      this.$lastPrices.set(key, $lastPrice);
     }
-    lastPrice = await this.$lastPrice;
-    this.$lastPrice = undefined;
+    lastPrice = await $lastPrice;
+    this.$lastPrices.delete(key);
     this.latestPrices.set(key, lastPrice);
     return lastPrice.last;
   }
