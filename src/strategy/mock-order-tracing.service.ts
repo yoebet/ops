@@ -123,21 +123,21 @@ export class MockOrderTracingService implements OnModuleInit {
         tradeSide === 'buy' ? 'down' : 'up',
         cancelCallback,
       );
-      if (hitPrice) {
-        // fill
-        fillOrderSize(order, order);
-        order.status = OrderStatus.filled;
-        if (!order.exOrderId) {
-          order.exOrderId = newOrderId({ id: order.strategyId, ex: order.ex });
-        }
-        if (!order.exCreatedAt) {
-          order.exCreatedAt = new Date();
-        }
-        order.exUpdatedAt = new Date();
-        await order.save();
-        return order;
+      if (!hitPrice) {
+        return undefined;
       }
-      return undefined;
+      // fill
+      fillOrderSize(order, order);
+      order.status = OrderStatus.filled;
+      if (!order.exOrderId) {
+        order.exOrderId = newOrderId({ id: order.strategyId, ex: order.ex });
+      }
+      if (!order.exCreatedAt) {
+        order.exCreatedAt = new Date();
+      }
+      order.exUpdatedAt = new Date();
+      await order.save();
+      return order;
     }
     if (order.algoOrder) {
       let hitPrice: number;
@@ -240,6 +240,9 @@ export class MockOrderTracingService implements OnModuleInit {
         direction,
         cancelCallback,
       );
+      if (!activePrice) {
+        return undefined;
+      }
     } else {
       activePrice = await this.publicDataService.getLastPrice(ex, symbol);
     }
@@ -426,13 +429,16 @@ export class MockOrderTracingService implements OnModuleInit {
   ): Promise<number | undefined> {
     const direction = order.side === 'buy' ? 'up' : 'down';
     if (order.tpTriggerPrice) {
-      await this.waitForPrice(
+      const tp = await this.waitForPrice(
         job,
         order,
         order.tpTriggerPrice,
         direction,
         cancelCallback,
       );
+      if (!tp) {
+        return undefined;
+      }
     }
     return this.waitForPrice(
       job,
@@ -450,13 +456,16 @@ export class MockOrderTracingService implements OnModuleInit {
   ): Promise<number | undefined> {
     const direction = order.side === 'buy' ? 'down' : 'up';
     if (order.slTriggerPrice) {
-      await this.waitForPrice(
+      const tp = await this.waitForPrice(
         job,
         order,
         order.slTriggerPrice,
         direction,
         cancelCallback,
       );
+      if (!tp) {
+        return undefined;
+      }
     }
     return this.waitForPrice(
       job,
