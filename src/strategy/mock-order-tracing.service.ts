@@ -48,7 +48,11 @@ export class MockOrderTracingService implements OnModuleInit {
     logger.setContext(`paper-trade order-tracing`);
   }
 
-  onModuleInit(): any {}
+  onModuleInit(): any {
+    setInterval(() => {
+      this.clearJobLogs().catch((e) => this.logger.error(e, e.stack));
+    }, HOUR_MS);
+  }
 
   defineJobs() {
     this.logger.log(`:::: define jobs ...`);
@@ -108,6 +112,7 @@ export class MockOrderTracingService implements OnModuleInit {
     };
 
     if (await cancelCallback()) {
+      await this.logJob(job, order, `cancel ...`);
       return undefined;
     }
 
@@ -154,13 +159,13 @@ export class MockOrderTracingService implements OnModuleInit {
         // TODO:
       } else if (order.tpslType === 'move') {
         const { moveDrawbackPercent, moveActivePrice } = order;
-        const activePrice = moveActivePrice ? moveActivePrice : undefined;
+        const activePrice = moveActivePrice || undefined;
         hitPrice = await this.traceMovingTpsl(
           job,
           order,
           tradeSide,
-          +moveDrawbackPercent,
-          +activePrice,
+          moveDrawbackPercent,
+          activePrice,
           cancelCallback,
         );
       }
@@ -256,6 +261,7 @@ export class MockOrderTracingService implements OnModuleInit {
     let price;
     let sentinel = activePrice;
     let orderPrice: number | undefined = undefined;
+    let ri = 0;
 
     const reportStatusHandler = setInterval(async () => {
       if (!orderPrice) {
@@ -263,10 +269,11 @@ export class MockOrderTracingService implements OnModuleInit {
       }
       const diffPercent = evalDiffPercent(price, orderPrice);
       const pop = orderPrice.toPrecision(6);
+      ri++;
       await this.logJob(
         job,
         order,
-        `${sentinel} ~ ${price} ~ ${pop}, ${diffPercent.toFixed(4)}%`,
+        `${sentinel} ~ ${price} ~ ${pop}, ${diffPercent.toFixed(4)}%, #${ri}`,
         `subs-RtPrice`,
       ).catch((e) => this.logger.error(e));
     }, ReportStatusInterval);
@@ -337,88 +344,102 @@ export class MockOrderTracingService implements OnModuleInit {
     cancelCallback?: () => Promise<boolean>,
   ): Promise<number | undefined> {
     const { ex, symbol } = order;
+    const tps = targetPrice.toPrecision(6);
+    let ri = 0;
+    const reportStatusHandler = setInterval(async () => {
+      ri++;
+      await this.logJob(
+        job,
+        order,
+        `${direction} -> ${tps}, #${ri}`,
+        `waitForPrice`,
+      ).catch((e) => this.logger.error(e));
+    }, ReportStatusInterval);
 
-    while (true) {
-      const lastPrice = await this.publicDataService.getLastPrice(ex, symbol);
-      if (direction === 'up') {
-        if (lastPrice >= targetPrice) {
-          return lastPrice;
-        }
-      }
-      if (direction === 'down') {
-        if (lastPrice <= targetPrice) {
-          return lastPrice;
-        }
-      }
-
-      const diffPercent = evalDiffPercent(lastPrice, targetPrice);
-      const diffPercentAbs = Math.abs(diffPercent);
-
-      const lps = lastPrice.toPrecision(6);
-      const tps = targetPrice.toPrecision(6);
-      const diffInfo = `(${lps} -> ${tps}, ${diffPercent.toFixed(4)}%)`;
-      const logContext = `wait-${direction}`;
-
-      if (diffPercentAbs <= IntenseWatchThreshold) {
-        let watchRtPriceParams: WatchRtPriceParams;
-        if (direction === 'down') {
-          watchRtPriceParams = {
-            lowerBound: targetPrice,
-            upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
-          };
-        } else {
-          watchRtPriceParams = {
-            lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
-            upperBound: targetPrice,
-          };
-        }
-        await this.logJob(job, order, `${diffInfo}, watch`, logContext);
-        watchRtPriceParams.timeoutSeconds = 10 * 60;
-        const watchResult = await this.publicWsService.watchRtPrice(
-          ex,
-          symbol,
-          watchRtPriceParams,
-        );
-        if (watchResult.timeout) {
-          await this.logJob(job, order, `watchRtPrice timeout`, logContext);
-          continue;
-        }
-        if (direction === 'down') {
-          if (watchResult.reachLower) {
-            return watchResult.price;
-          }
-        } else {
-          if (watchResult.reachUpper) {
-            return watchResult.price;
+    try {
+      while (true) {
+        const lastPrice = await this.publicDataService.getLastPrice(ex, symbol);
+        if (direction === 'up') {
+          if (lastPrice >= targetPrice) {
+            return lastPrice;
           }
         }
-      } else if (diffPercentAbs < 1) {
-        await this.logJob(job, order, `${diffInfo}, wait 10s`, logContext);
-        await wait(10 * 1000);
-      } else if (diffPercentAbs < 2) {
-        await this.logJob(job, order, `${diffInfo}, wait 1m`, logContext);
-        await wait(MINUTE_MS);
-      } else if (diffPercentAbs < 5) {
-        await this.logJob(job, order, `${diffInfo}, wait 5m`, logContext);
-        await wait(5 * MINUTE_MS);
-      } else if (diffPercentAbs < 10) {
-        await this.logJob(job, order, `${diffInfo}, wait 30m`, logContext);
-        await wait(30 * MINUTE_MS);
-      } else {
-        await this.logJob(job, order, `${diffInfo}, wait 2h`, logContext);
-        await wait(2 * HOUR_MS);
-      }
+        if (direction === 'down') {
+          if (lastPrice <= targetPrice) {
+            return lastPrice;
+          }
+        }
 
-      const cancel = await cancelCallback();
-      if (cancel) {
-        await this.logJob(
-          job,
-          order,
-          `exit due to cancel callback`,
-          logContext,
-        );
-        return undefined;
+        const diffPercent = evalDiffPercent(lastPrice, targetPrice);
+        const diffPercentAbs = Math.abs(diffPercent);
+
+        const lps = lastPrice.toPrecision(6);
+        const diffInfo = `(${lps} -> ${tps}, ${diffPercent.toFixed(4)}%)`;
+        const logContext = `wait-${direction}`;
+
+        if (diffPercentAbs <= IntenseWatchThreshold) {
+          let watchRtPriceParams: WatchRtPriceParams;
+          if (direction === 'down') {
+            watchRtPriceParams = {
+              lowerBound: targetPrice,
+              upperBound: lastPrice * (1 + IntenseWatchExitThreshold / 100),
+            };
+          } else {
+            watchRtPriceParams = {
+              lowerBound: lastPrice * (1 - IntenseWatchExitThreshold / 100),
+              upperBound: targetPrice,
+            };
+          }
+          await this.logJob(job, order, `${diffInfo}, watch`, logContext);
+          watchRtPriceParams.timeoutSeconds = 10 * 60;
+          const watchResult = await this.publicWsService.watchRtPrice(
+            ex,
+            symbol,
+            watchRtPriceParams,
+          );
+          if (watchResult.timeout) {
+            await this.logJob(job, order, `watchRtPrice timeout`, logContext);
+            continue;
+          }
+          if (direction === 'down') {
+            if (watchResult.reachLower) {
+              return watchResult.price;
+            }
+          } else {
+            if (watchResult.reachUpper) {
+              return watchResult.price;
+            }
+          }
+        } else if (diffPercentAbs < 1) {
+          await this.logJob(job, order, `${diffInfo}, wait 10s`, logContext);
+          await wait(10 * 1000);
+        } else if (diffPercentAbs < 2) {
+          await this.logJob(job, order, `${diffInfo}, wait 1m`, logContext);
+          await wait(MINUTE_MS);
+        } else if (diffPercentAbs < 5) {
+          await this.logJob(job, order, `${diffInfo}, wait 5m`, logContext);
+          await wait(5 * MINUTE_MS);
+        } else if (diffPercentAbs < 10) {
+          await this.logJob(job, order, `${diffInfo}, wait 30m`, logContext);
+          await wait(30 * MINUTE_MS);
+        } else {
+          await this.logJob(job, order, `${diffInfo}, wait 2h`, logContext);
+          await wait(2 * HOUR_MS);
+        }
+
+        const cancel = await cancelCallback();
+        if (cancel) {
+          await this.logJob(
+            job,
+            order,
+            `exit due to cancel callback`,
+            logContext,
+          );
+          return undefined;
+        }
       }
+    } finally {
+      clearInterval(reportStatusHandler);
     }
   }
 
@@ -474,5 +495,14 @@ export class MockOrderTracingService implements OnModuleInit {
       direction,
       cancelCallback,
     );
+  }
+
+  protected async clearJobLogs() {
+    for (const jf of this.traceOrderJobFacades.values()) {
+      const js = await jf.getQueue().getJobs('active');
+      for (const job of js) {
+        await job.clearLogs(100);
+      }
+    }
   }
 }

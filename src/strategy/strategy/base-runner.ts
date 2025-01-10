@@ -4,7 +4,7 @@ import { Strategy } from '@/db/models/strategy/strategy';
 import { StrategyEnv, StrategyJobEnv } from '@/strategy/env/strategy-env';
 import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 import { TradeSide } from '@/data-service/models/base';
-import { ExOrder, OrderStatus, OrderTag } from '@/db/models/ex-order';
+import { ExOrder, OrderStatus } from '@/db/models/ex-order';
 import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
 import { MINUTE_MS, round, wait } from '@/common/utils/utils';
 import {
@@ -146,6 +146,7 @@ export abstract class BaseRunner {
         order.baseSize = amount / orderPrice;
       }
     }
+    order.status = OrderStatus.pending;
     await order.save();
     await this.doPlaceOrder(order, params);
   }
