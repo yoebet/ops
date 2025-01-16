@@ -285,4 +285,28 @@ export class BacktestService implements OnModuleInit {
 
     return ApiResult.success();
   }
+
+  async cancelCurrentDeal(strategyId: number): Promise<ApiResult> {
+    const strategy = await BacktestStrategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ApiResult.fail(`strategy ${strategyId} not found`);
+    }
+    if (!strategy.currentDealId) {
+      return ApiResult.fail(`no currentDeal`);
+    }
+    const currentDeal = await BacktestDeal.findOneBy({
+      id: strategy.currentDealId,
+    });
+    if (!currentDeal) {
+      return ApiResult.fail(`no currentDeal`);
+    }
+    if (!currentDeal.lastOrderId) {
+      return ApiResult.fail(`no lastOrder`);
+    }
+    currentDeal.status = 'canceled';
+    strategy.currentDealId = null;
+    await currentDeal.save();
+    await strategy.save();
+    return ApiResult.success();
+  }
 }

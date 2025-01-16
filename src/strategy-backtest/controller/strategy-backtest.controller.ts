@@ -42,16 +42,21 @@ export class StrategyBacktestController {
 
     const sm = new Map(sts.map((s) => [s.id, s]));
 
-    const ds: { cid: number; count: string }[] =
+    const ds: { cid: number; count: string; pnl: number }[] =
       await BacktestDeal.createQueryBuilder()
         .select('strategy_id', 'cid')
         .addSelect('count(*)', 'count')
+        .addSelect('sum(pnl_usd)', 'pnl')
         .addGroupBy('strategy_id')
         .execute();
     for (const c of ds) {
       const s = sm.get(c.cid);
       if (s) {
         s.dealsCount = +c.count;
+        if (s.pnlUsd == null) {
+          s.pnlUsd = 0;
+        }
+        s.pnlUsd += +c.pnl || 0;
       }
     }
 
@@ -140,6 +145,13 @@ export class StrategyBacktestController {
     @Body() params: { memo?: string },
   ): Promise<ValueResult<BacktestStrategy>> {
     return this.backtestService.cloneStrategy(id, params?.memo);
+  }
+
+  @Post(':id/cancel-current-deal')
+  async cancelCurrentDeal(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ValueResult<ApiResult>> {
+    return this.backtestService.cancelCurrentDeal(id);
   }
 
   @Delete(':id')
