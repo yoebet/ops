@@ -30,6 +30,8 @@ import { IntegratedStrategy } from '@/strategy/strategy/integrated-strategy';
 import { ApiResult, ValueResult } from '@/common/api-result';
 import { BacktestDeal } from '@/db/models/strategy/backtest-deal';
 import { BacktestOrder } from '@/db/models/strategy/backtest-order';
+import { TradeSide } from '@/data-service/models/base';
+import { StrategyDeal } from '@/db/models/strategy/strategy-deal';
 
 @Injectable()
 export class StrategyService implements OnModuleInit {
@@ -338,6 +340,30 @@ export class StrategyService implements OnModuleInit {
     await BacktestOrder.delete({ strategyId });
     await strategy.remove();
 
+    return ApiResult.success();
+  }
+
+  async cancelCurrentDeal(strategyId: number): Promise<ApiResult> {
+    const strategy = await Strategy.findOneBy({ id: strategyId });
+    if (!strategy) {
+      return ApiResult.fail(`strategy ${strategyId} not found`);
+    }
+    if (!strategy.currentDealId) {
+      return ApiResult.fail(`no currentDeal`);
+    }
+    const currentDeal = await StrategyDeal.findOneBy({
+      id: strategy.currentDealId,
+    });
+    if (!currentDeal) {
+      return ApiResult.fail(`no currentDeal`);
+    }
+    if (!currentDeal.lastOrderId) {
+      return ApiResult.fail(`no lastOrder`);
+    }
+    currentDeal.status = 'canceled';
+    strategy.currentDealId = null;
+    await currentDeal.save();
+    await strategy.save();
     return ApiResult.success();
   }
 

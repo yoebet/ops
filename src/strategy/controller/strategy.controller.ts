@@ -47,10 +47,11 @@ export class StrategyController {
 
     const sm = new Map(sts.map((s) => [s.id, s]));
 
-    const ds: { cid: number; count: string }[] =
+    const ds: { cid: number; count: string; pnlUsd: number }[] =
       await StrategyDeal.createQueryBuilder()
         .select('strategy_id', 'cid')
         .addSelect('count(*)', 'count')
+        .addSelect('sum(pnlUsd)', 'pnlUsd')
         .where({ paperTrade })
         .addGroupBy('strategy_id')
         .execute();
@@ -58,6 +59,7 @@ export class StrategyController {
       const s = sm.get(c.cid);
       if (s) {
         s.dealsCount = +c.count;
+        s.pnlUsd += +c.pnlUsd || 0;
       }
     }
 
@@ -148,6 +150,13 @@ export class StrategyController {
     @Body() params: { memo?: string },
   ): Promise<ValueResult<Strategy>> {
     return this.strategyService.cloneStrategy(id, params?.memo);
+  }
+
+  @Post(':id/cancel-current-deal')
+  async cancelCurrentDeal(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ValueResult<ApiResult>> {
+    return this.strategyService.cancelCurrentDeal(id);
   }
 
   @Delete(':id')
