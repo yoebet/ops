@@ -47,11 +47,11 @@ export class StrategyController {
 
     const sm = new Map(sts.map((s) => [s.id, s]));
 
-    const ds: { cid: number; count: string; pnlUsd: number }[] =
+    const ds: { cid: number; count: string; pnl: number }[] =
       await StrategyDeal.createQueryBuilder()
         .select('strategy_id', 'cid')
         .addSelect('count(*)', 'count')
-        .addSelect('sum(pnlUsd)', 'pnlUsd')
+        .addSelect('sum(pnl_usd)', 'pnl')
         .where({ paperTrade })
         .addGroupBy('strategy_id')
         .execute();
@@ -59,7 +59,7 @@ export class StrategyController {
       const s = sm.get(c.cid);
       if (s) {
         s.dealsCount = +c.count;
-        s.pnlUsd += +c.pnlUsd || 0;
+        s.pnlUsd += +c.pnl || 0;
       }
     }
 
