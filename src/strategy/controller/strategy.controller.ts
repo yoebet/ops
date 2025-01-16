@@ -59,6 +59,9 @@ export class StrategyController {
       const s = sm.get(c.cid);
       if (s) {
         s.dealsCount = +c.count;
+        if (s.pnlUsd == null) {
+          s.pnlUsd = 0;
+        }
         s.pnlUsd += +c.pnl || 0;
       }
     }
