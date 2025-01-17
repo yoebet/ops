@@ -65,6 +65,8 @@ export async function checkLongStillOpp(
 
   const info: string[] = [];
   if (
+    !contrastAgg ||
+    !latestAgg ||
     !checkStill.call(
       this,
       contrastAgg,

@@ -74,6 +74,8 @@ export async function checkBurstOpp(
   const selfContrastAgg = evalKlineAgg(selfKls.slice(0, contrastPeriods));
   const selfLatestAgg = evalKlineAgg(selfKls.slice(latestFrom));
   if (
+    !selfContrastAgg ||
+    !selfLatestAgg ||
     !checkBurst.call(
       this,
       selfContrastAgg,
@@ -112,6 +114,8 @@ export async function checkBurstOpp(
     const blContrastAgg = evalKlineAgg(baselineKls.slice(0, contrastPeriods));
     const blLatestAgg = evalKlineAgg(baselineKls.slice(latestFrom));
     if (
+      !selfContrastAgg ||
+      !selfLatestAgg ||
       checkBurst.call(
         this,
         blContrastAgg,

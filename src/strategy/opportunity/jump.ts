@@ -78,6 +78,8 @@ export async function checkJumpOpp(
   }
   const info: string[] = [];
   if (
+    !jumpAgg ||
+    !stopAgg ||
     !checkJump.call(
       this,
       jumpKlines,

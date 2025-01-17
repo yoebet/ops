@@ -63,6 +63,8 @@ export async function checkBurstContinuous(
         : TradeSide.sell;
     if (considerSide === 'both' || side === considerSide) {
       if (
+        selfContrastAgg &&
+        selfLatestAgg &&
         checkBurst.call(
           this,
           selfContrastAgg,
@@ -85,15 +87,18 @@ export async function checkBurstContinuous(
           const blkls = baselineKls.slice(latestFrom);
           const blContrastAgg = evalKlineAgg(bckls);
           const blLatestAgg = evalKlineAgg(blkls);
-          match = !checkBurst.call(
-            this,
-            blContrastAgg,
-            blLatestAgg,
-            baselineAmountTimes,
-            baselinePriceChangeTimes,
-            info,
-            'baseline',
-          );
+          match =
+            !selfContrastAgg ||
+            !selfLatestAgg ||
+            !checkBurst.call(
+              this,
+              blContrastAgg,
+              blLatestAgg,
+              baselineAmountTimes,
+              baselinePriceChangeTimes,
+              info,
+              'baseline',
+            );
         }
         if (match) {
           const lastKl = selfKls[selfKls.length - 1];
