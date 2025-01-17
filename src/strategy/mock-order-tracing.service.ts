@@ -505,4 +505,18 @@ export class MockOrderTracingService implements OnModuleInit {
       }
     }
   }
+
+  async clearCompletedJobs() {
+    for (const jf of this.traceOrderJobFacades.values()) {
+      const queue = jf.getQueue();
+      await queue.clean(MINUTE_MS, 1000, 'completed');
+    }
+  }
+
+  async clearFailedJobs() {
+    for (const jf of this.traceOrderJobFacades.values()) {
+      const queue = jf.getQueue();
+      await queue.clean(MINUTE_MS, 1000, 'failed');
+    }
+  }
 }

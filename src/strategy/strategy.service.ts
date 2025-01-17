@@ -1,6 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { Equal, In, IsNull, Or } from 'typeorm';
 import { Exchanges } from '@/exchange/exchanges';
 import { AppLogger } from '@/common/app-logger';
 import { ExPublicWsService } from '@/data-ex/ex-public-ws.service';
@@ -240,8 +239,10 @@ export class StrategyService implements OnModuleInit {
   async summitAllJobs() {
     const strategies = await Strategy.findBy({
       // active: true,
-      symbol: 'DOGE/USDT',
-      jobSummited: Or(IsNull(), Equal(false)),
+      // symbol: 'ETH/USDT',
+      // openDealSide: TradeSide.sell,
+      paperTrade: true,
+      // jobSummited: Or(IsNull(), Equal(false)),
     });
     for (const strategy of strategies) {
       await this.doSummitJob(strategy);
@@ -373,6 +374,20 @@ export class StrategyService implements OnModuleInit {
       for (const job of js) {
         await job.clearLogs(100);
       }
+    }
+  }
+
+  async clearCompletedJobs() {
+    for (const jf of this.strategyJobFacades.values()) {
+      const queue = jf.getQueue();
+      await queue.clean(MINUTE_MS, 1000, 'completed');
+    }
+  }
+
+  async clearFailedJobs() {
+    for (const jf of this.strategyJobFacades.values()) {
+      const queue = jf.getQueue();
+      await queue.clean(MINUTE_MS, 1000, 'failed');
     }
   }
 }

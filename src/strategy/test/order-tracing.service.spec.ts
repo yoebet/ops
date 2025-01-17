@@ -15,6 +15,7 @@ describe('trace order', () => {
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(MockOrderTracingService);
+    service.defineJobs();
   });
 
   // it('summit all pending orders', async () => {
@@ -28,5 +29,10 @@ describe('trace order', () => {
   it('run 1', async () => {
     const order = await ExOrder.findOneBy({ id: 20 });
     await service.traceAndFillOrder(order);
+  });
+
+  it('clear jobs', async () => {
+    await service.clearCompletedJobs();
+    await service.clearFailedJobs();
   });
 });

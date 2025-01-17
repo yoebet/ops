@@ -18,6 +18,7 @@ describe('strategy runner', () => {
     await moduleRef.init();
     service = moduleRef.get(StrategyService);
     service.definePaperTradeJobs();
+    service.defineRealTradeJobs();
   });
 
   it('summit all pending strategies', async () => {
@@ -44,5 +45,10 @@ describe('strategy runner', () => {
   it('run all', async () => {
     const strategies = await Strategy.findBy({ active: true });
     await Promise.all(strategies.map((s) => service.runStrategy(s)));
+  });
+
+  it('clear jobs', async () => {
+    await service.clearCompletedJobs();
+    await service.clearFailedJobs();
   });
 });

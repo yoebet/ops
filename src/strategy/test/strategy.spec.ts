@@ -5,6 +5,8 @@ import { StrategyTemplate } from '@/db/models/strategy/strategy-template';
 import { Strategy } from '@/db/models/strategy/strategy';
 import { UserExAccount } from '@/db/models/sys/user-ex-account';
 import { ExchangeSymbol } from '@/db/models/ex/exchange-symbol';
+import { TradeSide } from '@/data-service/models/base';
+import { Coin } from '@/db/models/ex/coin';
 
 jest.setTimeout(60_000);
 
@@ -67,7 +69,7 @@ describe('strategy creating', () => {
 
   it('create strategies', async () => {
     const userId = 1;
-    const symbol = 'ETH/USDT';
+    const symbol = 'DOGE/USDT';
     const ex = ExchangeCode.okx;
     const tradeType = ExTradeType.spot;
 
@@ -84,7 +86,39 @@ describe('strategy creating', () => {
     const sts = await StrategyTemplate.find();
 
     for (const st of sts) {
+      // st.openDealSide = TradeSide.sell;
       await createStrategyFromTemplate(st, exchangeSymbol, tradeType, uea);
+    }
+  });
+
+  it('create strategies - ms', async () => {
+    const userId = 1;
+    const ex = ExchangeCode.okx;
+    const tradeType = ExTradeType.spot;
+
+    const coins = await Coin.findBy({ stable: false });
+
+    const exchangeSymbols = await ExchangeSymbol.find({
+      where: {
+        ex,
+      },
+      relations: ['unifiedSymbol'],
+    });
+    const esMap = new Map(exchangeSymbols.map((es) => [es.symbol, es]));
+
+    const uea = await UserExAccount.findOneBy({ userId, ex });
+
+    const sts = await StrategyTemplate.find();
+
+    for (const st of sts) {
+      for (const coin of coins) {
+        const symbol = `${coin.coin}/USDT`;
+        const es = esMap.get(symbol);
+        if (!es) {
+          continue;
+        }
+        await createStrategyFromTemplate(st, es, tradeType, uea);
+      }
     }
   });
 });
