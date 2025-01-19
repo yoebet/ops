@@ -159,10 +159,7 @@ export class OkxWsPrivate extends OkxBaseWs implements ExchangePrivateDataWs {
     if (channel === OkxWsPrivate.CHANNEL_ORDER) {
       const orders: WsOrder[] = obj.data;
       for (const o of orders) {
-        const so = {
-          rawOrder: o,
-          orderResp: OkxTradeBase.mapOrderResp(o, this.logger),
-        };
+        const so = OkxTradeBase.mapOrderResp(o, this.logger);
         this.publishMessage(
           this.instSubjectName(channel, o.instType as InstType),
           so,
