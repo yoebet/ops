@@ -263,6 +263,8 @@ export interface RestTypes {
     instType: string;
     lever: string;
     ordId: string;
+    algoId: string;
+    algoClOrdId: string;
     ordType: RestTypes['OrderType'];
     pnl: string;
     posSide: 'long' | 'short';

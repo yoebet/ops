@@ -34,14 +34,6 @@ export class OkxTradeBase implements ExchangeTradeService {
     if (!exo.state) {
       status = OrderStatus.pending;
     } else {
-      // 策略委托单 订单状态
-      // live：待生效
-      // pause：暂停生效
-      // partially_effective:部分生效
-      // effective：已生效
-      // canceled：已撤销
-      // order_failed：委托失败
-      // partially_failed：部分委托失败
       switch (exo.state) {
         case 'canceled':
         case 'mmp_canceled':
@@ -49,9 +41,11 @@ export class OkxTradeBase implements ExchangeTradeService {
           status = OrderStatus.canceled;
           break;
         case 'live':
+          status = OrderStatus.pending;
+          break;
         case 'effective':
         case 'partially_effective':
-          status = OrderStatus.pending;
+          status = OrderStatus.effective;
           break;
         case 'partially_filled':
           status = OrderStatus.partialFilled;
@@ -64,11 +58,17 @@ export class OkxTradeBase implements ExchangeTradeService {
           logger.error(`unknown order state: ${exo.state}`);
       }
     }
-    const exor: ExOrderResp = {
-      exOrderId: exo.ordId,
-      clientOrderId: exo.clOrdId,
-      status,
-    };
+    const exor: ExOrderResp = exo.algoId
+      ? {
+          exAlgoOrderId: exo.algoId,
+          clientAlgoOrderId: exo.algoClOrdId,
+          status,
+        }
+      : {
+          exOrderId: exo.ordId,
+          clientOrderId: exo.clOrdId,
+          status,
+        };
     if (exo.avgPx != null) {
       exor.execPrice = +exo.avgPx;
     }
@@ -84,7 +84,11 @@ export class OkxTradeBase implements ExchangeTradeService {
     if (exo.uTime) {
       exor.exUpdatedAt = new Date(+exo.uTime);
     }
-    exor.rawOrder = exo;
+    if (exo.algoId) {
+      exor.rawAlgoOrder = exo;
+    } else {
+      exor.rawOrder = exo;
+    }
     return exor;
   }
 
@@ -268,6 +272,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     params: {
       symbol: string;
       orderId: string;
+      clientOrderId?: string;
       algoOrder?: boolean;
     },
   ): Promise<SyncOrder | undefined> {
@@ -275,11 +280,13 @@ export class OkxTradeBase implements ExchangeTradeService {
     if (params.algoOrder) {
       ro = await this.rest.getAlgoOrder(apiKey, {
         algoId: params.orderId,
+        algoClOrdId: params.clientOrderId,
       });
     } else {
       ro = await this.rest.getOrder(apiKey, {
         instId: params.symbol,
         ordId: params.orderId,
+        clOrdId: params.clientOrderId,
       });
     }
     if (!ro) {

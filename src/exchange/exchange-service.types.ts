@@ -160,6 +160,7 @@ export interface ExchangeTradeService {
     params: {
       symbol: string;
       orderId: string;
+      clientOrderId?: string;
       algoOrder?: boolean;
     },
   ): Promise<ExOrderResp | undefined>;

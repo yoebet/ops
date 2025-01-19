@@ -15,6 +15,7 @@ export enum OrderStatus {
   notSummited = 'notSummited',
   summitFailed = 'summitFailed',
   pending = 'pending',
+  effective = 'effective',
   partialFilled = 'partialFilled',
   filled = 'filled',
   canceled = 'canceled',
@@ -24,7 +25,9 @@ export enum OrderStatus {
 
 export interface OrderIds {
   exOrderId?: string;
+  exAlgoOrderId?: string;
   clientOrderId?: string;
+  clientAlgoOrderId?: string;
 }
 
 export interface ExOrderResp extends OrderIds {
@@ -41,6 +44,8 @@ export interface ExOrderResp extends OrderIds {
   exUpdatedAt?: Date;
 
   rawOrder?: any;
+
+  rawAlgoOrder?: any;
 }
 
 @Entity()
@@ -80,9 +85,16 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column()
   status: OrderStatus;
 
+  @Column({ nullable: true })
+  algoStatus?: OrderStatus;
+
   @Index()
   @Column({ nullable: true })
   clientOrderId?: string;
+
+  @Index()
+  @Column({ nullable: true })
+  clientAlgoOrderId?: string;
 
   @Column()
   priceType: 'market' | 'limit';
@@ -107,9 +119,6 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
 
   @Column({ nullable: true })
   tpslType?: 'tp' | 'sl' | 'tpsl' | 'move';
-
-  @Column({ nullable: true })
-  tpslClientOrderId?: string;
 
   @NumericColumn({ nullable: true })
   tpTriggerPrice?: number;
@@ -138,6 +147,10 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column({ nullable: true })
   exOrderId?: string;
 
+  @Index()
+  @Column({ nullable: true })
+  exAlgoOrderId?: string;
+
   @NumericColumn({ nullable: true })
   execPrice?: number;
 
@@ -153,11 +166,20 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
   @Column({ nullable: true })
   exUpdatedAt?: Date;
 
+  @Column({ nullable: true })
+  exAlgoCreatedAt?: Date;
+
+  @Column({ nullable: true })
+  exAlgoUpdatedAt?: Date;
+
   @Column('jsonb', { select: false, nullable: true })
   rawOrderParams?: any;
 
   @Column('jsonb', { select: false, nullable: true })
   rawOrder?: any;
+
+  @Column('jsonb', { select: false, nullable: true })
+  rawAlgoOrder?: any;
 
   @Column({ nullable: true })
   memo?: string;
@@ -185,12 +207,41 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
     if (order === res) {
       return;
     }
-    if (res.clientOrderId === '' || res.clientOrderId === undefined) {
-      delete res.clientOrderId;
+    if (!res.exOrderId && !res.exAlgoOrderId) {
+      throw new Error('no exOrderId/exAlgoOrderId');
     }
-    Object.assign(order, res);
-    if (!order.exOrderId && res.rawOrder?.algoId) {
-      order.exOrderId = res.rawOrder?.algoId;
+    if (res.exAlgoOrderId) {
+      order.exAlgoOrderId = res.exAlgoOrderId;
+    }
+    if (!res.exOrderId) {
+      order.algoStatus = res.status;
+      order.rawAlgoOrder = res.rawAlgoOrder;
+      if (res.exCreatedAt) {
+        order.exAlgoCreatedAt = res.exCreatedAt;
+      }
+      if (res.exUpdatedAt) {
+        order.exAlgoUpdatedAt = res.exUpdatedAt;
+      }
+    } else {
+      order.status = res.status;
+      order.exOrderId = res.exOrderId;
+      // order.clientOrderId = res.clientOrderId;
+      order.rawOrder = res.rawOrder;
+      if (res.exCreatedAt) {
+        order.exCreatedAt = res.exCreatedAt;
+      }
+      if (res.exUpdatedAt) {
+        order.exUpdatedAt = res.exUpdatedAt;
+      }
+    }
+    if (res.execPrice) {
+      order.execPrice = res.execPrice;
+    }
+    if (res.execSize) {
+      order.execSize = res.execSize;
+    }
+    if (res.execAmount) {
+      order.execAmount = res.execAmount;
     }
   }
 }

@@ -321,6 +321,7 @@ export class OkxRest extends ExRest {
     params: {
       instId: string;
       ordId: string;
+      clOrdId?: string;
     },
   ): Promise<RestTypes['Order']> {
     return this.requestPickData0({

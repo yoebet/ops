@@ -42,19 +42,28 @@ export class ExOrderService {
       order.ex,
       order.tradeType,
     );
+    const getAlgoOrder =
+      order.algoOrder &&
+      (!!order.algoStatus || order.status === OrderStatus.effective);
     const res = await tradeService.getOrder(apiKey, {
       symbol: order.rawSymbol,
-      orderId: order.exOrderId,
-      algoOrder: order.algoOrder,
+      orderId: getAlgoOrder ? order.exAlgoOrderId : order.exOrderId,
+      clientOrderId: getAlgoOrder
+        ? order.clientAlgoOrderId
+        : order.clientOrderId,
+      algoOrder: getAlgoOrder,
     });
     if (!res) {
       return false;
     }
-    if (order.exUpdatedAt && res.exUpdatedAt <= order.exUpdatedAt) {
-      return false;
-    }
+    // if (order.exUpdatedAt && res.exUpdatedAt <= order.exUpdatedAt) {
+    //   return false;
+    // }
     const lastStatus = order.status;
     ExOrder.setProps(order, res);
+    if (order.algoStatus === OrderStatus.filled) {
+      order.status = OrderStatus.filled;
+    }
     const newStatus = order.status;
     await order.save();
     if (newStatus !== lastStatus) {

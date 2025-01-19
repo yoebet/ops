@@ -432,21 +432,7 @@ export abstract class BaseRunner {
       } else {
         // timeout
         await this.logJob(`waitForOrder - timeout`);
-        if (!pendingOrder.exOrderId) {
-          if (!pendingOrder.rawOrder) {
-            const po = await ExOrder.findOne({
-              select: ['id', 'rawOrder'],
-              where: { id: pendingOrder.id },
-            });
-            if (po) {
-              pendingOrder.rawOrder = po.rawOrder;
-            }
-          }
-          pendingOrder.exOrderId = pendingOrder.rawOrder?.algoId;
-        }
-        if (pendingOrder.exOrderId) {
-          await this.env.trySynchronizeOrder(pendingOrder);
-        }
+        await this.env.trySynchronizeOrder(pendingOrder);
         if (ExOrder.orderFilled(pendingOrder.status)) {
           StrategyDeal.setLastOrder(currentDeal, pendingOrder);
           await this.logJob(`synchronize-order - filled`);
@@ -684,6 +670,7 @@ export abstract class BaseRunner {
     order.side = tradeSide;
     order.status = OrderStatus.notSummited;
     order.clientOrderId = clientOrderId;
+    order.clientAlgoOrderId = `${clientOrderId}x`;
     order.priceType = 'limit';
     order.algoOrder = true;
     order.tpslType = 'move';
