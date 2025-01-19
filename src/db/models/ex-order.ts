@@ -208,7 +208,9 @@ export class ExOrder extends ExSymbolBase implements ExOrderResp {
       return;
     }
     if (!res.exOrderId && !res.exAlgoOrderId) {
-      throw new Error('no exOrderId/exAlgoOrderId');
+      console.error('no exOrderId/exAlgoOrderId');
+      console.log('Order.setProps', res);
+      return;
     }
     if (res.exAlgoOrderId) {
       order.exAlgoOrderId = res.exAlgoOrderId;

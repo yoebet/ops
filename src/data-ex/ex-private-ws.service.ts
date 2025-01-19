@@ -140,7 +140,10 @@ export class ExPrivateWsService implements OnApplicationShutdown {
     timeoutSeconds?: number,
   ): Promise<ExOrder | undefined> {
     const obs = this.subscribeForOrder(apiKey, ex, tradeType, ids);
-    const $last = Rx.lastValueFrom(obs);
+    const $last = Rx.lastValueFrom(obs).catch((e) => {
+      this.logger.error(e);
+      return undefined;
+    });
     if (!timeoutSeconds) {
       return $last;
     }

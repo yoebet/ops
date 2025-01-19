@@ -58,7 +58,8 @@ export class OkxTradeBase implements ExchangeTradeService {
           logger.error(`unknown order state: ${exo.state}`);
       }
     }
-    const exor: ExOrderResp = exo.algoId
+    const algoOrder = !exo.ordId;
+    const exor: ExOrderResp = algoOrder
       ? {
           exAlgoOrderId: exo.algoId,
           clientAlgoOrderId: exo.algoClOrdId,
@@ -84,7 +85,7 @@ export class OkxTradeBase implements ExchangeTradeService {
     if (exo.uTime) {
       exor.exUpdatedAt = new Date(+exo.uTime);
     }
-    if (exo.algoId) {
+    if (algoOrder) {
       exor.rawAlgoOrder = exo;
     } else {
       exor.rawOrder = exo;
