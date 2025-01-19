@@ -86,7 +86,7 @@ export class Strategy extends ExSymbolBase {
   paperTrade?: boolean;
 
   @Column({ nullable: true })
-  jobSummited?: boolean;
+  jobSummited?: boolean = false;
 
   @Column({ nullable: true })
   memo?: string;

@@ -34,12 +34,23 @@ export class OkxTradeBase implements ExchangeTradeService {
     if (!exo.state) {
       status = OrderStatus.pending;
     } else {
+      // 策略委托单 订单状态
+      // live：待生效
+      // pause：暂停生效
+      // partially_effective:部分生效
+      // effective：已生效
+      // canceled：已撤销
+      // order_failed：委托失败
+      // partially_failed：部分委托失败
       switch (exo.state) {
         case 'canceled':
         case 'mmp_canceled':
+        case 'pause':
           status = OrderStatus.canceled;
           break;
         case 'live':
+        case 'effective':
+        case 'partially_effective':
           status = OrderStatus.pending;
           break;
         case 'partially_filled':
